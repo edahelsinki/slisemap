@@ -1,0 +1,7 @@
+# These requirements are not needed for the package, but can be benefitial for development
+# Installation: `pip install -r requirements-dev.txt`
+pytest
+black[jupyter]
+pylint
+jupyter
+IPython
