@@ -1,0 +1,8 @@
+# Installation: `pip install -r requirements.txt`
+numpy
+pandas
+matplotlib
+scipy
+scikit-learn
+seaborn
+torch # This is the CPU version, check https://pytorch.org/get-started/locally/ for GPU acceleration
