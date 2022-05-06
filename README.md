@@ -36,5 +36,3 @@ Since SLISEMAP utilises PyTorch for efficient calculations, you might want to in
 ![Example plot of the results from using SLISEMAP on the *Auto MPG* dataset](examples/autompg.webp)
 
 See the [examples directory](https://github.com/edahelsinki/slisemap/tree/master/examples) for instructions and more detailed examples.
-
-<iframe src="https://unitube.it.helsinki.fi/unitube/embed.html?id=512aec75-1ee3-4815-b78e-53f952d48880" scrolling="no" allowfullscreen="true" frameBorder="0" marginHeight="0px" marginWidth="0px" height="360" width="640"></iframe>
