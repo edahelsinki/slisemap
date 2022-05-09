@@ -49,6 +49,8 @@ class CheckConvergence:
     Use it for, e.g., escape+optimisation cycles in Slisemap.
     """
 
+    __slots__ = ("current", "best", "counter", "patience", "optimal_state")
+
     def __init__(self, patience: int = 3):
         """Create a CheckConvergence object.
 

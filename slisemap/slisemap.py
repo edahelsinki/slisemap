@@ -40,6 +40,27 @@ class Slisemap:
     sm.plot()
     """
 
+    # Make Python faster and safer by not creating a Slisemap.__dict__
+    __slots__ = (
+        "_X",
+        "_Y",
+        "_Z",
+        "_Z0",
+        "_B",
+        "_B0",
+        "_radius",
+        "_lasso",
+        "_ridge",
+        "_z_norm",
+        "_intercept",
+        "_local_model",
+        "_local_loss",
+        "_loss",
+        "_distance",
+        "_kernel",
+        "_jit",
+    )
+
     def __init__(
         self,
         X: Union[np.ndarray, torch.Tensor],
@@ -56,7 +77,9 @@ class Slisemap:
         local_loss: Callable[
             [torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor
         ] = linear_regression_loss,
-        coefficients: Optional[int] = None,
+        coefficients: Union[
+            None, int, Callable[[torch.Tensor, torch.Tensor], int]
+        ] = None,
         distance: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] = torch.cdist,
         kernel: Callable[[torch.Tensor], torch.Tensor] = softmax_kernel,
         B0: Union[None, np.ndarray, torch.Tensor] = None,
@@ -78,7 +101,7 @@ class Slisemap:
             intercept (bool, optional): Should an intercept term be added to self.X. Defaults to True.
             local_model (Callable[[torch.Tensor, torch.Tensor], torch.Tensor], optional): Local model prediction function. Defaults to linear_regression.
             local_loss (Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor], optional): Local model loss function. Defaults to linear_regression_loss.
-            coefficients (Optional[int], optional): The number of local model coefficients. Defaults to self.X.shape[1] * self.Y.shape[1].
+            coefficients (Union[None, int, Callable[[torch.Tensor, torch.Tensor], int]], optional): The number of local model coefficients or a function: `(X,Y)->coefficients`. Defaults to self.X.shape[1] * self.Y.shape[1].
             distance (Callable[[torch.Tensor, torch.Tensor], torch.Tensor], optional): Distance function. Defaults to torch.cdist (Euclidean distance).
             kernel (Callable[[torch.Tensor], torch.Tensor], optional): Kernel function. Defaults to softmax_kernel.
             B0 (Union[None, np.ndarray, torch.Tensor], optional): Initial value for B (random if None). Defaults to None.
@@ -106,8 +129,8 @@ class Slisemap:
         self._jit = jit
 
         if cuda is None:
-            scale = X.shape[0] ** 2 * (
-                X.shape[1] if coefficients is None else coefficients
+            scale = (
+                X.shape[0] ** 2 * X.shape[1] * (1 if len(y.shape) < 2 else y.shape[1])
             )
             cuda = scale > 1_000_000 and torch.cuda.is_available()
         tensorargs = {
@@ -148,8 +171,11 @@ class Slisemap:
             self._Z0 = self._Z0 * norm
         self._Z = self._Z0.detach().clone()
 
-        coefficients = m * self.p if coefficients is None else coefficients
+        if callable(coefficients):
+            coefficients = coefficients(self._X, self._Y)
         if B0 is None:
+            if coefficients is None:
+                coefficients = m * self.p
             B0 = global_model(
                 X=self._X,
                 Y=self._Y,
@@ -169,6 +195,9 @@ class Slisemap:
                 self._B0 = torch.zeros((n, coefficients), **tensorargs)
         else:
             self._B0 = torch.as_tensor(B0, **tensorargs)
+            if coefficients is None:
+                _assert(len(B0.shape) > 1, "B0 must have more than one dimension")
+                coefficients = B0.shape[1]
             _assert(
                 self._B0.shape == (n, coefficients),
                 f"B0 has the wrong shape: {self._B0.shape} != ({n}, {coefficients})",
@@ -269,12 +298,12 @@ class Slisemap:
     @property
     def local_model(self) -> Callable[[torch.Tensor, torch.Tensor], torch.Tensor]:
         """Local model prediction function. Takes in X[n, m] and B[n, coefficients], and returns Ytilde[n, n, p]."""
-        return self._pred_fn
+        return self._local_model
 
     @local_model.setter
     def local_model(self, value: Callable[[torch.Tensor, torch.Tensor], torch.Tensor]):
         _assert(callable(value), "local_model must be callable")
-        self._pred_fn = value
+        self._local_model = value
         self._loss = None  # invalidate cached loss function
 
     @property
@@ -282,14 +311,14 @@ class Slisemap:
         self,
     ) -> Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor]:
         """Local model loss function. Takes in Ytilde[n, n, p], Y[n, p], and B[n, coefficients], and returns L[n, n]"""
-        return self._loss_fn
+        return self._local_loss
 
     @local_loss.setter
     def local_loss(
         self, value: Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor]
     ):
         _assert(callable(value), "local_loss must be callable")
-        self._loss_fn = value
+        self._local_loss = value
         self._loss = None  # invalidate cached loss function
 
     @property

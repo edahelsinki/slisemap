@@ -5,6 +5,15 @@ from slisemap.utils import *
 from .utils import *
 
 
+def test_LBFGS():
+    sm1 = get_slisemap()
+    prev = np.inf
+    for _ in range(5):
+        v = sm1.lbfgs(max_iter=100)
+        assert v <= prev
+        prev = v
+
+
 def test_LBFGS_timelimit():
     sm1 = get_slisemap(seed=42)
     sm2 = sm1.copy()

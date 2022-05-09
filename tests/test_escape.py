@@ -73,7 +73,7 @@ def test_escape_internal():
 
 def test_escape():
     set_seed(883313)
-    sm, _ = get_slisemap2(40, 5)
+    sm, _ = get_slisemap2(40, 3)
     l1 = sm.value()
     l2 = sm.lbfgs(only_B=True)
     for fn in [escape_greedy, escape_marginal, escape_combined, escape_neighbourhood]:
@@ -95,7 +95,7 @@ def test_escape():
     assert all_finite(l1, l2, l3)
     assert l3 <= l2 * 1.02
     assert l2 <= l1 * 1.02
-    sm, _ = get_slisemap2(40, 5, classes=True)
+    sm, _ = get_slisemap2(40, 3, classes=True)
     l1 = sm.value()
     l2 = sm.lbfgs()
     sm2 = sm.copy()
