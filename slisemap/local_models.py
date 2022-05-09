@@ -3,10 +3,13 @@ This module contains the built-in alternatives for local white box models.
 These can also be used as templates for implementing your own.
 """
 
-from typing import Optional
+from typing import Optional, Union
 
+import numpy as np
 import torch
 from torch.nn.functional import softmax
+
+from slisemap.utils import _assert
 
 
 def linear_regression(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
@@ -57,6 +60,24 @@ def linear_regression_loss(
     return ((Ytilde - Y.expand(Ytilde.shape)) ** 2).sum(dim=-1)
 
 
+def linear_regression_coefficients(
+    X: Union[torch.Tensor, np.ndarray],
+    Y: Union[torch.Tensor, np.ndarray],
+    intercept: bool = False,
+) -> int:
+    """Get the number of coefficients for a (multiple) linear regression.
+
+    Args:
+        X (Union[torch.Tensor, np.ndarray]): Data matrix.
+        Y (Union[torch.Tensor, np.ndarray]): Target matrix.
+        intercept (bool, optional): Add an (additional) intercept to X. Defaults to False.
+
+    Returns:
+        int: Number of coefficients (columns of B).
+    """
+    return (X.shape[1] + intercept) * (1 if len(Y.shape) < 2 else Y.shape[1])
+
+
 def logistic_regression(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
     """Prediction function for (multinomial) logistic regression.
     Note that the number of coefficients is `m * (p-1)` due to the normalisation of softmax.
@@ -71,10 +92,9 @@ def logistic_regression(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
     n_x, m = X.shape
     n_b, o = B.shape
     p = 1 + torch.div(o, m, rounding_mode="trunc")
-    a = torch.empty([n_b, n_x, p], device=B.device, dtype=B.dtype)
+    a = torch.zeros([n_b, n_x, p], device=B.device, dtype=B.dtype)
     for i in range(p - 1):
         a[:, :, i] = B[:, (i * m) : ((i + 1) * m)] @ X.T
-    a[:, :, -1] = 0.0
     return softmax(a, 2)
 
 
@@ -92,3 +112,25 @@ def logistic_regression_loss(
         torch.Tensor: Loss values [n_b, n_x].
     """
     return ((Ytilde.sqrt() - Y.sqrt().expand(Ytilde.shape)) ** 2).sum(dim=-1) * 0.5
+
+
+def logistic_regression_coefficients(
+    X: Union[torch.Tensor, np.ndarray],
+    Y: Union[torch.Tensor, np.ndarray],
+    intercept: bool = False,
+) -> int:
+    """Get the number of coefficients for a (multinomial) logistic regression.
+
+    Args:
+        X (Union[torch.Tensor, np.ndarray]): Data matrix.
+        Y (Union[torch.Tensor, np.ndarray]): Target matrix.
+        intercept (bool, optional): Add an (additional) intercept to X. Defaults to False.
+
+    Returns:
+        int: Number of coefficients (columns of B).
+    """
+    _assert(
+        len(Y.shape) > 1 and Y.shape[1] > 1,
+        "Logistic regression requires Y:s with multiple classes",
+    )
+    return (X.shape[1] + intercept) * (Y.shape[1] - 1)

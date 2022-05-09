@@ -75,33 +75,6 @@ def test_fit_new():
     assert np.sum(np.abs(l2f - l2c)) < 1e-4
 
 
-# def test_slisemapnew2():
-#     # For testing changes to slisemapnew
-#     sm, _ = get_slisemap2(30, 3, seed=42)
-#     sm.slisemap()
-#     X = sm.get_X(intercept=False)
-#     y = sm.get_Y()
-#     x2 = X[:4, :]
-#     y2 = y[:4, :]
-#     time1 = timer()
-#     B1, Z1, l1 = sm.slisemapnew(x2, y2, loss=True)
-#     time2 = timer()
-#     B2, Z2, l2 = sm.slisemapnew2(x2, y2, loss=True)
-#     time3 = timer()
-#     print(time2 - time1, time3 - time2)
-#     assert l2.sum() <= l1.sum() * 1.1
-#     sm2 = sm.copy()
-#     l1 = sm.lossvalue()
-#     sm.Z[:4] = torch.as_tensor(Z1, **sm.tensorargs)
-#     sm.B[:4] = torch.as_tensor(B1, **sm.tensorargs)
-#     l2 = sm.lossvalue()
-#     sm.Z[:4] = torch.as_tensor(Z2, **sm.tensorargs)
-#     sm.B[:4] = torch.as_tensor(B2, **sm.tensorargs)
-#     l3 = sm.lossvalue()
-#     assert l2 <= l1 * 1.1
-#     assert l3 <= l2 * 1.1
-
-
 def test_loss():
     sm = get_slisemap()
     assert all_finite(sm.value())
@@ -112,6 +85,7 @@ def test_loss():
         local_model=linear_regression,
         local_loss=linear_regression_loss,
     )
+    assert sm.coefficients == linear_regression_coefficients(sm.X, sm.Y)
     assert all_finite(sm.value())
     sm = Slisemap(
         np.random.normal(size=(10, 3)),
@@ -119,6 +93,7 @@ def test_loss():
         local_model=multiple_linear_regression,
         local_loss=linear_regression_loss,
     )
+    assert sm.coefficients == linear_regression_coefficients(sm.X, sm.Y)
     assert all_finite(sm.value())
     sm = Slisemap(
         np.random.normal(size=(10, 3)),
@@ -127,6 +102,7 @@ def test_loss():
         local_model=logistic_regression,
         local_loss=logistic_regression_loss,
     )
+    assert sm.coefficients == logistic_regression_coefficients(sm.X, sm.Y)
     assert all_finite(sm.value())
     sm = Slisemap(
         np.random.normal(size=(10, 3)),
@@ -135,6 +111,7 @@ def test_loss():
         local_model=logistic_regression,
         local_loss=logistic_regression_loss,
     )
+    assert sm.coefficients == logistic_regression_coefficients(sm.X, sm.Y)
     assert all_finite(sm.value())
 
 
