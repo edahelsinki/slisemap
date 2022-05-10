@@ -709,7 +709,7 @@ class Slisemap:
         max_iter: int = 500,
         escape_fn: Callable = escape_neighbourhood,
         verbose: bool = False,
-        noise_scale: float = 1e-4,
+        noise: float = 1e-4,
         **kwargs,
     ) -> float:
         """Optimise Slisemap by alternating between Slisemap.lbfgs and Slisemap.escape until convergence.
@@ -720,7 +720,7 @@ class Slisemap:
             max_iter (int, optional): Maximum number of LBFGS iterations per round. Defaults to 500.
             escape_fn (Callable, optional): Escape function (escape_neighbourhood/escape_greedy/escape_marginal). Defaults to escape_neighbourhood.
             verbose (bool, optional): Print status messages. Defaults to False.
-            noise_scale (float, optional): Scale of the noise used to avoid loosing dimensions in the embedding after an escape (when using a gradient based optimiser). Defaults to 1e-4.
+            noise (float, optional): Scale of the noise used to avoid disappearing dimensions in the embedding after an escape (gradient based optimisers cannot recover them). Defaults to 1e-4.
             **kwargs: Optional keyword arguments to Slisemap.lbfgs.
 
         Returns:
@@ -736,8 +736,8 @@ class Slisemap:
             loss[1] = self.value()
             if verbose:
                 print(f"Escape {i:2d}: {loss[1]:.2f}")
-            if noise_scale > 0.0:
-                self._Z = torch.normal(self.Z, noise_scale)
+            if noise > 0.0:
+                self._Z = torch.normal(self.Z, noise)
             loss[0] = self.lbfgs(max_iter=max_iter, **kwargs)
             if verbose:
                 print(f"LBFGS  {i+1:2d}: {loss[0]:.2f}")
@@ -747,6 +747,8 @@ class Slisemap:
             self._Z = cc.optimal_state._Z
             self._B = cc.optimal_state._B
         return self.lbfgs(max_iter=max_iter * 2, **kwargs)
+
+    optimize = optimise
 
     def fit_new(
         self,
