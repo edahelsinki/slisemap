@@ -1,4 +1,4 @@
-# SLISEMAP: Combining supervised dimensionality reduction with local explanations
+# SLISEMAP: Combine supervised dimensionality reduction with local explanations
 
 SLISEMAP is a supervised dimensionality reduction method, that takes data, in the form of vectors, and predictions from a *black box* regression or classification model as input. SLISEMAP then simultaneously finds local explanations for all data items and builds a (typically) two-dimensional global visualisation of the black box model such that data items with similar local explanations are projected nearby. The explanations consists of *white box* models that locally approximate the *black box* model.
 
