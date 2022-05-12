@@ -955,20 +955,24 @@ class Slisemap:
         return sm
 
     def _cluster_models(
-        self, clusters: int, B: Optional[np.ndarray] = None
+        self, clusters: int, B: Optional[np.ndarray] = None, random_state: int = 42
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Get cluster labels from k-means on the local model coefficients.
+        This function uses KMeans from scikit-learn.
 
         Args:
             clusters (int): Number of clusters.
             B (Optional[np.ndarray], optional): B matrix. Defaults to self.get_B().
+            random_state (int, optional): random_state for the KMeans clustering. Defaults to 42.
 
         Returns:
             Tuple[np.ndarray, np.ndarray]: vector of cluster labels an matrix of cluster centers.
         """
         from sklearn.cluster import KMeans
 
-        km = KMeans(clusters).fit(B if B is not None else self.get_B())
+        km = KMeans(clusters, random_state=random_state).fit(
+            B if B is not None else self.get_B()
+        )
         influence = np.abs(km.cluster_centers_)
         influence = influence.max(0) + influence.mean(0)
         col = np.argmax(influence)
@@ -982,7 +986,7 @@ class Slisemap:
         targets: Union[None, str, Sequence[str]] = None,
         clusters: Union[None, int, np.ndarray] = None,
         bars: Union[bool, int] = False,
-        jitter: float = 0.0,
+        jitter: Union[float, np.ndarray] = 0.0,
         B: Optional[np.ndarray] = None,
         Z: Optional[np.ndarray] = None,
         show: bool = True,
@@ -996,7 +1000,7 @@ class Slisemap:
             targets (Union[None, str, Sequence[str]], optional): Target name(s). Defaults to None.
             clusters (Union[None, int, np.ndarray], optional): Can be None (plot individual losses), an int (plot k-means clusters of B), or an array of known cluster id:s. Defaults to None.
             bars (Union[bool, int], optional): If the clusters are from k-means, plot the local models in a bar plot. If `bar` is an int then only plot the most influential variables. Defaults to False.
-            jitter (float, optional): Add random (normal) noise to the scatterplot. Defaults to 0.0.
+            jitter (Union[float, np.ndarray], optional): Add random (normal) noise to the embedding, or a matrix with pre-generated noise matching Z. Defaults to 0.0.
             B (Optional[np.ndarray], optional): Override self.get_B() in the plot. Defaults to None.
             Z (Optional[np.ndarray], optional): Override self.get_Z() in the plot. Defaults to None.
             show (bool, optional): Show the plot. Defaults to True.
@@ -1014,7 +1018,9 @@ class Slisemap:
                 "Only the first two dimensions in the embedding are plotted",
                 Slisemap.plot,
             )
-        if jitter > 0:
+        if not isinstance(jitter, float):
+            Z = Z + jitter
+        elif jitter > 0:
             Z = np.random.normal(Z, jitter)
         kwargs.setdefault("figsize", (12, 6))
         fig, (ax1, ax2) = plt.subplots(1, 2, **kwargs)
@@ -1098,10 +1104,11 @@ class Slisemap:
         Y: Union[None, float, np.ndarray, torch.Tensor] = None,
         index: Union[None, int, Sequence[int]] = None,
         title: str = "",
-        jitter: float = 0.0,
+        jitter: Union[float, np.ndarray] = 0.0,
         col_wrap: int = 4,
         selection: bool = True,
         legend_inside: bool = True,
+        Z: Optional[np.ndarray] = None,
         show: bool = True,
         **kwargs,
     ) -> Optional[sns.FacetGrid]:
@@ -1113,10 +1120,11 @@ class Slisemap:
             Y (Union[None, float, np.ndarray, torch.Tensor], optional): Response matrix for the selected data item(s). Defaults to None.
             index (Union[None, int, Sequence[int]], optional): Index/indices of the selected data item(s). Defaults to None.
             title (str, optional): Title of the plot. Defaults to "".
-            jitter (float, optional): Add random (normal) noise to the embedding. Defaults to 0.0.
+            jitter (Union[float, np.ndarray], optional): Add random (normal) noise to the embedding, or a matrix with pre-generated noise matching Z. Defaults to 0.0.
             col_wrap (int, optional): Maximum number of columns. Defaults to 4.
             selection (bool, optional): Mark the selected data item(s), if index is given. Defaults to True.
             legend_inside (bool, optional): Move the legend inside the grid (if there is an empty cell). Defaults to True.
+            Z (Optional[np.ndarray], optional): Override self.get_Z() in the plot. Defaults to None.
             show (bool, optional): Show the plot. Defaults to True.
             **kwargs: Additional arguments to seaborn.relplot.
 
@@ -1125,7 +1133,7 @@ class Slisemap:
         """
         import pandas as pd
 
-        Z = self.get_Z(rotate=True)
+        Z = Z if Z is not None else self.get_Z(rotate=True)
         if Z.shape[1] == 1:
             Z = np.concatenate((Z, np.zeros_like(Z)), 1)
         elif Z.shape[1] > 2:
@@ -1133,7 +1141,9 @@ class Slisemap:
                 "Only the first two dimensions in the embedding are plotted",
                 Slisemap.plot_position,
             )
-        if jitter > 0:
+        if not isinstance(jitter, float):
+            Z = Z + jitter
+        elif jitter > 0:
             Z = np.random.normal(Z, jitter)
         if index is None:
             _assert(
@@ -1284,7 +1294,7 @@ class Slisemap:
                 kwargs.setdefault("common_norm", False)
             kwargs.setdefault("palette", "bright")
             kwargs.setdefault("facet_kws", dict(sharex=False, sharey=False))
-            g = sns.displot(
+            g: sns.FacetGrid = sns.displot(
                 data=df,
                 x="Value",
                 hue=None if clusters is None else "Cluster",
@@ -1292,9 +1302,8 @@ class Slisemap:
                 col_wrap=col_wrap,
                 **kwargs,
             )
-            g.set_titles("")
-            for ax, n in zip(g.axes.flat, g.col_names):
-                ax.set_xlabel(n)
+            g.set_titles("{col_name}")
+            g.set_xlabels("")
         else:
             Z = self.get_Z(rotate=True)
             if Z.shape[1] == 1:
