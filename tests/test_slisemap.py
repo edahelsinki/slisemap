@@ -147,9 +147,10 @@ def test_get():
 
 
 def test_set():
-    sm = get_slisemap(40, 5, intercept=True, lasso=0, ridge=0)
+    sm = get_slisemap(40, 5, intercept=True, lasso=0, ridge=0, random_state=42)
     sm.d = 5
     sm.jit = False
+    sm.random_state = None
     assert np.isfinite(sm.value())
     sm.lasso = 1
     sm.ridge = 1
@@ -157,4 +158,44 @@ def test_set():
     sm.radius = 2
     sm.d = 2
     sm.jit = True
+    sm.random_state = 42
     assert np.isfinite(sm.value())
+
+
+def test_restore():
+    sm = get_slisemap(40, 3, lasso=0.01, random_state=42)
+    B1 = sm.get_B()
+    Z1 = sm.get_Z()
+    v1 = sm.value()
+    sm.optimise(max_escapes=2, max_iter=10)
+    B2 = sm.get_B()
+    Z2 = sm.get_Z()
+    v2 = sm.value()
+    sm.restore()
+    assert np.allclose(B1, sm.get_B())
+    assert np.allclose(Z1, sm.get_Z())
+    assert np.allclose(v1, sm.value())
+    sm.optimise(max_escapes=2, max_iter=10)
+    assert np.allclose(B2, sm.get_B())
+    assert np.allclose(Z2, sm.get_Z())
+    assert np.allclose(v2, sm.value())
+
+
+def test_cluster():
+    sm = get_slisemap(40, 5, randomB=True)
+    id, cm = sm._cluster_models(5)
+    assert id.max() == 4
+    assert id.min() == 0
+    D = torch.cdist(sm._B.cpu(), torch.as_tensor(cm))
+    id2 = torch.argmin(D, 1).numpy()
+    assert np.all(id == id2)
+
+
+def test_cuda():
+    if torch.cuda.is_available():
+        sm = get_slisemap(40, 3, randomB=True, cuda=False, random_state=42)
+        sm.optimise(max_escapes=2, max_iter=10)
+        sm.cuda()
+        sm.optimise(max_escapes=2, max_iter=10)
+        sm.cpu()
+        sm.optimise(max_escapes=2, max_iter=10)

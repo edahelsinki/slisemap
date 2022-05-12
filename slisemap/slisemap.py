@@ -59,6 +59,8 @@ class Slisemap:
         "_distance",
         "_kernel",
         "_jit",
+        "_random_state",
+        "_rs0",
     )
 
     def __init__(
@@ -86,6 +88,7 @@ class Slisemap:
         Z0: Union[None, np.ndarray, torch.Tensor] = None,
         dtype: torch.dtype = torch.float32,
         jit: bool = True,
+        random_state: Optional[int] = None,
         cuda: Optional[bool] = None,
     ):
         """Create a new Slisemap object.
@@ -108,6 +111,7 @@ class Slisemap:
             Z0 (Union[None, np.ndarray, torch.Tensor], optional): Initial value for Z (PCA if None). Defaults to None.
             dtype (torch.dtype, optional): Floating type. Defaults to torch.float32.
             jit (bool, optional): Just-In-Time compile the loss function for increased performance (see `torch.jit.trace` for caveats). Defaults to True.
+            random_state (Optional[int], optional): Set an explicit seed for the random number generator (i.e. `torch.manual_seed`). Defaults to None.
             cuda (Optional[bool], optional): Use cuda if available (defaults to true if the data is large enough). Defaults to None.
         """
         if lasso is None and ridge is None:
@@ -127,6 +131,7 @@ class Slisemap:
         self.radius = radius
         self._intercept = intercept
         self._jit = jit
+        self._rs0 = random_state
 
         if cuda is None:
             scale = (
@@ -143,6 +148,8 @@ class Slisemap:
             self._X = torch.cat((self._X, torch.ones_like(self._X[:, :1])), 1)
         n, m = self._X.shape
 
+        self.random_state = random_state
+
         self._Y = torch.as_tensor(y, **tensorargs)
         _assert(
             self._Y.shape[0] == n,
@@ -158,7 +165,7 @@ class Slisemap:
                     "The number of embedding dimensions is larger than the number of data dimensions",
                     Slisemap,
                 )
-                Z0fill = torch.normal(mean=0, std=0.05, size=[n, d - m])
+                Z0fill = torch.zeros(size=[n, d - m], **tensorargs)
                 self._Z0 = torch.cat((self._Z0, Z0fill), 1)
         else:
             self._Z0 = torch.as_tensor(Z0, **tensorargs)
@@ -205,9 +212,10 @@ class Slisemap:
         self._B = self._B0.detach().clone()
 
     def restore(self):
-        """Reset B and Z to their initial values (B0 and Z0)."""
+        """Reset B and Z (and random_state) to their initial values B0 and Z0 (and _rs0)."""
         self._Z = self._Z0.clone().detach()
         self._B = self._B0.clone().detach()
+        self.random_state = self._rs0
 
     @property
     def n(self) -> int:
@@ -353,6 +361,27 @@ class Slisemap:
         self._jit = value
         self._loss = None  # invalidate cached loss function
 
+    def _set_random_state(self, value: Optional[int]):
+        """Set the seed for the random number generator specific for this object (None reverts to the global torch PRNG)."""
+        if value is None:
+            self._random_state = None
+        else:
+            if self.X.device.type == "cpu":
+                self._random_state = torch.random.manual_seed(value)
+            elif self.X.device.type == "cuda":
+                gen = torch.cuda.default_generators[self.X.device.index]
+                self._random_state = gen.manual_seed(value)
+            else:
+                _warn(
+                    Slisemap._set_random_state,
+                    "Unknown device, setting the global seed insted",
+                )
+                torch.random.manual_seed(value)
+                self._random_state = None
+
+    random_state = property(fset=_set_random_state)
+    del _set_random_state
+
     @property
     def X(self) -> torch.Tensor:
         """Data matrix as a `torch.Tensor` (use `Slisemap.get_X()` for options)."""
@@ -380,6 +409,7 @@ class Slisemap:
 
     def cuda(self, **kwargs):
         """Move the tensors to CUDA memory (and run the calculations there).
+        Note that this resets the random state.
 
         Args:
             **kwargs: Optional arguments to `torch.Tensor.cuda`
@@ -389,10 +419,12 @@ class Slisemap:
         self._Y = self._Y.cuda(**kwargs)
         self._Z = self._Z.detach().cuda(**kwargs)
         self._B = self._B.detach().cuda(**kwargs)
+        self.random_state = self._rs0
         self._loss = None  # invalidate cached loss function
 
     def cpu(self, **kwargs):
         """Move the tensors to CPU memory (and run the calculations there).
+        Note that this resets the random state.
 
         Args:
             **kwargs: Optional arguments to `torch.Tensor.cpu`
@@ -402,6 +434,7 @@ class Slisemap:
         self._Y = self._Y.cpu(**kwargs)
         self._Z = self._Z.detach().cpu(**kwargs)
         self._B = self._B.detach().cpu(**kwargs)
+        self.random_state = self._rs0
         self._loss = None  # invalidate cached loss function
 
     def get_loss_fn(
@@ -737,7 +770,7 @@ class Slisemap:
             if verbose:
                 print(f"Escape {i:2d}: {loss[1]:.2f}")
             if noise > 0.0:
-                self._Z = torch.normal(self.Z, noise)
+                self._Z = torch.normal(self.Z, noise, generator=self._random_state)
             loss[0] = self.lbfgs(max_iter=max_iter, **kwargs)
             if verbose:
                 print(f"LBFGS  {i+1:2d}: {loss[0]:.2f}")
