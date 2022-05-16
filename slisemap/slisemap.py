@@ -30,14 +30,28 @@ from slisemap.utils import (
 
 
 class Slisemap:
-    """Slisemap: combine local explanations with dimensionality reduction.
+    """Slisemap: Combine local explanations with dimensionality reduction.
 
-    __Example Usage__
-    X = np.array([[0.1,0.5,0.7], [0.8,0.9,1], [0.8,0.5,0.3], [0.1,0.2,0.3], [1,2,5], [2,3,4], [2,0,1]])
-    y = np.array([1, 2, 3, 4, 1.5, 1.8, 1.7])
-    sm = Slisemap(X, y, radius=3.5, lasso=1e-4, ridge=2e-4)
-    sm.optimise()
-    sm.plot()
+    Args:
+        X (Union[np.ndarray, torch.Tensor]): Data matrix. Note that the data is assumed to be normalised.
+        y (Union[np.ndarray, torch.Tensor]): Target vector or matrix.
+        radius (float, optional): The radius of the embedding Z. Defaults to 3.5.
+        d (int, optional): The number of embedding dimensions. Defaults to 2.
+        lasso (Optional[float], optional): Lasso regularisation coefficient. Defaults to 0.0.
+        ridge (Optional[float], optional): Ridge regularisation coefficient. Defaults to 0.0.
+        z_norm (float, optional): Z normalisation regularisation coefficient. Defaults to 0.01.
+        intercept (bool, optional): Should an intercept term be added to self.X. Defaults to True.
+        local_model (Callable[[torch.Tensor, torch.Tensor], torch.Tensor], optional): Local model prediction function. Defaults to linear_regression.
+        local_loss (Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor], optional): Local model loss function. Defaults to linear_regression_loss.
+        coefficients (Union[None, int, Callable[[torch.Tensor, torch.Tensor], int]], optional): The number of local model coefficients or a function: `(X,Y)->coefficients`. Defaults to self.X.shape[1] * self.Y.shape[1].
+        distance (Callable[[torch.Tensor, torch.Tensor], torch.Tensor], optional): Distance function. Defaults to torch.cdist (Euclidean distance).
+        kernel (Callable[[torch.Tensor], torch.Tensor], optional): Kernel function. Defaults to softmax_kernel.
+        B0 (Union[None, np.ndarray, torch.Tensor], optional): Initial value for B (random if None). Defaults to None.
+        Z0 (Union[None, np.ndarray, torch.Tensor], optional): Initial value for Z (PCA if None). Defaults to None.
+        dtype (torch.dtype, optional): Floating type. Defaults to torch.float32.
+        jit (bool, optional): Just-In-Time compile the loss function for increased performance (see `torch.jit.trace` for caveats). Defaults to True.
+        random_state (Optional[int], optional): Set an explicit seed for the random number generator (i.e. `torch.manual_seed`). Defaults to None.
+        cuda (Optional[bool], optional): Use cuda if available (defaults to true if the data is large enough). Defaults to None.
     """
 
     # Make Python faster and safer by not creating a Slisemap.__dict__
@@ -91,29 +105,6 @@ class Slisemap:
         random_state: Optional[int] = None,
         cuda: Optional[bool] = None,
     ):
-        """Create a new Slisemap object.
-
-        Args:
-            X (Union[np.ndarray, torch.Tensor]): Data matrix. Note that the data is assumed to be normalised.
-            y (Union[np.ndarray, torch.Tensor]): Target vector or matrix.
-            radius (float, optional): The radius of the embedding Z. Defaults to 3.5.
-            d (int, optional): The number of embedding dimensions. Defaults to 2.
-            lasso (Optional[float], optional): Lasso regularisation coefficient. Defaults to 0.0.
-            ridge (Optional[float], optional): Ridge regularisation coefficient. Defaults to 0.0.
-            z_norm (float, optional): Z normalisation regularisation coefficient. Defaults to 0.01.
-            intercept (bool, optional): Should an intercept term be added to self.X. Defaults to True.
-            local_model (Callable[[torch.Tensor, torch.Tensor], torch.Tensor], optional): Local model prediction function. Defaults to linear_regression.
-            local_loss (Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor], optional): Local model loss function. Defaults to linear_regression_loss.
-            coefficients (Union[None, int, Callable[[torch.Tensor, torch.Tensor], int]], optional): The number of local model coefficients or a function: `(X,Y)->coefficients`. Defaults to self.X.shape[1] * self.Y.shape[1].
-            distance (Callable[[torch.Tensor, torch.Tensor], torch.Tensor], optional): Distance function. Defaults to torch.cdist (Euclidean distance).
-            kernel (Callable[[torch.Tensor], torch.Tensor], optional): Kernel function. Defaults to softmax_kernel.
-            B0 (Union[None, np.ndarray, torch.Tensor], optional): Initial value for B (random if None). Defaults to None.
-            Z0 (Union[None, np.ndarray, torch.Tensor], optional): Initial value for Z (PCA if None). Defaults to None.
-            dtype (torch.dtype, optional): Floating type. Defaults to torch.float32.
-            jit (bool, optional): Just-In-Time compile the loss function for increased performance (see `torch.jit.trace` for caveats). Defaults to True.
-            random_state (Optional[int], optional): Set an explicit seed for the random number generator (i.e. `torch.manual_seed`). Defaults to None.
-            cuda (Optional[bool], optional): Use cuda if available (defaults to true if the data is large enough). Defaults to None.
-        """
         if lasso is None and ridge is None:
             _warn(
                 "Consider using regularisation (lasso/l1 and ridge/l2 regularisation is built-in, via the parameters `lasso` and `ridge`). "

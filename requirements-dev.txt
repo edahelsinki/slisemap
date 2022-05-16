@@ -5,3 +5,7 @@ black[jupyter]
 pylint
 jupyter
 IPython
+# These packages are needed for generating the documentation
+sphinx
+myst-parser
+furo
