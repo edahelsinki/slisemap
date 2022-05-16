@@ -4,10 +4,11 @@
 name: Test python package
 
 on:
-  pull_request:
+  push:
     branches: [master, main]
-  release:
-    types: [created]
+    paths: ['**.py']
+  pull_request:
+    paths: ['**.py']
 
 jobs:
   build:
