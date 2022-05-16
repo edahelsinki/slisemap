@@ -1,7 +1,10 @@
 """
-    These are diagnostics for identifying potential issues with Slisemap solutions.
+These are diagnostics for identifying potential issues with Slisemap solutions.
 
-    Typical usage:
+Typical usage:
+
+.. code-block:: python
+
         sm = Slisemap(...)
         sm.optimise()
         diagnostics = diagnose(sm)
