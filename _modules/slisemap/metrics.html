@@ -1,0 +1,847 @@
+<!doctype html>
+<html class="no-js" lang="en">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+
+    <meta name="generator" content="sphinx-4.4.0, furo 2022.04.07"/>
+        <title>slisemap.metrics - SLISEMAP documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?digest=68f4518137b9aefe99b631505a2064c3c42c9852" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../index.html"><div class="brand">SLISEMAP  documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
+  
+  
+  <span class="sidebar-brand-text">SLISEMAP  documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder=Search name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../slisemap.html">SLISEMAP</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/edahelsinki/slisemap">GitHub</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://arxiv.org/abs/2201.04455">Paper</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/edahelsinki/slisemap/blob/main/examples/demo_paper.pdf">Demo Paper</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/edahelsinki/slisemap/tree/master/examples">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../genindex.html">Index</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container"><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <h1>Source code for slisemap.metrics</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""</span>
+<span class="sd">    This module contains functions that can be used to evaluate SLISEMAP solutions.</span>
+<span class="sd">    The functions take a solution (plus other arguments) and returns a single float.</span>
+<span class="sd">    This float should either be minimised or maximised for best results (see individual functions).</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+
+<span class="kn">from</span> <span class="nn">slisemap.slisemap</span> <span class="kn">import</span> <span class="n">Slisemap</span>
+<span class="kn">from</span> <span class="nn">slisemap.utils</span> <span class="kn">import</span> <span class="n">_tonp</span>
+
+
+<span class="k">def</span> <span class="nf">_non_crashing_median</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="nanmean"><a class="viewcode-back" href="../../slisemap.html#slisemap.metrics.nanmean">[docs]</a><span class="k">def</span> <span class="nf">nanmean</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">mask</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">mask</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="euclidean_nearest_neighbours"><a class="viewcode-back" href="../../slisemap.html#slisemap.metrics.euclidean_nearest_neighbours">[docs]</a><span class="k">def</span> <span class="nf">euclidean_nearest_neighbours</span><span class="p">(</span>
+    <span class="n">D</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">include_self</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">:</span>
+    <span class="sd">"""Find the k nearest neighbours using euclidean distance</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        D (torch.Tensor): Distance matrix.</span>
+<span class="sd">        index (int): The item (row), for which to find neighbours.</span>
+<span class="sd">        k (int, optional): The number of neighbours to find. Defaults to 0.1.</span>
+<span class="sd">        include_self (bool, optional): include the item in its' neighbourhood. Defaults to True.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.LongTensor: Vector of indices for the neighbours.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="ow">and</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="n">k</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">k</span> <span class="o">*</span> <span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">include_self</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">D</span><span class="p">[</span><span class="n">index</span><span class="p">])[:</span><span class="n">k</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">dist</span> <span class="o">=</span> <span class="n">D</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">include_self</span><span class="p">:</span>
+            <span class="n">dist</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="n">k</span> <span class="o">-=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">dist</span><span class="p">)[:</span><span class="n">k</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="kernel_neighbours"><a class="viewcode-back" href="../../slisemap.html#slisemap.metrics.kernel_neighbours">[docs]</a><span class="k">def</span> <span class="nf">kernel_neighbours</span><span class="p">(</span>
+    <span class="n">D</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">include_self</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">:</span>
+    <span class="sd">"""Find the neighbours using a softmax kernel</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        D (torch.Tensor): Distance matrix.</span>
+<span class="sd">        index (int): The item for which we want to find neighbours.</span>
+<span class="sd">        epsilon (float, optional): Treshold for selecting the neighbourhood (will be divided by `n`). Defaults to 1.0.</span>
+<span class="sd">        include_self (bool, optional): include the item in its' neighbourhood. Defaults to True.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.LongTensor: Vector of indices for the neighbours.</span>
+<span class="sd">    """</span>
+    <span class="n">K</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="o">-</span><span class="n">D</span><span class="p">[</span><span class="n">index</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">epsilon2</span> <span class="o">=</span> <span class="n">epsilon</span> <span class="o">/</span> <span class="n">K</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">include_self</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">K</span> <span class="o">&gt;=</span> <span class="n">epsilon2</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">K</span> <span class="o">&gt;=</span> <span class="n">epsilon2</span>
+        <span class="n">mask</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="cluster_neighbours"><a class="viewcode-back" href="../../slisemap.html#slisemap.metrics.cluster_neighbours">[docs]</a><span class="k">def</span> <span class="nf">cluster_neighbours</span><span class="p">(</span>
+    <span class="n">D</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">clusters</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">,</span>
+    <span class="n">include_self</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">:</span>
+    <span class="sd">"""Find the neighbours with given clusters</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        D (torch.Tensor): Distance matrix (ignored).</span>
+<span class="sd">        index (int): The item for which we want to find neighbours.</span>
+<span class="sd">        clusters (torch.LongTensor): Cluster id:s for the data items.</span>
+<span class="sd">        include_self (bool, optional): include the item in its' neighbourhood. Defaults to True.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.LongTensor: Vector of indices for the neighbours.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">include_self</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">clusters</span> <span class="o">==</span> <span class="n">clusters</span><span class="p">[</span><span class="n">index</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">clusters</span> <span class="o">==</span> <span class="n">clusters</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+        <span class="n">mask</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="radius_neighbours"><a class="viewcode-back" href="../../slisemap.html#slisemap.metrics.radius_neighbours">[docs]</a><span class="k">def</span> <span class="nf">radius_neighbours</span><span class="p">(</span>
+    <span class="n">D</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">radius</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">quantile</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">,</span>
+    <span class="n">include_self</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">:</span>
+    <span class="sd">"""Find the neighbours within a radius</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        D (torch.Tensor): Distance matrix (ignored).</span>
+<span class="sd">        index (int): The item for which we want to find neighbours.</span>
+<span class="sd">        radius (Optional[float], optional): The radius of the neighbourhood. Defaults to None.</span>
+<span class="sd">        quantile (float, optional): If radius is None then radius is set to the quantile of D. Defaults to 0.2.</span>
+<span class="sd">        include_self (bool, optional): include the item in its' neighbourhood. Defaults to True.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.LongTensor: Vector of indices for the neighbours.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">radius</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">radius</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">quantile</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">include_self</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">D</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">radius</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">D</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">radius</span>
+        <span class="n">mask</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<span class="k">def</span> <span class="nf">_get_neighbours</span><span class="p">(</span>
+    <span class="n">sm</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Slisemap</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+    <span class="n">neighbours</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">,</span>
+        <span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">],</span>
+    <span class="p">],</span>
+    <span class="n">full_if_none</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">int</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">]:</span>
+    <span class="sd">"""Create a function that takes the index of an item and returns the indices of its neighbours.</span>
+
+<span class="sd">    The neighbours parameter is primarily one of:</span>
+<span class="sd">     - euclidean_nearest_neighbours</span>
+<span class="sd">     - kernel_neighbours</span>
+<span class="sd">     - cluster_neighbours</span>
+<span class="sd">     - radius_neighbours</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sm (Union[Slisemap, torch.Tensor]): Trained Slisemap solution or an embedding vector (like Slisemap.Z).</span>
+<span class="sd">        neighbours (Union[ None, np.ndarray, torch.LongTensor, Callable[[torch.Tensor, int], torch.LongTensor], ]): Either None (return self), a vector of cluster id:s (take neighbours from the same cluter), or a function that gives neighbours (that takes a distance matrix and an index).</span>
+<span class="sd">        full_if_none (bool, optional): If `neighbours` is None, return the whole dataset. Defaults to False.</span>
+<span class="sd">        **kwargs: Arguments passed on to `neighbours` (if it is a function).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Callable[[int], torch.LongTensor]: Function that takes an index and returns neighbour indices.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">neighbours</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">full_if_none</span><span class="p">:</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">n</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sm</span><span class="p">,</span> <span class="n">Slisemap</span><span class="p">)</span> <span class="k">else</span> <span class="n">sm</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">return</span> <span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">([</span><span class="n">i</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">neighbours</span><span class="p">):</span>
+        <span class="n">D</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">get_D</span><span class="p">(</span><span class="n">numpy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sm</span><span class="p">,</span> <span class="n">Slisemap</span><span class="p">)</span> <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">cdist</span><span class="p">(</span><span class="n">sm</span><span class="p">,</span> <span class="n">sm</span><span class="p">)</span>
+        <span class="k">return</span> <span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="n">neighbours</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">neighbours</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">neighbours</span><span class="p">)</span>
+        <span class="k">return</span> <span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="n">cluster_neighbours</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">neighbours</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="slisemap_loss"><a class="viewcode-back" href="../../slisemap.html#slisemap.metrics.slisemap_loss">[docs]</a><span class="k">def</span> <span class="nf">slisemap_loss</span><span class="p">(</span><span class="n">sm</span><span class="p">:</span> <span class="n">Slisemap</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="sd">"""Evaluate a SLISEMAP solution by calculating the loss.</span>
+
+<span class="sd">    Smaller is better.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sm (Slisemap): Trained Slisemap solution.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: The loss value.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">sm</span><span class="o">.</span><span class="n">value</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="slisemap_entropy"><a class="viewcode-back" href="../../slisemap.html#slisemap.metrics.slisemap_entropy">[docs]</a><span class="k">def</span> <span class="nf">slisemap_entropy</span><span class="p">(</span><span class="n">sm</span><span class="p">:</span> <span class="n">Slisemap</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="sd">"""Evaluate a SLISEMAP solution by calculating the entropy.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sm (Slisemap): Trained Slisemap solution.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: The loss value.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">sm</span><span class="o">.</span><span class="n">entropy</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="fidelity"><a class="viewcode-back" href="../../slisemap.html#slisemap.metrics.fidelity">[docs]</a><span class="k">def</span> <span class="nf">fidelity</span><span class="p">(</span>
+    <span class="n">sm</span><span class="p">:</span> <span class="n">Slisemap</span><span class="p">,</span>
+    <span class="n">neighbours</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">,</span>
+        <span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">],</span>
+    <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="sd">"""Evaluate a SLISEMAP solution by calculating the fidelity (loss per item/neighbourhood).</span>
+
+<span class="sd">    Smaller is better.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sm (Slisemap): Trained Slisemap solution.</span>
+<span class="sd">        neighbours (Union[ None, np.ndarray, torch.LongTensor, Callable[[torch.Tensor, int], torch.LongTensor], ]): Either None (only corresponding local model), a vector of cluster id:s, or a function that gives neighbours (see `_get_neighbours`).</span>
+<span class="sd">        **kwargs: Arguments passed on to `neighbours` (if it is a function).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: The mean loss.</span>
+<span class="sd">    """</span>
+    <span class="n">neighbours</span> <span class="o">=</span> <span class="n">_get_neighbours</span><span class="p">(</span><span class="n">sm</span><span class="p">,</span> <span class="n">neighbours</span><span class="p">,</span> <span class="n">full_if_none</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">L</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">get_L</span><span class="p">(</span><span class="n">numpy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)):</span>
+        <span class="n">ni</span> <span class="o">=</span> <span class="n">neighbours</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ni</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">L</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">ni</span><span class="p">])</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">nanmean</span><span class="p">(</span><span class="n">results</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="coverage"><a class="viewcode-back" href="../../slisemap.html#slisemap.metrics.coverage">[docs]</a><span class="k">def</span> <span class="nf">coverage</span><span class="p">(</span>
+    <span class="n">sm</span><span class="p">:</span> <span class="n">Slisemap</span><span class="p">,</span>
+    <span class="n">max_loss</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">neighbours</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">,</span>
+        <span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">],</span>
+    <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="sd">"""Evaluate a SLISEMAP solution by calculating the coverage.</span>
+
+<span class="sd">    Larger is better.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sm (Slisemap): Trained Slisemap solution.</span>
+<span class="sd">        max_loss (float): Maximum tolerable loss.</span>
+<span class="sd">        neighbours (Union[ None, np.ndarray, torch.LongTensor, Callable[[torch.Tensor, int], torch.LongTensor], ], optional): Either None (all), a vector of cluster id:s, or a function that gives neighbours (see `_get_neighbours`).</span>
+<span class="sd">        **kwargs: Arguments passed on to `neighbours` (if it is a function).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: The mean fraction of items within the error bound.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">B</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)))</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="n">neighbours</span> <span class="o">=</span> <span class="n">_get_neighbours</span><span class="p">(</span><span class="n">sm</span><span class="p">,</span> <span class="n">neighbours</span><span class="p">,</span> <span class="n">full_if_none</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">L</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">get_L</span><span class="p">(</span><span class="n">numpy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)):</span>
+        <span class="n">ni</span> <span class="o">=</span> <span class="n">neighbours</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ni</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">_tonp</span><span class="p">(</span><span class="n">L</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">ni</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">max_loss</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">nanmean</span><span class="p">(</span><span class="n">results</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="median_loss"><a class="viewcode-back" href="../../slisemap.html#slisemap.metrics.median_loss">[docs]</a><span class="k">def</span> <span class="nf">median_loss</span><span class="p">(</span>
+    <span class="n">sm</span><span class="p">:</span> <span class="n">Slisemap</span><span class="p">,</span>
+    <span class="n">neighbours</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">,</span>
+        <span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">],</span>
+    <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="sd">"""Evaluate a SLISEMAP solution by calculating the median loss.</span>
+
+<span class="sd">    Smaller is better.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sm (Slisemap): Trained Slisemap solution.</span>
+<span class="sd">        neighbours (Union[ None, np.ndarray, torch.LongTensor, Callable[[torch.Tensor, int], torch.LongTensor], ], optional): Either None (all), a vector of cluster id:s, or a function that gives neighbours (see `_get_neighbours`).</span>
+<span class="sd">        **kwargs: Arguments passed on to `neighbours` (if it is a function).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: The mean median loss.</span>
+<span class="sd">    """</span>
+    <span class="n">neighbours</span> <span class="o">=</span> <span class="n">_get_neighbours</span><span class="p">(</span><span class="n">sm</span><span class="p">,</span> <span class="n">neighbours</span><span class="p">,</span> <span class="n">full_if_none</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">L</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">get_L</span><span class="p">(</span><span class="n">numpy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)):</span>
+        <span class="n">ni</span> <span class="o">=</span> <span class="n">neighbours</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ni</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">_non_crashing_median</span><span class="p">(</span><span class="n">L</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">ni</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">nanmean</span><span class="p">(</span><span class="n">results</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="coherence"><a class="viewcode-back" href="../../slisemap.html#slisemap.metrics.coherence">[docs]</a><span class="k">def</span> <span class="nf">coherence</span><span class="p">(</span>
+    <span class="n">sm</span><span class="p">:</span> <span class="n">Slisemap</span><span class="p">,</span>
+    <span class="n">neighbours</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">,</span>
+        <span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">],</span>
+    <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="sd">"""Evaluate a SLISEMAP solution by calculating the coherence (max change in prediction divided by the change in variable values).</span>
+
+<span class="sd">    Smaller is better.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sm (Slisemap): Trained Slisemap solution.</span>
+<span class="sd">        neighbours (Union[ None, np.ndarray, torch.LongTensor, Callable[[torch.Tensor, int], torch.LongTensor], ], optional): Either None (all), a vector of cluster id:s, or a function that gives neighbours (see `_get_neighbours`).</span>
+<span class="sd">        **kwargs: Arguments passed on to `neighbours` (if it is a function).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: The mean coherence.</span>
+<span class="sd">    """</span>
+    <span class="n">neighbours</span> <span class="o">=</span> <span class="n">_get_neighbours</span><span class="p">(</span>
+        <span class="n">sm</span><span class="p">,</span> <span class="n">neighbours</span><span class="p">,</span> <span class="n">full_if_none</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">include_self</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">P</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">local_model</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="n">sm</span><span class="o">.</span><span class="n">B</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)):</span>
+        <span class="n">ni</span> <span class="o">=</span> <span class="n">neighbours</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ni</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dP</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">P</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">P</span><span class="p">[</span><span class="n">ni</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">P</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">ni</span><span class="p">]</span> <span class="o">+</span> <span class="n">P</span><span class="p">[</span><span class="n">ni</span><span class="p">,</span> <span class="n">ni</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">dX</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">sm</span><span class="o">.</span><span class="n">X</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">sm</span><span class="o">.</span><span class="n">X</span><span class="p">[</span><span class="n">ni</span><span class="p">,</span> <span class="p">:])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-8</span>
+            <span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">dP</span> <span class="o">/</span> <span class="n">dX</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">nanmean</span><span class="p">(</span><span class="n">results</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="stability"><a class="viewcode-back" href="../../slisemap.html#slisemap.metrics.stability">[docs]</a><span class="k">def</span> <span class="nf">stability</span><span class="p">(</span>
+    <span class="n">sm</span><span class="p">:</span> <span class="n">Slisemap</span><span class="p">,</span>
+    <span class="n">neighbours</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">,</span>
+        <span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">],</span>
+    <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="sd">"""Evaluate a SLISEMAP solution by calculating the stability (max change in the local model divided by the change in variable values).</span>
+
+<span class="sd">    Smaller is better.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sm (Slisemap): Trained Slisemap solution.</span>
+<span class="sd">        neighbours (Union[ None, np.ndarray, torch.LongTensor, Callable[[torch.Tensor, int], torch.LongTensor], ], optional): Either None (all), a vector of cluster id:s, or a function that gives neighbours (see `_get_neighbours`).</span>
+<span class="sd">        **kwargs: Arguments passed on to `neighbours` (if it is a function).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: The mean stability.</span>
+<span class="sd">    """</span>
+    <span class="n">neighbours</span> <span class="o">=</span> <span class="n">_get_neighbours</span><span class="p">(</span>
+        <span class="n">sm</span><span class="p">,</span> <span class="n">neighbours</span><span class="p">,</span> <span class="n">full_if_none</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">include_self</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">n</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)):</span>
+        <span class="n">ni</span> <span class="o">=</span> <span class="n">neighbours</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ni</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dB</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">sm</span><span class="o">.</span><span class="n">B</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">sm</span><span class="o">.</span><span class="n">B</span><span class="p">[</span><span class="n">ni</span><span class="p">,</span> <span class="p">:])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">dX</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">sm</span><span class="o">.</span><span class="n">X</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">sm</span><span class="o">.</span><span class="n">X</span><span class="p">[</span><span class="n">ni</span><span class="p">,</span> <span class="p">:])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-8</span>
+            <span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">dB</span> <span class="o">/</span> <span class="n">dX</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">nanmean</span><span class="p">(</span><span class="n">results</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="kmeans_matching"><a class="viewcode-back" href="../../slisemap.html#slisemap.metrics.kmeans_matching">[docs]</a><span class="k">def</span> <span class="nf">kmeans_matching</span><span class="p">(</span>
+    <span class="n">sm</span><span class="p">:</span> <span class="n">Slisemap</span><span class="p">,</span> <span class="n">clusters</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="sd">"""Evaluate SLISE by measuring how well clusters in Z and B overlap (using kmeans to find the clusters).</span>
+<span class="sd">    The overlap is measured by finding the best matching clusters and dividing the size of intersect by the size of the union of each cluster pair.</span>
+
+<span class="sd">    Larger is better.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sm (Slisemap): Trained Slisemap solution.</span>
+<span class="sd">        clusters (Union[int, Sequence[int]], optional): The number of clusters. Defaults to range(2, 10).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: mean cluster matching.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span> <span class="nn">sklearn.cluster</span> <span class="kn">import</span> <span class="n">KMeans</span>
+    <span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">linear_sum_assignment</span>
+
+    <span class="n">Z</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">get_Z</span><span class="p">()</span>
+    <span class="n">B</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">get_B</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="n">Z</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-8</span><span class="p">)</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-8</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>  <span class="c1"># Do not compare singular clusters</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">Z</span><span class="p">))</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">B</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">clusters</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">clusters</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">clusters</span><span class="p">,</span> <span class="n">clusters</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">clusters</span><span class="p">:</span>
+        <span class="n">cl_B</span> <span class="o">=</span> <span class="n">KMeans</span><span class="p">(</span><span class="n">n_clusters</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="s2">"k-means++"</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">B</span><span class="p">)</span>
+        <span class="n">cl_Z</span> <span class="o">=</span> <span class="n">KMeans</span><span class="p">(</span><span class="n">n_clusters</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="s2">"k-means++"</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">Z</span><span class="p">)</span>
+        <span class="n">sets_B</span> <span class="o">=</span> <span class="p">[</span><span class="nb">set</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">cl_B</span><span class="o">.</span><span class="n">labels_</span> <span class="o">==</span> <span class="n">i</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">k</span><span class="p">)]</span>
+        <span class="n">sets_Z</span> <span class="o">=</span> <span class="p">[</span><span class="nb">set</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">cl_Z</span><span class="o">.</span><span class="n">labels_</span> <span class="o">==</span> <span class="n">i</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">k</span><span class="p">)]</span>
+        <span class="n">mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="n">k</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">sB</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sets_B</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">sZ</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sets_Z</span><span class="p">):</span>
+                <span class="n">mat</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sB</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">sZ</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sB</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">sZ</span><span class="p">))</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
+        <span class="c1"># Hungarian algorithm to find the best match between the clusterings</span>
+        <span class="n">rows</span><span class="p">,</span> <span class="n">cols</span> <span class="o">=</span> <span class="n">linear_sum_assignment</span><span class="p">(</span><span class="n">mat</span><span class="p">,</span> <span class="n">maximize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mat</span><span class="p">[</span><span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">nanmean</span><span class="p">(</span><span class="n">results</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="cluster_purity"><a class="viewcode-back" href="../../slisemap.html#slisemap.metrics.cluster_purity">[docs]</a><span class="k">def</span> <span class="nf">cluster_purity</span><span class="p">(</span>
+    <span class="n">sm</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Slisemap</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
+    <span class="n">clusters</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="sd">"""Evaluate a SLISEMAP solution by calculating how many items in the same cluster are neighbours.</span>
+
+<span class="sd">    Larger is better.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sm (Union[Slisemap, torch.Tensor, np.ndarray]): Trained Slisemap solution _or_ embedding matrix.</span>
+<span class="sd">        clusters (Union[np.ndarray, torch.LongTensor]): Cluster ids.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: The mean number of items sharing cluster that are neighbours.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sm</span><span class="p">,</span> <span class="n">Slisemap</span><span class="p">):</span>
+        <span class="n">Z</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">get_Z</span><span class="p">(</span><span class="n">numpy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sm</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+        <span class="n">Z</span> <span class="o">=</span> <span class="n">sm</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">Z</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">sm</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">clusters</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="n">clusters</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">clusters</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">Z</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">Z</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">D</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cdist</span><span class="p">(</span><span class="n">Z</span><span class="p">,</span> <span class="n">Z</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)):</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">clusters</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">clusters</span>
+        <span class="n">knn</span> <span class="o">=</span> <span class="n">euclidean_nearest_neighbours</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">mask</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+        <span class="n">res</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mask</span><span class="p">[</span><span class="n">knn</span><span class="p">])</span> <span class="o">/</span> <span class="n">knn</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">nanmean</span><span class="p">(</span><span class="n">res</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="kernel_purity"><a class="viewcode-back" href="../../slisemap.html#slisemap.metrics.kernel_purity">[docs]</a><span class="k">def</span> <span class="nf">kernel_purity</span><span class="p">(</span>
+    <span class="n">sm</span><span class="p">:</span> <span class="n">Slisemap</span><span class="p">,</span>
+    <span class="n">clusters</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">],</span>
+    <span class="n">epsilon</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">losses</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="sd">"""Evaluate a SLISEMAP solution by calculating how many neighbours are in the same cluster</span>
+
+<span class="sd">    Larger is better.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sm (Slisemap): Trained Slisemap solution.</span>
+<span class="sd">        clusters (Union[np.ndarray, torch.LongTensor]): Cluster ids.</span>
+<span class="sd">        epsilon (float, optional): Treshold for being a neighbour (`softmax(D) &lt; epsilon/n`). Defaults to 1.0.</span>
+<span class="sd">        losses (bool, optional): Use losses instead of embedding distances. Defaults to False.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: The mean number of neighbours that are in the same cluster.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">clusters</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="n">clusters</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">clusters</span><span class="p">)</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">n</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">losses</span><span class="p">:</span>
+        <span class="n">D</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">get_L</span><span class="p">(</span><span class="n">numpy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">D</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">get_D</span><span class="p">(</span><span class="n">numpy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)):</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">clusters</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">clusters</span>
+        <span class="n">neig</span> <span class="o">=</span> <span class="n">kernel_neighbours</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">)</span>
+        <span class="n">res</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mask</span><span class="p">[</span><span class="n">neig</span><span class="p">])</span> <span class="o">/</span> <span class="n">neig</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">nanmean</span><span class="p">(</span><span class="n">res</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="recall"><a class="viewcode-back" href="../../slisemap.html#slisemap.metrics.recall">[docs]</a><span class="k">def</span> <span class="nf">recall</span><span class="p">(</span><span class="n">sm</span><span class="p">:</span> <span class="n">Slisemap</span><span class="p">,</span> <span class="n">epsilon_D</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">epsilon_L</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="sd">"""Evaluate a SLISEMAP solution by calculating the recall.</span>
+
+<span class="sd">    We define recall as the intersection between the loss and embedding neighbourhoods divided by the loss neighbourhood.</span>
+
+<span class="sd">    Larger is better.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sm (Slisemap): Trained Slisemap solution.</span>
+<span class="sd">        epsilon_D (float, optional): Treshold for being an embedding neighbour (`softmax(D) &lt; epsilon/n`). Defaults to 1.0.</span>
+<span class="sd">        epsilon_L (float, optional): Treshold for being a loss neighbour (`softmax(L) &lt; epsilon/n`). Defaults to 1.0.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: The mean recall.</span>
+<span class="sd">    """</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">D</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">get_D</span><span class="p">(</span><span class="n">numpy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">L</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">get_L</span><span class="p">(</span><span class="n">numpy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)):</span>
+        <span class="n">nL</span> <span class="o">=</span> <span class="n">kernel_neighbours</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">epsilon_L</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">nL</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">res</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">nD</span> <span class="o">=</span> <span class="n">kernel_neighbours</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">epsilon_D</span><span class="p">)</span>
+            <span class="n">inter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">intersect1d</span><span class="p">(</span><span class="n">_tonp</span><span class="p">(</span><span class="n">nD</span><span class="p">),</span> <span class="n">_tonp</span><span class="p">(</span><span class="n">nL</span><span class="p">),</span> <span class="kc">True</span><span class="p">)</span>
+            <span class="n">res</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">inter</span><span class="p">)</span> <span class="o">/</span> <span class="n">nL</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">nanmean</span><span class="p">(</span><span class="n">res</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="precision"><a class="viewcode-back" href="../../slisemap.html#slisemap.metrics.precision">[docs]</a><span class="k">def</span> <span class="nf">precision</span><span class="p">(</span><span class="n">sm</span><span class="p">:</span> <span class="n">Slisemap</span><span class="p">,</span> <span class="n">epsilon_D</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">epsilon_L</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="sd">"""Evaluate a SLISEMAP solution by calculating the recall.</span>
+
+<span class="sd">    We define recall as the intersection between the loss and embedding neighbourhoods divided by the embedding neighbourhood.</span>
+
+<span class="sd">    Larger is better.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sm (Slisemap): Trained Slisemap solution.</span>
+<span class="sd">        epsilon_D (float, optional): Treshold for being an embedding neighbour (`softmax(D) &lt; epsilon/n`). Defaults to 1.0.</span>
+<span class="sd">        epsilon_L (float, optional): Treshold for being a loss neighbour (`softmax(L) &lt; epsilon/n`). Defaults to 1.0.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: The mean precision.</span>
+<span class="sd">    """</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">D</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">get_D</span><span class="p">(</span><span class="n">numpy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">L</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">get_L</span><span class="p">(</span><span class="n">numpy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)):</span>
+        <span class="n">nD</span> <span class="o">=</span> <span class="n">kernel_neighbours</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">epsilon_D</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">nD</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">res</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">nL</span> <span class="o">=</span> <span class="n">kernel_neighbours</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">epsilon_L</span><span class="p">)</span>
+            <span class="n">inter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">intersect1d</span><span class="p">(</span><span class="n">_tonp</span><span class="p">(</span><span class="n">nD</span><span class="p">),</span> <span class="n">_tonp</span><span class="p">(</span><span class="n">nL</span><span class="p">),</span> <span class="kc">True</span><span class="p">)</span>
+            <span class="n">res</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">inter</span><span class="p">)</span> <span class="o">/</span> <span class="n">nD</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">nanmean</span><span class="p">(</span><span class="n">res</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="relevance"><a class="viewcode-back" href="../../slisemap.html#slisemap.metrics.relevance">[docs]</a><span class="k">def</span> <span class="nf">relevance</span><span class="p">(</span><span class="n">sm</span><span class="p">:</span> <span class="n">Slisemap</span><span class="p">,</span> <span class="n">pred_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">change</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="sd">"""Evaluate a SLISEMAP solution by calculating the relevance.</span>
+
+<span class="sd">    Smaller is better.</span>
+
+<span class="sd">    TODO: This does not (currently) work for multi-class predictions</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sm (Slisemap): Trained Slisemap solution.</span>
+<span class="sd">        pred_fn (Callable): Function that gives y:s for new x:s (the "black box model").</span>
+<span class="sd">        change (float): How much should the prediction change?</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: The mean number of mutated variables required to cause a large enough change in the prediction.</span>
+<span class="sd">    """</span>
+    <span class="n">rel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">n</span><span class="p">)</span> <span class="o">*</span> <span class="n">sm</span><span class="o">.</span><span class="n">m</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">rel</span><span class="p">)):</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">B</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">X</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">Y</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">xmax</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">xmin</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">xinc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">b</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">xmax</span><span class="p">,</span> <span class="n">xmin</span><span class="p">)</span>
+        <span class="n">xdec</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">b</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">xmax</span><span class="p">,</span> <span class="n">xmin</span><span class="p">)</span>
+        <span class="n">babs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bs</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">babs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="n">yinc</span> <span class="o">=</span> <span class="n">pred_fn</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">babs</span> <span class="o">&gt;=</span> <span class="n">bs</span><span class="p">,</span> <span class="n">xinc</span><span class="p">,</span> <span class="n">x</span><span class="p">))</span>
+            <span class="n">ydec</span> <span class="o">=</span> <span class="n">pred_fn</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">babs</span> <span class="o">&gt;=</span> <span class="n">bs</span><span class="p">,</span> <span class="n">xdec</span><span class="p">,</span> <span class="n">x</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">yinc</span> <span class="o">-</span> <span class="n">y</span> <span class="o">&gt;</span> <span class="n">change</span> <span class="ow">or</span> <span class="n">y</span> <span class="o">-</span> <span class="n">ydec</span> <span class="o">&gt;</span> <span class="n">change</span><span class="p">:</span>
+                <span class="n">rel</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span>
+                <span class="k">break</span>
+    <span class="k">return</span> <span class="n">nanmean</span><span class="p">(</span><span class="n">rel</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="accuracy"><a class="viewcode-back" href="../../slisemap.html#slisemap.metrics.accuracy">[docs]</a><span class="k">def</span> <span class="nf">accuracy</span><span class="p">(</span>
+    <span class="n">sm</span><span class="p">:</span> <span class="n">Slisemap</span><span class="p">,</span>
+    <span class="n">X</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">Y</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="sd">"""Evaluate a SLISEMAP solution by checking how well the fitted models work on new points</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sm (Slisemap): Trained Slisemap solution.</span>
+<span class="sd">        X (Optional[np.ndarray], optional): New data matrix (uses the training data if None). Defaults to None.</span>
+<span class="sd">        Y (Optional[np.ndarray], optional): New target matrix (uses the training data if None). Defaults to None.</span>
+<span class="sd">        **kwargs: Optional keyword arguments to Slisemap.fit_new.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: Mean loss for the new points.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">X</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">Y</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">X</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">get_X</span><span class="p">(</span><span class="n">intercept</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">numpy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">Y</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">get_Y</span><span class="p">(</span><span class="n">numpy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">B</span><span class="p">,</span> <span class="n">Z</span><span class="p">,</span> <span class="n">loss</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">fit_new</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">loss</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span></div>
+</pre></div>
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2022, Anton Björklund, Jarmo Mäkelä, and Kai Puolamäki
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/scripts/furo.js"></script>
+    </body>
+</html>
