@@ -874,9 +874,11 @@
 
         <span class="n">loss_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_loss_fn</span><span class="p">()</span>
         <span class="n">loss_fn</span> <span class="o">=</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">loss_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Y</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">Z</span><span class="p">)</span>
+        <span class="n">pre_loss</span> <span class="o">=</span> <span class="n">loss_fn</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
         <span class="n">LBFGS</span><span class="p">(</span><span class="n">loss_fn</span><span class="p">,</span> <span class="p">[</span><span class="n">B</span><span class="p">]</span> <span class="k">if</span> <span class="n">only_B</span> <span class="k">else</span> <span class="p">[</span><span class="n">Z</span><span class="p">,</span> <span class="n">B</span><span class="p">],</span> <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">post_loss</span> <span class="o">=</span> <span class="n">loss_fn</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
 
-        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">loss_fn</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()):</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">post_loss</span><span class="p">):</span>
             <span class="n">_warn</span><span class="p">(</span>
                 <span class="s2">"An LBFGS optimisation resulted in `nan` (try strengthening the regularisation or reducing the radius)"</span><span class="p">,</span>
                 <span class="n">Slisemap</span><span class="o">.</span><span class="n">lbfgs</span><span class="p">,</span>
@@ -886,6 +888,9 @@
             <span class="n">Z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Z</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
             <span class="n">B</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_B</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
             <span class="n">LBFGS</span><span class="p">(</span><span class="n">loss_fn</span><span class="p">,</span> <span class="p">[</span><span class="n">B</span><span class="p">]</span> <span class="k">if</span> <span class="n">only_B</span> <span class="k">else</span> <span class="p">[</span><span class="n">Z</span><span class="p">,</span> <span class="n">B</span><span class="p">],</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">pre_loss</span> <span class="o">&lt;=</span> <span class="n">post_loss</span><span class="p">:</span>
+            <span class="n">Z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Z</span>
+            <span class="n">B</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_B</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_Z</span> <span class="o">=</span> <span class="n">Z</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_B</span> <span class="o">=</span> <span class="n">B</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
@@ -1460,6 +1465,7 @@
         <span class="n">jitter</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">col_wrap</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
         <span class="n">legend_inside</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">B</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">show</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">sns</span><span class="o">.</span><span class="n">FacetGrid</span><span class="p">]:</span>
@@ -1476,6 +1482,7 @@
 <span class="sd">            jitter (float, optional): Add jitter to the scatterplots. Defaults to 0.0.</span>
 <span class="sd">            col_wrap (int, optional): Maximum number of columns. Defaults to 4.</span>
 <span class="sd">            legend_inside (bool, optional): Move the legend inside the grid (if there is an empty cell). Defaults to True.</span>
+<span class="sd">            B (Optional[np.ndarray], optional): Override self.get_B() when finding the clusters (only used if clusters is an int). Defaults to None.</span>
 <span class="sd">            show (bool, optional): Show the plot. Defaults to True.</span>
 <span class="sd">            **kwargs: Additional arguments to seaborn.relplot.</span>
 
@@ -1501,7 +1508,7 @@
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">scatter</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">clusters</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
-                <span class="n">clusters</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster_models</span><span class="p">(</span><span class="n">clusters</span><span class="p">)</span>
+                <span class="n">clusters</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster_models</span><span class="p">(</span><span class="n">clusters</span><span class="p">,</span> <span class="n">B</span><span class="p">)</span>
             <span class="k">elif</span> <span class="n">clusters</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">legend_inside</span> <span class="o">=</span> <span class="kc">False</span>
             <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
