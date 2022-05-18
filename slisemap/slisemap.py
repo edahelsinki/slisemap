@@ -675,9 +675,11 @@ class Slisemap:
 
         loss_ = self.get_loss_fn()
         loss_fn = lambda: loss_(self._X, self._Y, B, Z)
+        pre_loss = loss_fn().cpu().detach().item()
         LBFGS(loss_fn, [B] if only_B else [Z, B], max_iter=max_iter, **kwargs)
+        post_loss = loss_fn().cpu().detach().item()
 
-        if np.isnan(loss_fn().cpu().detach().item()):
+        if np.isnan(post_loss):
             _warn(
                 "An LBFGS optimisation resulted in `nan` (try strengthening the regularisation or reducing the radius)",
                 Slisemap.lbfgs,
@@ -687,6 +689,9 @@ class Slisemap:
             Z = self._Z.detach().requires_grad_(True)
             B = self._B.detach().requires_grad_(True)
             LBFGS(loss_fn, [B] if only_B else [Z, B], max_iter=1, **kwargs)
+        elif pre_loss <= post_loss:
+            Z = self._Z
+            B = self._B
 
         self._Z = Z.detach()
         self._B = B.detach()
@@ -1261,6 +1266,7 @@ class Slisemap:
         jitter: float = 0.0,
         col_wrap: int = 4,
         legend_inside: bool = True,
+        B: Optional[np.ndarray] = None,
         show: bool = True,
         **kwargs,
     ) -> Optional[sns.FacetGrid]:
@@ -1277,6 +1283,7 @@ class Slisemap:
             jitter (float, optional): Add jitter to the scatterplots. Defaults to 0.0.
             col_wrap (int, optional): Maximum number of columns. Defaults to 4.
             legend_inside (bool, optional): Move the legend inside the grid (if there is an empty cell). Defaults to True.
+            B (Optional[np.ndarray], optional): Override self.get_B() when finding the clusters (only used if clusters is an int). Defaults to None.
             show (bool, optional): Show the plot. Defaults to True.
             **kwargs: Additional arguments to seaborn.relplot.
 
@@ -1302,7 +1309,7 @@ class Slisemap:
 
         if not scatter:
             if isinstance(clusters, int):
-                clusters, _ = self._cluster_models(clusters)
+                clusters, _ = self._cluster_models(clusters, B)
             elif clusters is None:
                 legend_inside = False
             df = pd.concat(
