@@ -6,9 +6,9 @@ name: Test python package
 on:
   push:
     branches: [master, main]
-    paths: ['**.py']
+    paths: ['slisemap/*.py', 'tests/*.py']
   pull_request:
-    paths: ['**.py']
+    paths: ['slisemap/*.py', 'tests/*.py']
 
 jobs:
   build:

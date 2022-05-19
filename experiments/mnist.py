@@ -20,13 +20,13 @@ import torch
 import torch.nn.functional
 import torch.utils.data
 
-
 sys.path.append(str(Path(__file__).parent.parent))  # Add the project root to the path
 from slisemap import Slisemap
 from slisemap.local_models import logistic_regression, logistic_regression_loss
-from experiments.data import get_mnist, get_emnist
+from experiments.data import get_mnist
 
-RESULTS_DIR = Path(__file__).parent / "results" / "emnist"
+
+RESULTS_DIR = Path(__file__).parent / "results" / "mnist"
 
 
 class Net(torch.nn.Module):
