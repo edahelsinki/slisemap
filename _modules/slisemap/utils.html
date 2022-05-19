@@ -246,16 +246,20 @@
 <div class="viewcode-block" id="CheckConvergence"><a class="viewcode-back" href="../../slisemap.html#slisemap.utils.CheckConvergence">[docs]</a><span class="k">class</span> <span class="nc">CheckConvergence</span><span class="p">:</span>
     <span class="sd">"""An object that tries to estimate when an optimisation has converged.</span>
 <span class="sd">    Use it for, e.g., escape+optimisation cycles in Slisemap.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        patience (int, optional): How long should the optimisation continue without improvement. Defaults to 3.</span>
 <span class="sd">    """</span>
 
-    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"current"</span><span class="p">,</span> <span class="s2">"best"</span><span class="p">,</span> <span class="s2">"counter"</span><span class="p">,</span> <span class="s2">"patience"</span><span class="p">,</span> <span class="s2">"optimal_state"</span><span class="p">)</span>
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"current"</span><span class="p">:</span> <span class="s2">"Current loss value."</span><span class="p">,</span>
+        <span class="s2">"best"</span><span class="p">:</span> <span class="s2">"Best loss value, so far."</span><span class="p">,</span>
+        <span class="s2">"counter"</span><span class="p">:</span> <span class="s2">"Number of steps since the best loss value."</span><span class="p">,</span>
+        <span class="s2">"patience"</span><span class="p">:</span> <span class="s2">"Number of steps allowed without improvement."</span><span class="p">,</span>
+        <span class="s2">"optimal_state"</span><span class="p">:</span> <span class="s2">"Cache for storing the state that produced the best loss value."</span><span class="p">,</span>
+    <span class="p">}</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">patience</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">):</span>
-        <span class="sd">"""Create a CheckConvergence object.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            patience (int, optional): How long should the optimisation continue without improvement. Defaults to 3.</span>
-<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">current</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">best</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span>
@@ -269,10 +273,12 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="sd">"""Check if the optimisation has converged.</span>
 
+<span class="sd">        If more than one loss value is provided, then only the first one is checked when storing the ``optimal_state``.</span>
+<span class="sd">        The other losses are only used for checking convergence.</span>
+
 <span class="sd">        Args:</span>
 <span class="sd">            loss (Union[float, Sequence[float]]): The latest loss value(s).</span>
-<span class="sd">            store (Optional[Callable[[], Any]], optional): Function that stores the optimal state in self.optimal_state. Defaults to None.</span>
-
+<span class="sd">            store (Optional[Callable[[], Any]], optional): Function that returns the current state for storing in ``self.optimal_state``. Defaults to None.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            bool: True if the optimisation has converged.</span>

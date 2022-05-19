@@ -198,7 +198,7 @@
         <article role="main">
           <h1>Source code for slisemap.diagnostics</h1><div class="highlight"><pre>
 <span></span><span class="sd">"""</span>
-<span class="sd">These are diagnostics for identifying potential issues with Slisemap solutions.</span>
+<span class="sd">These are diagnostics for identifying potential issues with SLISEMAP solutions.</span>
 
 <span class="sd">Typical usage:</span>
 
@@ -297,18 +297,22 @@
     <span class="n">Z</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Slisemap</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
     <span class="n">diagnostics</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
     <span class="n">summary</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"Slisemap Diagnostics"</span><span class="p">,</span>
+    <span class="n">show</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">sns</span><span class="o">.</span><span class="n">FacetGrid</span><span class="p">:</span>
-    <span class="sd">"""Plot diagnostic results (remember to call `plt.show`).</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">sns</span><span class="o">.</span><span class="n">FacetGrid</span><span class="p">]:</span>
+    <span class="sd">"""Plot diagnostic results.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        Z (Union[Slisemap, np.ndarray]): The Slisemap object, or embedding matrix.</span>
 <span class="sd">        diagnostics (Dict[str, np.ndarray]): Dictionary of diagnostic results.</span>
 <span class="sd">        summary (bool, optional): Combine multiple diagnostics into one plot. Defaults to False.</span>
-<span class="sd">        **kwargs: Additional parameters to `seaborn.relplot`.</span>
+<span class="sd">        title (str, optional): Title of the plot. Defaults to "Slisemap Diagnostics".</span>
+<span class="sd">        show (bool, optional): Show the plot. Defaults to True.</span>
+<span class="sd">        **kwargs: Additional parameters to ``seaborn.relplot``.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        seaborn.FacetGrid: The plot as a `seaborn.FacetGrid`.</span>
+<span class="sd">        Optional[sns.FacetGrid]: Seaborn FacetGrid if show=False.</span>
 <span class="sd">    """</span>
     <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 
@@ -365,8 +369,11 @@
             <span class="n">col</span><span class="o">=</span><span class="s2">"Diagnostic"</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s2">"Slisemap Diagnostics"</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">g</span></div>
+    <span class="n">plt</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">show</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">g</span></div>
 
 
 <div class="viewcode-block" id="distant_diagnostic"><a class="viewcode-back" href="../../slisemap.html#slisemap.diagnostics.distant_diagnostic">[docs]</a><span class="k">def</span> <span class="nf">distant_diagnostic</span><span class="p">(</span><span class="n">sm</span><span class="p">:</span> <span class="n">Slisemap</span><span class="p">,</span> <span class="n">max_distance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>

@@ -324,7 +324,7 @@
 <span class="sd">        jit (bool, optional): Just-In-Time compile the loss function. Defaults to True.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Callable[[torch.Tensor, torch.Tensor], torch.Tensor]: Loss function that takes `Bnew` [n_new, p] and `Znew` [n_new, d] (or `Xnew`, `Ynew`, `Bnew` and `Znew` if `Xnew` and `Ynew` were not give above).</span>
+<span class="sd">        Callable[[torch.Tensor, torch.Tensor], torch.Tensor]: Loss function that takes `Bnew` [n_new, p] and `Znew` [n_new, d] (or `Xnew`, `Ynew`, `Bnew` and `Znew` if `Xnew` and `Ynew` were not given above).</span>
 <span class="sd">    """</span>
     <span class="n">Xcomb</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">X</span><span class="p">,</span> <span class="n">Xnew</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
     <span class="n">Ycomb</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">Y</span><span class="p">,</span> <span class="n">Ynew</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
