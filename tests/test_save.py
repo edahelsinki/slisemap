@@ -5,7 +5,7 @@ from .utils import *
 
 
 def test_save_load(tmp_path):
-    sm = get_slisemap(30, 4)
+    sm = get_slisemap(30, 4, random_state=3459453)
     sm.lbfgs()
     sm.save(tmp_path / "tmp.pt")
     sm2 = Slisemap.load(tmp_path / "tmp.pt")

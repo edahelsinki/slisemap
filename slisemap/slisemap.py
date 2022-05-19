@@ -953,13 +953,16 @@ class Slisemap:
             **kwargs: Parameters forwarded to `torch.save`.
         """
         loss = self._loss
+        prng = self._random_state
         try:
             self._B = self._B.detach()
             self._Z = self._Z.detach()
             self._loss = None
+            self._random_state = None
             torch.save(self, f, **kwargs)
         finally:
             self._loss = loss
+            self._random_state = prng
 
     @classmethod
     def load(
@@ -981,6 +984,7 @@ class Slisemap:
             Slisemap: The loaded Slisemap object.
         """
         sm = torch.load(f, map_location=device, **kwargs)
+        sm.random_state = sm._rs0
         return sm
 
     def _cluster_models(
