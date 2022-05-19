@@ -1,5 +1,5 @@
 """
-These are diagnostics for identifying potential issues with Slisemap solutions.
+These are diagnostics for identifying potential issues with SLISEMAP solutions.
 
 Typical usage:
 
@@ -98,18 +98,22 @@ def plot_diagnostics(
     Z: Union[Slisemap, np.ndarray],
     diagnostics: Dict[str, np.ndarray],
     summary: bool = False,
+    title: str = "Slisemap Diagnostics",
+    show: bool = True,
     **kwargs,
-) -> sns.FacetGrid:
-    """Plot diagnostic results (remember to call `plt.show`).
+) -> Optional[sns.FacetGrid]:
+    """Plot diagnostic results.
 
     Args:
         Z (Union[Slisemap, np.ndarray]): The Slisemap object, or embedding matrix.
         diagnostics (Dict[str, np.ndarray]): Dictionary of diagnostic results.
         summary (bool, optional): Combine multiple diagnostics into one plot. Defaults to False.
-        **kwargs: Additional parameters to `seaborn.relplot`.
+        title (str, optional): Title of the plot. Defaults to "Slisemap Diagnostics".
+        show (bool, optional): Show the plot. Defaults to True.
+        **kwargs: Additional parameters to ``seaborn.relplot``.
 
     Returns:
-        seaborn.FacetGrid: The plot as a `seaborn.FacetGrid`.
+        Optional[sns.FacetGrid]: Seaborn FacetGrid if show=False.
     """
     import pandas as pd
 
@@ -166,8 +170,11 @@ def plot_diagnostics(
             col="Diagnostic",
             **kwargs,
         )
-    plt.suptitle("Slisemap Diagnostics")
-    return g
+    plt.suptitle(title)
+    if show:
+        plt.show()
+    else:
+        return g
 
 
 def distant_diagnostic(sm: Slisemap, max_distance: float = 10.0) -> np.ndarray:

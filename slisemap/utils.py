@@ -47,16 +47,20 @@ def _tonp(x: torch.Tensor) -> np.ndarray:
 class CheckConvergence:
     """An object that tries to estimate when an optimisation has converged.
     Use it for, e.g., escape+optimisation cycles in Slisemap.
+
+    Args:
+        patience (int, optional): How long should the optimisation continue without improvement. Defaults to 3.
     """
 
-    __slots__ = ("current", "best", "counter", "patience", "optimal_state")
+    __slots__ = {
+        "current": "Current loss value.",
+        "best": "Best loss value, so far.",
+        "counter": "Number of steps since the best loss value.",
+        "patience": "Number of steps allowed without improvement.",
+        "optimal_state": "Cache for storing the state that produced the best loss value.",
+    }
 
     def __init__(self, patience: int = 3):
-        """Create a CheckConvergence object.
-
-        Args:
-            patience (int, optional): How long should the optimisation continue without improvement. Defaults to 3.
-        """
         self.current = np.inf
         self.best = np.inf
         self.counter = 0
@@ -70,10 +74,12 @@ class CheckConvergence:
     ) -> bool:
         """Check if the optimisation has converged.
 
+        If more than one loss value is provided, then only the first one is checked when storing the ``optimal_state``.
+        The other losses are only used for checking convergence.
+
         Args:
             loss (Union[float, Sequence[float]]): The latest loss value(s).
-            store (Optional[Callable[[], Any]], optional): Function that stores the optimal state in self.optimal_state. Defaults to None.
-
+            store (Optional[Callable[[], Any]], optional): Function that returns the current state for storing in ``self.optimal_state``. Defaults to None.
 
         Returns:
             bool: True if the optimisation has converged.

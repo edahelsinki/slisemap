@@ -125,7 +125,7 @@ def make_marginal_loss(
         jit (bool, optional): Just-In-Time compile the loss function. Defaults to True.
 
     Returns:
-        Callable[[torch.Tensor, torch.Tensor], torch.Tensor]: Loss function that takes `Bnew` [n_new, p] and `Znew` [n_new, d] (or `Xnew`, `Ynew`, `Bnew` and `Znew` if `Xnew` and `Ynew` were not give above).
+        Callable[[torch.Tensor, torch.Tensor], torch.Tensor]: Loss function that takes `Bnew` [n_new, p] and `Znew` [n_new, d] (or `Xnew`, `Ynew`, `Bnew` and `Znew` if `Xnew` and `Ynew` were not given above).
     """
     Xcomb = torch.cat((X, Xnew), 0)
     Ycomb = torch.cat((Y, Ynew), 0)

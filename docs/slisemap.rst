@@ -1,6 +1,10 @@
 SLISEMAP
 ========
 
+Below is the API references for all the submodules in the ``slisemap`` package.
+
+Note that ``slisemap.Slisemap`` is an alias for ``slisemap.slisemap.Slisemap``.
+
 slisemap.slisemap
 ------------------------
 
