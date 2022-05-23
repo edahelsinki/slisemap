@@ -134,3 +134,40 @@ def logistic_regression_coefficients(
         "Logistic regression requires Y:s with multiple classes",
     )
     return (X.shape[1] + intercept) * (Y.shape[1] - 1)
+
+
+def logistic_regression_log(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
+    """Prediction function for (multinomial) logistic regression that returns the **log of the prediction**.
+    Note that the number of coefficients is `m * (p-1)` due to the normalisation of softmax.
+
+    Args:
+        X (torch.Tensor): Data matrix [n_x, m].
+        B (torch.Tensor): Coefficient Matrix [n_b, m*(p-1)].
+
+    Returns:
+        torch.Tensor: Prediction tensor [n_b, n_x, p]
+    """
+    n_x, m = X.shape
+    n_b, o = B.shape
+    p = 1 + torch.div(o, m, rounding_mode="trunc")
+    a = torch.zeros([n_b, n_x, p], device=B.device, dtype=B.dtype)
+    for i in range(p - 1):
+        a[:, :, i] = B[:, (i * m) : ((i + 1) * m)] @ X.T
+    return a - torch.logsumexp(a, 2, True)
+
+
+def logistic_regression_log_loss(
+    Ytilde: torch.Tensor, Y: torch.Tensor, B: Optional[torch.Tensor] = None
+) -> torch.Tensor:
+    """Cross entropy loss function for (multinomial) logistic regression.
+    Note that this loss function expects ``Ytilde`` to be the **log of the predicted probabilities**.
+
+    Args:
+        Ytilde (torch.Tensor): Predicted logits [n_b, n_x, p].
+        Y (torch.Tensor): Ground truth values [n_x, p].
+        B (Optional[torch.Tensor], optional): Coefficient matrix (not used, the regularisation is part of Slisemap). Defaults to None.
+
+    Returns:
+        torch.Tensor: Loss values [n_b, n_x].
+    """
+    return torch.sum(-Y * Ytilde - (1 - Y) * torch.log1p(-torch.exp(Ytilde)), -1)
