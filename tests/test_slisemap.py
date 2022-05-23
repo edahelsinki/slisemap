@@ -90,6 +90,7 @@ def test_loss():
     sm = Slisemap(
         np.random.normal(size=(10, 3)),
         np.random.normal(size=(10, 1)),
+        lasso=1e-4,
         local_model=linear_regression,
         local_loss=linear_regression_loss,
     )
@@ -98,6 +99,7 @@ def test_loss():
     sm = Slisemap(
         np.random.normal(size=(10, 3)),
         np.random.normal(size=(10, 3)),
+        lasso=1e-4,
         local_model=multiple_linear_regression,
         local_loss=linear_regression_loss,
     )
@@ -106,6 +108,7 @@ def test_loss():
     sm = Slisemap(
         np.random.normal(size=(10, 3)),
         np.random.uniform(size=(10, 2)),
+        lasso=1e-3,
         coefficients=4,
         local_model=logistic_regression,
         local_loss=logistic_regression_loss,
@@ -115,6 +118,7 @@ def test_loss():
     sm = Slisemap(
         np.random.normal(size=(10, 3)),
         np.random.uniform(size=(10, 3)),
+        lasso=1e-3,
         coefficients=8,
         local_model=logistic_regression,
         local_loss=logistic_regression_loss,

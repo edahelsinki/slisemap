@@ -189,14 +189,13 @@ class Slisemap:
                 lasso=self.lasso,
                 ridge=self.ridge,
             )
-            if torch.all(torch.isfinite(B0)):
-                self._B0 = B0.expand((n, coefficients))
-            else:
+            if not torch.all(torch.isfinite(B0)):
                 _warn(
                     "Optimising a global model as initialisation resulted in non-finite values. Consider using stronger regularisation (increase ``lasso`` or ``ridge``).",
                     Slisemap,
                 )
-                self._B0 = torch.zeros((n, coefficients), **tensorargs)
+                B0 = torch.zeros_like(B0)
+            self._B0 = B0.expand((n, coefficients))
         else:
             self._B0 = torch.as_tensor(B0, **tensorargs)
             if coefficients is None:
@@ -1132,7 +1131,7 @@ class Slisemap:
             _assert(not bars, "`bar!=False` requires that `clusters` is an integer")
         if clusters is None:
             if Z.shape[0] == self.Z.shape[0]:
-                L = self.get_L().diag()
+                L = _tonp(torch.diagonal(self.get_L(numpy=False))).ravel()
                 sns.scatterplot(x=Z[:, 0], y=Z[:, 1], hue=L, palette="crest", ax=ax1)
                 ax1.legend(title="Fidelity")
             else:
