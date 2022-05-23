@@ -51,7 +51,7 @@ def test_fit_new():
     _, _, l2a = sm.fit_new(
         x2, y2, False, between=True, escape_fn=escape_neighbourhood, loss=True
     )
-    _, _, l2b = sm.fit_new(
+    B2, Z2, l2b = sm.fit_new(
         x2, y2, True, between=False, escape_fn=escape_neighbourhood, loss=True
     )
     _, _, l2c = sm.fit_new(
@@ -73,6 +73,14 @@ def test_fit_new():
     assert np.sum(np.abs(l2d - l2a)) < 1e-4
     assert np.sum(np.abs(l2e - l2b)) < 1e-4
     assert np.sum(np.abs(l2f - l2c)) < 1e-4
+    lf = sm.get_loss_fn(individual=True)
+    l2b_ = lf(
+        X=sm._as_new_X(np.concatenate((X, x2), 0)),
+        Y=sm._as_new_Y(np.concatenate((y, y2), 0)),
+        B=torch.cat((sm.B, torch.as_tensor(B2, **sm.tensorargs)), 0),
+        Z=torch.cat((sm.Z, torch.as_tensor(Z2, **sm.tensorargs)), 0),
+    )[sm.n :]
+    assert np.all(l2b_.cpu().numpy() <= l2b + 1e-2)
 
 
 def test_loss():

@@ -799,6 +799,7 @@ class Slisemap:
         between: bool = True,
         escape_fn: Callable = escape_neighbourhood,
         loss: bool = False,
+        verbose: bool = False,
         **kwargs,
     ) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
         """Generate embedding(s) and model(s) for new data item(s).
@@ -814,6 +815,7 @@ class Slisemap:
             between (bool, optional): If ``optimise=True``, should the new points affect each other? Defaults to True.
             escape_fn (Callable, optional): Escape function to use as initialisation (escape_neighbourhood/escape_greedy/escape_marginal). Defaults to escape_neighbourhood.
             loss (bool, optional): Return a vector of individual losses for the new items. Defaults to False.
+            verbose (bool, optional): Print status messages. Defaults to False.
             **kwargs: Optional keyword arguments to LBFGS.
 
         Returns:
@@ -822,6 +824,8 @@ class Slisemap:
         Xnew = self._as_new_X(Xnew)
         n = Xnew.shape[0]
         ynew = self._as_new_Y(ynew, n)
+        if verbose:
+            print("Escaping the new data")
         Bnew, Znew = escape_fn(
             X=Xnew,
             Y=ynew,
@@ -837,8 +841,13 @@ class Slisemap:
             Yold=self.Y,
             jit=self.jit,
         )
+        if verbose:
+            Zrad = torch.sqrt(torch.sum(Znew**2) / n).cpu().detach().item()
+            print("  radius(Z_new) =", Zrad)
 
         if optimise:
+            if verbose:
+                print("Optimising the new data")
             lf, set_new = make_marginal_loss(
                 X=self.X,
                 Y=self.Y,
@@ -867,11 +876,22 @@ class Slisemap:
                     LBFGS(lambda: lf(Bi, Zi), [Bi, Zi], **kwargs)
                     Bnew[j] = Bi.detach()
                     Znew[j] = Zi.detach()
+            if verbose:
+                Zrad = torch.sqrt(torch.sum(Znew**2) / n).cpu().detach().item()
+                print("  radius(Z_new) =", Zrad)
         if self.radius > 0:
-            Zout = Znew * (self.radius / (torch.sum(self._Z**2) + 1e-8))
+            if verbose:
+                print("Normalising the solution")
+            norm = self.radius / (torch.sqrt(torch.sum(self._Z**2) / self.n) + 1e-8)
+            Zout = Znew * norm
+            if verbose:
+                Zrad = torch.sqrt(torch.sum(Zout**2) / n).cpu().detach().item()
+                print("  radius(Z_new) =", Zrad)
         else:
             Zout = Znew
         if loss:
+            if verbose:
+                print("Calculating individual losses")
             lf = self.get_loss_fn(individual=True)
             if between:
                 loss = lf(
@@ -893,6 +913,8 @@ class Slisemap:
                         Z=torch.cat((self.Z, Znew[None, j]), 0),
                     )[-1]
                     loss[j] = l.detach().cpu().item()
+            if verbose:
+                print("  mean(loss) =", loss.mean())
             return _tonp(Bnew), _tonp(Zout), loss
         else:
             return _tonp(Bnew), _tonp(Zout)
