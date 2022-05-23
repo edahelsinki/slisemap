@@ -1109,10 +1109,13 @@ class Slisemap:
             B = B[np.argsort(Z[:, 0])]
             _assert(not bars, "`bar!=False` requires that `clusters` is an integer")
         if clusters is None:
-            L = self.value(individual=True)
-            sns.scatterplot(x=Z[:, 0], y=Z[:, 1], hue=L, palette="crest", ax=ax1)
+            if Z.shape[0] == self.Z.shape[0]:
+                L = self.get_L().diag()
+                sns.scatterplot(x=Z[:, 0], y=Z[:, 1], hue=L, palette="crest", ax=ax1)
+                ax1.legend(title="Fidelity")
+            else:
+                sns.scatterplot(x=Z[:, 0], y=Z[:, 1], palette="crest", ax=ax1)
             sns.heatmap(B, ax=ax2, center=0, cmap="RdBu", robust=True)
-            ax1.legend(title="Fidelity")
             if variables is not None:
                 ax2.set_xticks(np.arange(len(variables)) + 0.5)
                 ax2.set_xticklabels(variables, rotation=30)
