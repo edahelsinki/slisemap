@@ -742,7 +742,7 @@ class Slisemap:
 
     def optimise(
         self,
-        patience: int = 3,
+        patience: int = 2,
         max_escapes: int = 100,
         max_iter: int = 500,
         escape_fn: Callable = escape_neighbourhood,
@@ -753,7 +753,7 @@ class Slisemap:
         """Optimise Slisemap by alternating between Slisemap.lbfgs and Slisemap.escape until convergence.
 
         Args:
-            patience (int, optional): Number of escapes without improvement before stopping. Defaults to 3.
+            patience (int, optional): Number of escapes without improvement before stopping. Defaults to 2.
             max_escapes (int, optional): Maximum number of escapes. Defaults to 100.
             max_iter (int, optional): Maximum number of LBFGS iterations per round. Defaults to 500.
             escape_fn (Callable, optional): Escape function (escape_neighbourhood/escape_greedy/escape_marginal). Defaults to escape_neighbourhood.
@@ -784,7 +784,10 @@ class Slisemap:
         if cc.optimal_state is not None:
             self._Z = cc.optimal_state._Z
             self._B = cc.optimal_state._B
-        return self.lbfgs(max_iter=max_iter * 2, **kwargs)
+        loss = self.lbfgs(max_iter=max_iter * 2, **kwargs)
+        if verbose:
+            print(f"Final    : {loss:.2f}")
+        return loss
 
     optimize = optimise
 
