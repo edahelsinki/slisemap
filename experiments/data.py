@@ -49,6 +49,7 @@ def get_boston(
     blackbox: Optional[str] = None,
     names: bool = False,
     normalise: bool = True,
+    remove_B: bool = False,
     data_dir: str = "data",
 ) -> Tuple[np.ndarray, np.ndarray, Optional[List[str]]]:
     dir = find_path(data_dir)
@@ -56,6 +57,9 @@ def get_boston(
     X, y, _, attribute_names = dataset.get_data(
         target=dataset.default_target_attribute, dataset_format="array"
     )
+    if remove_B:
+        X = X[:, [n != "B" for n in attribute_names]]
+        attribute_names.remove("B")
     if blackbox is None:
         pass
     elif blackbox.lower() in ("svm", "svr"):
@@ -262,9 +266,18 @@ def get_iris(
 
 
 def get_airquality(
-    blackbox: Optional[str] = None, names: bool = False, data_dir: str = "data"
+    blackbox: Optional[str] = None,
+    names: bool = False,
+    normalise: bool = True,
+    data_dir: str = "data",
 ) -> Tuple[np.ndarray, np.ndarray, Optional[List[str]]]:
-    """Get the Air Quality dataset (using the cleaned version from drifter)
+    """Get the Air Quality dataset.
+
+    Cleaned and preprocessed as in:
+
+        Oikarinen E, Tiittanen H, Henelius A, Puolamäki K (2021)
+        Detecting virtual concept drift of regressors without ground truth values.
+        Data Mining and Knowledge Discovery 35(3):726-747, DOI 10.1007/s10618-021-00739-7
 
     Args:
         blackbox (Optional[str]): Return predictions from a black box instead of y (currently not implemented). Defaults to None.
@@ -292,10 +305,25 @@ def get_airquality(
         "RH",
         "AH",
     ]
+    nnames = [
+        "CO(sensor)",
+        "C6H6(GT)",
+        "NMHC(sensor)",
+        "NOx(GT)",
+        "NOx(sensor)",
+        "NO2(GT)",
+        "NO2(sensor)",
+        "O3(sensor)",
+        "Temperature",
+        "Relative hum.",
+        "Absolute hum.",
+    ]
+
     X = AQ[columns].to_numpy()
     y = AQ["CO(GT)"].to_numpy()
-    X = StandardScaler().fit_transform(X)
-    y = StandardScaler().fit_transform(y[:, None])[:, 0]
+    if normalise:
+        X = StandardScaler().fit_transform(X)
+        y = StandardScaler().fit_transform(y[:, None])[:, 0]
     if blackbox is None:
         pass
     elif blackbox.lower() in ("rf", "random forest", "randomforest"):
@@ -303,7 +331,7 @@ def get_airquality(
     else:
         raise Exception(f"Unimplemented black box for airquality: '{blackbox}'")
     if names:
-        return X, y, columns
+        return X, y, nnames
     else:
         return X, y
 
