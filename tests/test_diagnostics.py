@@ -11,10 +11,12 @@ def test_print_plot():
     diags = diagnose(sm, conservative=True)
     print_diagnostics(diags, False)
     print_diagnostics(diags, True)
-    plot_diagnostics(sm, diags, False)
-    plot_diagnostics(sm, diags, True)
-    plot_diagnostics(sm, {k: v for k, v in [diags.popitem()]}, True)
-    plt.close("all")
+    try:
+        plot_diagnostics(sm, diags, False, show=False)
+        plot_diagnostics(sm, diags, True, show=False)
+        plot_diagnostics(sm, {k: v for k, v in [diags.popitem()]}, True, show=False)
+    finally:
+        plt.close("all")
 
 
 def test_diagnose():

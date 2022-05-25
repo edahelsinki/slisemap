@@ -90,3 +90,13 @@ def test_PCA():
     assert PCA_rotation(x, 5, full=False).shape == (3, 3)
     assert PCA_rotation(x * np.nan, 5, full=True).shape == (3, 3)
     assert PCA_rotation(x * np.nan, 5, full=False).shape == (3, 3)
+
+
+def test_dict():
+    dict_array(dict())
+    dict_array(dict(a=2, b="asd", c=[1, 2, 3], d=np.arange(3), e=0.2, f=None))
+    dict_concat(dict() for _ in range(3))
+    dict_concat(
+        dict(a=2, b="asd", c=list(range(i)), d=np.arange(i), e=0.2, f=None)
+        for i in range(2, 3)
+    )

@@ -195,7 +195,7 @@ def test_restore():
 
 def test_cluster():
     sm = get_slisemap(40, 5, randomB=True)
-    id, cm = sm._cluster_models(5)
+    id, cm = sm.get_model_clusters(5)
     assert id.max() == 4
     assert id.min() == 0
     D = torch.cdist(sm._B.cpu(), torch.as_tensor(cm))

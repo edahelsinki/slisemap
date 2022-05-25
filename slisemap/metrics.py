@@ -10,7 +10,7 @@ import numpy as np
 import torch
 
 from slisemap.slisemap import Slisemap
-from slisemap.utils import _tonp
+from slisemap.utils import tonp
 
 
 def _non_crashing_median(x: torch.Tensor) -> float:
@@ -271,7 +271,7 @@ def coverage(
         if ni.numel() == 0:
             results[i] = np.nan
         else:
-            results[i] = np.mean(_tonp(L[i, ni] < max_loss))
+            results[i] = np.mean(tonp(L[i, ni] < max_loss))
     return nanmean(results)
 
 
@@ -515,7 +515,7 @@ def recall(sm: Slisemap, epsilon_D: float = 1.0, epsilon_L: float = 1.0) -> floa
             res[i] = np.nan
         else:
             nD = kernel_neighbours(D, i, epsilon_D)
-            inter = np.intersect1d(_tonp(nD), _tonp(nL), True)
+            inter = np.intersect1d(tonp(nD), tonp(nL), True)
             res[i] = len(inter) / nL.numel()
     return nanmean(res)
 
@@ -544,7 +544,7 @@ def precision(sm: Slisemap, epsilon_D: float = 1.0, epsilon_L: float = 1.0) -> f
             res[i] = np.nan
         else:
             nL = kernel_neighbours(L, i, epsilon_L)
-            inter = np.intersect1d(_tonp(nD), _tonp(nL), True)
+            inter = np.intersect1d(tonp(nD), tonp(nL), True)
             res[i] = len(inter) / nD.numel()
     return nanmean(res)
 

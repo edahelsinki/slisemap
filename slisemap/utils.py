@@ -3,7 +3,7 @@ This module contains various useful functions.
 """
 
 from timeit import default_timer as timer
-from typing import Any, Callable, List, Optional, Sequence, Union
+from typing import Any, Callable, Dict, Iterator, List, Optional, Sequence, Union
 from warnings import warn
 
 import numpy as np
@@ -32,7 +32,7 @@ def _warn(warning: str, method: Optional[Callable] = None):
         warn(f"{method.__qualname__}: {warning}", SlisemapWarning, 2)
 
 
-def _tonp(x: torch.Tensor) -> np.ndarray:
+def tonp(x: torch.Tensor) -> np.ndarray:
     """Convert a torch.Tensor to a numpy.ndarray.
 
     Args:
@@ -42,6 +42,9 @@ def _tonp(x: torch.Tensor) -> np.ndarray:
         np.ndarray: Output numpy.ndarray.
     """
     return x.cpu().detach().numpy()
+
+
+_tonp = tonp
 
 
 class CheckConvergence:
@@ -258,3 +261,43 @@ def global_model(
 
     LBFGS(loss, [B])
     return B.detach()
+
+
+def dict_array(dict: Dict[str, Any]) -> Dict[str, np.ndarray]:
+    """Turn a dictionary of various values to a dictionary of numpy arrays with equal length (inplace).
+
+    Args:
+        dict (Dict[str, Any]): Dictionary.
+
+    Returns:
+        Dict[str, np.ndarray]: The same dictionary where the values are numpy arrays with equal length.
+    """
+    n = 1
+    for k, v in dict.items():
+        v = np.asarray(v).ravel()
+        dict[k] = v
+        n = max(n, len(v))
+    for k, v in dict.items():
+        if len(v) == 1:
+            dict[k] = np.repeat(v, n)
+        elif len(v) != n:
+            _warn(f"Uneven lengths in dictionary ({k}: {len(v)} != {n})", dict_array)
+    return dict
+
+
+def dict_concat(dicts: Iterator[Dict[str, Any]]) -> Dict[str, np.ndarray]:
+    """Combine multiple dictionaries into one by concatenating the values.
+    Calls ``dict_array`` to pre-process the dictionaries.
+
+    Args:
+        dicts (Iterator[Dict[str, Any]]): Generator with dictionaries (all must have the same keys).
+
+    Returns:
+        Dict[str, np.ndarray]: Combined dictionary.
+    """
+    df = dict_array(next(dicts))
+    for d in dicts:
+        d = dict_array(d)
+        for k in df.keys():
+            df[k] = np.concatenate((df[k], d[k]), 0)
+    return df

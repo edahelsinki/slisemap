@@ -13,6 +13,7 @@ import torch
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
+from sklearn.cluster import KMeans
 
 from slisemap.escape import escape_neighbourhood
 from slisemap.local_models import linear_regression, linear_regression_loss
@@ -22,9 +23,10 @@ from slisemap.utils import (
     CheckConvergence,
     PCA_rotation,
     _assert,
-    _tonp,
     _warn,
+    dict_concat,
     global_model,
+    tonp,
     varimax,
 )
 
@@ -550,7 +552,7 @@ class Slisemap:
         Returns:
             Union[np.ndarray, torch.Tensor]: The B matrix
         """
-        return _tonp(self._B) if numpy else self._B.detach().clone()
+        return tonp(self._B) if numpy else self._B.detach().clone()
 
     def get_D(self, numpy: bool = True) -> Union[np.ndarray, torch.Tensor]:
         """Get the embedding distance matrix
@@ -563,7 +565,7 @@ class Slisemap:
         """
         Z = self.get_Z(rotate=False, numpy=False)
         D = self._distance(Z, Z)
-        return _tonp(D) if numpy else D.detach()
+        return tonp(D) if numpy else D.detach()
 
     def get_L(
         self,
@@ -584,7 +586,7 @@ class Slisemap:
         X = self._as_new_X(X)
         Y = self._as_new_Y(Y, X.shape[0])
         L = self.local_loss(self.local_model(X, self._B), Y, self._B)
-        return _tonp(L) if numpy else L.detach()
+        return tonp(L) if numpy else L.detach()
 
     def get_W(self, numpy: bool = True) -> Union[np.ndarray, torch.Tensor]:
         """Get the weight matrix
@@ -596,7 +598,7 @@ class Slisemap:
             Union[np.ndarray, torch.Tensor]: The W matrix
         """
         W = self.kernel(self.get_D(numpy=False))
-        return _tonp(W) if numpy else W.detach()
+        return tonp(W) if numpy else W.detach()
 
     def get_X(
         self, numpy: bool = True, intercept: bool = True
@@ -611,7 +613,7 @@ class Slisemap:
             Union[np.ndarray, torch.Tensor]: The X matrix
         """
         X = self._X if intercept or not self._intercept else self._X[:, :-1]
-        return _tonp(X) if numpy else X.detach().clone()
+        return tonp(X) if numpy else X.detach().clone()
 
     def get_Y(
         self, numpy: bool = True, ravel: bool = False
@@ -626,7 +628,7 @@ class Slisemap:
             Union[np.ndarray, torch.Tensor]: The Y matrix
         """
         Y = self._Y.ravel() if ravel else self._Y
-        return _tonp(Y) if numpy else Y.detach().clone()
+        return tonp(Y) if numpy else Y.detach().clone()
 
     def value(
         self, individual: bool = False, numpy: bool = True
@@ -642,7 +644,7 @@ class Slisemap:
         loss = self.get_loss_fn(individual)
         loss = loss(X=self._X, Y=self._Y, B=self._B, Z=self._Z)
         if individual:
-            return _tonp(loss) if numpy else loss.detach()
+            return tonp(loss) if numpy else loss.detach()
         else:
             return loss.cpu().detach().item() if numpy else loss.detach()
 
@@ -664,7 +666,7 @@ class Slisemap:
             entropy = (entropy.mean().exp() / self.n).detach()
             return entropy.cpu().item() if numpy else entropy
         else:
-            return _tonp(entropy) if numpy else entropy.detach()
+            return tonp(entropy) if numpy else entropy.detach()
 
     def lbfgs(self, max_iter: int = 500, *, only_B: bool = False, **kwargs) -> float:
 
@@ -899,7 +901,7 @@ class Slisemap:
                     B=torch.cat((self.B, Bnew), 0),
                     Z=torch.cat((self.Z, Znew), 0),
                 )[self.n :]
-                loss = _tonp(loss)
+                loss = tonp(loss)
             else:
                 if self._jit:
                     lf = torch.jit.trace(lf, (Xnew[:1], ynew[:1], Bnew[:1], Znew[:1]))
@@ -914,9 +916,9 @@ class Slisemap:
                     loss[j] = l.detach().cpu().item()
             if verbose:
                 print("  mean(loss) =", loss.mean())
-            return _tonp(Bnew), _tonp(Zout), loss
+            return tonp(Bnew), tonp(Zout), loss
         else:
-            return _tonp(Bnew), _tonp(Zout)
+            return tonp(Bnew), tonp(Zout)
 
     def predict(
         self,
@@ -960,7 +962,7 @@ class Slisemap:
             + self.ridge * torch.sum(Bnew**2)
         )
         LBFGS(loss, [Bnew], **kwargs)
-        return _tonp(torch.diagonal(self.local_model(Xnew, Bnew), dim1=0, dim2=1).T)
+        return tonp(torch.diagonal(self.local_model(Xnew, Bnew), dim1=0, dim2=1).T)
 
     def copy(self) -> "Slisemap":
         """Make a copy of this Slisemap that references as much of the same torch-data as possible.
@@ -1022,11 +1024,11 @@ class Slisemap:
         sm.random_state = sm._rs0
         return sm
 
-    def _cluster_models(
+    def get_model_clusters(
         self, clusters: int, B: Optional[np.ndarray] = None, random_state: int = 42
     ) -> Tuple[np.ndarray, np.ndarray]:
-        """Get cluster labels from k-means on the local model coefficients.
-        This function uses KMeans from scikit-learn.
+        """Cluster the local model coefficients using k-means (from scikit-learn).
+        This method (with a fixed random seed) is used for plotting Slisemap solutions.
 
         Args:
             clusters (int): Number of clusters.
@@ -1036,11 +1038,10 @@ class Slisemap:
         Returns:
             Tuple[np.ndarray, np.ndarray]: vector of cluster labels an matrix of cluster centers.
         """
-        from sklearn.cluster import KMeans
-
         km = KMeans(clusters, random_state=random_state).fit(
             B if B is not None else self.get_B()
         )
+        # Sort according to value for the most influential coefficient
         influence = np.abs(km.cluster_centers_)
         influence = influence.max(0) + influence.mean(0)
         col = np.argmax(influence)
@@ -1104,7 +1105,7 @@ class Slisemap:
                 f"The number of variable names ({len(variables)}) must match the number of coefficients ({B.shape[1]})",
             )
         if isinstance(clusters, int):
-            clusters, centers = self._cluster_models(clusters, B)
+            clusters, centers = self.get_model_clusters(clusters, B)
             if bars:
                 y = np.arange(B.shape[1]) if variables is None else variables
                 if not isinstance(bars, bool):
@@ -1131,7 +1132,7 @@ class Slisemap:
             _assert(not bars, "`bar!=False` requires that `clusters` is an integer")
         if clusters is None:
             if Z.shape[0] == self.Z.shape[0]:
-                L = _tonp(torch.diagonal(self.get_L(numpy=False))).ravel()
+                L = tonp(torch.diagonal(self.get_L(numpy=False))).ravel()
                 sns.scatterplot(x=Z[:, 0], y=Z[:, 1], hue=L, palette="crest", ax=ax1)
                 ax1.legend(title="Fidelity")
             else:
@@ -1202,8 +1203,6 @@ class Slisemap:
         Returns:
             Optional[sns.FacetGrid]: Seaborn FacetGrid if show=False.
         """
-        import pandas as pd
-
         Z = Z if Z is not None else self.get_Z(rotate=True)
         if Z.shape[1] == 1:
             Z = np.concatenate((Z, np.zeros_like(Z)), 1)
@@ -1225,19 +1224,9 @@ class Slisemap:
             if isinstance(index, int):
                 index = [index]
             L = self.get_L()[:, index]
-        df = pd.concat(
-            [
-                pd.DataFrame(
-                    {
-                        "SLISEMAP 1": Z[:, 0],
-                        "SLISEMAP 2": Z[:, 1],
-                        "Fidelity": loss,
-                        "i": i,
-                    }
-                )
-                for i, loss in enumerate(L.T)
-            ],
-            ignore_index=True,
+        df = dict_concat(
+            {"SLISEMAP 1": Z[:, 0], "SLISEMAP 2": Z[:, 1], "Fidelity": loss, "i": i}
+            for i, loss in enumerate(L.T)
         )
         kwargs.setdefault("palette", "crest")
         kwargs.setdefault("kind", "scatter")
@@ -1332,8 +1321,6 @@ class Slisemap:
         Returns:
             Optional[sns.FacetGrid]: Seaborn FacetGrid if show=False.
         """
-        import pandas as pd
-
         if X is None:
             X = self.get_X(intercept=False)
         if Y is None:
@@ -1351,16 +1338,13 @@ class Slisemap:
 
         if not scatter:
             if isinstance(clusters, int):
-                clusters, _ = self._cluster_models(clusters, B)
+                clusters, _ = self.get_model_clusters(clusters, B)
             elif clusters is None:
                 legend_inside = False
-            df = pd.concat(
-                [
-                    pd.DataFrame(dict(var=n, Value=XY[:, i], Cluster=clusters))
-                    for v, XY in [(targets, Y), (variables, X)]
-                    for i, n in enumerate(v)
-                ],
-                ignore_index=True,
+            df = dict_concat(
+                {"var": n, "Value": XY[:, i], "Cluster": clusters}
+                for v, XY in [(targets, Y), (variables, X)]
+                for i, n in enumerate(v)
             )
             if kwargs.setdefault("kind", "kde") == "kde":
                 kwargs.setdefault("bw_adjust", 0.75)
@@ -1388,20 +1372,15 @@ class Slisemap:
                 )
             if jitter > 0:
                 Z = np.random.normal(Z, jitter)
-            df = pd.concat(
-                [
-                    pd.DataFrame(
-                        {
-                            "var": n,
-                            "Value": XY[:, i],
-                            "SLISEMAP 1": Z[:, 0],
-                            "SLISEMAP 2": Z[:, 1],
-                        }
-                    )
-                    for v, XY in [(targets, Y), (variables, X)]
-                    for i, n in enumerate(v)
-                ],
-                ignore_index=True,
+            df = dict_concat(
+                {
+                    "var": n,
+                    "Value": XY[:, i],
+                    "SLISEMAP 1": Z[:, 0],
+                    "SLISEMAP 2": Z[:, 1],
+                }
+                for v, XY in [(targets, Y), (variables, X)]
+                for i, n in enumerate(v)
             )
             kwargs.setdefault("palette", "rocket")
             kwargs.setdefault("kind", "scatter")

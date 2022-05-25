@@ -20,7 +20,7 @@ import torch
 from matplotlib import pyplot as plt
 
 from slisemap.slisemap import Slisemap
-from slisemap.utils import _tonp, global_model
+from slisemap.utils import dict_array, dict_concat, global_model, tonp
 
 
 def _size(n: int, part: Union[float, int]) -> int:
@@ -115,19 +115,17 @@ def plot_diagnostics(
     Returns:
         Optional[sns.FacetGrid]: Seaborn FacetGrid if show=False.
     """
-    import pandas as pd
-
     if isinstance(Z, Slisemap):
         Z = Z.get_Z(rotate=True)
     if len(diagnostics) == 1:
         for name, mask in diagnostics.items():
-            df = pd.DataFrame({"Z1": Z[:, 0], "Z2": Z[:, 1], name: mask})
+            df = dict_array({"Z1": Z[:, 0], "Z2": Z[:, 1], name: mask})
             g = sns.relplot(
                 data=df, x="Z1", y="Z2", hue=name, style=name, kind="scatter", **kwargs
             )
     elif summary:
         issues = reduce(lambda a, b: a + b.astype(int), diagnostics.values())
-        df = pd.DataFrame(
+        df = dict_array(
             {"Z1": Z[:, 0], "Z2": Z[:, 1], "Problem": issues > 0, "Severity": issues}
         )
         g = sns.relplot(
@@ -147,18 +145,14 @@ def plot_diagnostics(
                 kwargs["col_wrap"] = 3
             else:
                 kwargs["col_wrap"] = 4
-        df = pd.concat(
-            [
-                pd.DataFrame(
-                    {
-                        "Z1": Z[:, 0],
-                        "Z2": Z[:, 1],
-                        "Problem": mask,
-                        "Diagnostic": f"{diag} ({np.mean(mask) * 100:.1f} %)",
-                    }
-                )
-                for diag, mask in diagnostics.items()
-            ]
+        df = dict_concat(
+            {
+                "Z1": Z[:, 0],
+                "Z2": Z[:, 1],
+                "Problem": mask,
+                "Diagnostic": f"{diag} ({np.mean(mask) * 100:.1f} %)",
+            }
+            for diag, mask in diagnostics.items()
         )
         g = sns.relplot(
             data=df,
@@ -202,7 +196,7 @@ def heavyweight_diagnostic(
     Returns:
         np.ndarray: Boolean mask of problematic data items.
     """
-    return _tonp(sm.get_W(numpy=False).diag() > _frac(sm.n, min_size))
+    return tonp(sm.get_W(numpy=False).diag() > _frac(sm.n, min_size))
 
 
 def lightweight_diagnostic(
@@ -217,7 +211,7 @@ def lightweight_diagnostic(
     Returns:
         np.ndarray: Boolean mask of problematic data items.
     """
-    return _tonp(sm.get_W(numpy=False).diag() < (1 / _size(sm.n, max_size)))
+    return tonp(sm.get_W(numpy=False).diag() < (1 / _size(sm.n, max_size)))
 
 
 def weight_neighbourhood_diagnostic(
@@ -235,7 +229,7 @@ def weight_neighbourhood_diagnostic(
     """
     min_size = _size(sm.n, min_size)
     max_size = _size(sm.n, max_size)
-    return _tonp((sm.get_W(numpy=False) > (1 / max_size)).sum(1) < min_size)
+    return tonp((sm.get_W(numpy=False) > (1 / max_size)).sum(1) < min_size)
 
 
 def loss_neighbourhood_diagnostic(
