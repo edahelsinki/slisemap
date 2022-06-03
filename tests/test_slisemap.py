@@ -64,10 +64,9 @@ def test_fit_new():
     _, _, l2e = sm.fit_new(
         x2, y2, optimise=False, between=True, escape_fn=escape_marginal, loss=True
     )
-    assert np.sum(l2b) < np.sum(l2a) * 1.1
-    assert np.sum(l2c) < np.sum(l2b) * 1.1
-    assert np.sum(l2c) < np.sum(l2d) * 1.1
-    assert np.sum(l2a) < np.sum(l2e) * 1.1
+    assert_approx_ge(l2a, l2b)
+    assert_approx_ge(l2e, l2d)
+    assert_approx_ge(l2e, l2a)
     B2d, Z2d, l2d = sm.fit_new(x2, y2b, False, loss=True)
     B2e, Z2e, l2e = sm.fit_new(x2, y2b, True, False, loss=True)
     B2f, Z2f, l2f = sm.fit_new(x2, y2b, True, True, loss=True)
