@@ -219,7 +219,7 @@
 <span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
 
 <span class="kn">from</span> <span class="nn">slisemap.slisemap</span> <span class="kn">import</span> <span class="n">Slisemap</span>
-<span class="kn">from</span> <span class="nn">slisemap.utils</span> <span class="kn">import</span> <span class="n">_tonp</span><span class="p">,</span> <span class="n">global_model</span>
+<span class="kn">from</span> <span class="nn">slisemap.utils</span> <span class="kn">import</span> <span class="n">dict_array</span><span class="p">,</span> <span class="n">dict_concat</span><span class="p">,</span> <span class="n">global_model</span><span class="p">,</span> <span class="n">tonp</span>
 
 
 <span class="k">def</span> <span class="nf">_size</span><span class="p">(</span><span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">part</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
@@ -314,19 +314,17 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        Optional[sns.FacetGrid]: Seaborn FacetGrid if show=False.</span>
 <span class="sd">    """</span>
-    <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">Z</span><span class="p">,</span> <span class="n">Slisemap</span><span class="p">):</span>
         <span class="n">Z</span> <span class="o">=</span> <span class="n">Z</span><span class="o">.</span><span class="n">get_Z</span><span class="p">(</span><span class="n">rotate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">mask</span> <span class="ow">in</span> <span class="n">diagnostics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"Z1"</span><span class="p">:</span> <span class="n">Z</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="s2">"Z2"</span><span class="p">:</span> <span class="n">Z</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">name</span><span class="p">:</span> <span class="n">mask</span><span class="p">})</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">dict_array</span><span class="p">({</span><span class="s2">"Z1"</span><span class="p">:</span> <span class="n">Z</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="s2">"Z2"</span><span class="p">:</span> <span class="n">Z</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">name</span><span class="p">:</span> <span class="n">mask</span><span class="p">})</span>
             <span class="n">g</span> <span class="o">=</span> <span class="n">sns</span><span class="o">.</span><span class="n">relplot</span><span class="p">(</span>
                 <span class="n">data</span><span class="o">=</span><span class="n">df</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">"Z1"</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">"Z2"</span><span class="p">,</span> <span class="n">hue</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"scatter"</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
             <span class="p">)</span>
     <span class="k">elif</span> <span class="n">summary</span><span class="p">:</span>
         <span class="n">issues</span> <span class="o">=</span> <span class="n">reduce</span><span class="p">(</span><span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span> <span class="n">diagnostics</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
-        <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">dict_array</span><span class="p">(</span>
             <span class="p">{</span><span class="s2">"Z1"</span><span class="p">:</span> <span class="n">Z</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="s2">"Z2"</span><span class="p">:</span> <span class="n">Z</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="s2">"Problem"</span><span class="p">:</span> <span class="n">issues</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">"Severity"</span><span class="p">:</span> <span class="n">issues</span><span class="p">}</span>
         <span class="p">)</span>
         <span class="n">g</span> <span class="o">=</span> <span class="n">sns</span><span class="o">.</span><span class="n">relplot</span><span class="p">(</span>
@@ -346,18 +344,14 @@
                 <span class="n">kwargs</span><span class="p">[</span><span class="s2">"col_wrap"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">3</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">kwargs</span><span class="p">[</span><span class="s2">"col_wrap"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span>
-        <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
-            <span class="p">[</span>
-                <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
-                    <span class="p">{</span>
-                        <span class="s2">"Z1"</span><span class="p">:</span> <span class="n">Z</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
-                        <span class="s2">"Z2"</span><span class="p">:</span> <span class="n">Z</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
-                        <span class="s2">"Problem"</span><span class="p">:</span> <span class="n">mask</span><span class="p">,</span>
-                        <span class="s2">"Diagnostic"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">diag</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> %)"</span><span class="p">,</span>
-                    <span class="p">}</span>
-                <span class="p">)</span>
-                <span class="k">for</span> <span class="n">diag</span><span class="p">,</span> <span class="n">mask</span> <span class="ow">in</span> <span class="n">diagnostics</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-            <span class="p">]</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">dict_concat</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">"Z1"</span><span class="p">:</span> <span class="n">Z</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="s2">"Z2"</span><span class="p">:</span> <span class="n">Z</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
+                <span class="s2">"Problem"</span><span class="p">:</span> <span class="n">mask</span><span class="p">,</span>
+                <span class="s2">"Diagnostic"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">diag</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> %)"</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="k">for</span> <span class="n">diag</span><span class="p">,</span> <span class="n">mask</span> <span class="ow">in</span> <span class="n">diagnostics</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
         <span class="p">)</span>
         <span class="n">g</span> <span class="o">=</span> <span class="n">sns</span><span class="o">.</span><span class="n">relplot</span><span class="p">(</span>
             <span class="n">data</span><span class="o">=</span><span class="n">df</span><span class="p">,</span>
@@ -401,7 +395,7 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        np.ndarray: Boolean mask of problematic data items.</span>
 <span class="sd">    """</span>
-    <span class="k">return</span> <span class="n">_tonp</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="n">numpy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">diag</span><span class="p">()</span> <span class="o">&gt;</span> <span class="n">_frac</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="n">min_size</span><span class="p">))</span></div>
+    <span class="k">return</span> <span class="n">tonp</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="n">numpy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">diag</span><span class="p">()</span> <span class="o">&gt;</span> <span class="n">_frac</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="n">min_size</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="lightweight_diagnostic"><a class="viewcode-back" href="../../slisemap.html#slisemap.diagnostics.lightweight_diagnostic">[docs]</a><span class="k">def</span> <span class="nf">lightweight_diagnostic</span><span class="p">(</span>
@@ -416,7 +410,7 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        np.ndarray: Boolean mask of problematic data items.</span>
 <span class="sd">    """</span>
-    <span class="k">return</span> <span class="n">_tonp</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="n">numpy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">diag</span><span class="p">()</span> <span class="o">&lt;</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">_size</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="n">max_size</span><span class="p">)))</span></div>
+    <span class="k">return</span> <span class="n">tonp</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="n">numpy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">diag</span><span class="p">()</span> <span class="o">&lt;</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">_size</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="n">max_size</span><span class="p">)))</span></div>
 
 
 <div class="viewcode-block" id="weight_neighbourhood_diagnostic"><a class="viewcode-back" href="../../slisemap.html#slisemap.diagnostics.weight_neighbourhood_diagnostic">[docs]</a><span class="k">def</span> <span class="nf">weight_neighbourhood_diagnostic</span><span class="p">(</span>
@@ -434,7 +428,7 @@
 <span class="sd">    """</span>
     <span class="n">min_size</span> <span class="o">=</span> <span class="n">_size</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="n">min_size</span><span class="p">)</span>
     <span class="n">max_size</span> <span class="o">=</span> <span class="n">_size</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="n">max_size</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">_tonp</span><span class="p">((</span><span class="n">sm</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="n">numpy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">&gt;</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">max_size</span><span class="p">))</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">min_size</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">tonp</span><span class="p">((</span><span class="n">sm</span><span class="o">.</span><span class="n">get_W</span><span class="p">(</span><span class="n">numpy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">&gt;</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">max_size</span><span class="p">))</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">min_size</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="loss_neighbourhood_diagnostic"><a class="viewcode-back" href="../../slisemap.html#slisemap.diagnostics.loss_neighbourhood_diagnostic">[docs]</a><span class="k">def</span> <span class="nf">loss_neighbourhood_diagnostic</span><span class="p">(</span>
