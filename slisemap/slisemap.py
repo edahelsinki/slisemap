@@ -158,13 +158,13 @@ class Slisemap:
             self._Y = self._Y[:, None]
 
         if Z0 is None:
-            self._Z0 = self._X @ PCA_rotation(self._X, min(m, d))
-            if d > m:
+            self._Z0 = self._X @ PCA_rotation(self._X, d)
+            if self._Z0.shape[1] < d:
                 _warn(
                     "The number of embedding dimensions is larger than the number of data dimensions",
                     Slisemap,
                 )
-                Z0fill = torch.zeros(size=[n, d - m], **tensorargs)
+                Z0fill = torch.zeros(size=[n, d - self._Z0.shape[1]], **tensorargs)
                 self._Z0 = torch.cat((self._Z0, Z0fill), 1)
         else:
             self._Z0 = torch.as_tensor(Z0, **tensorargs)

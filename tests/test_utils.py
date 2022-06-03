@@ -90,6 +90,12 @@ def test_PCA():
     assert PCA_rotation(x, 5, full=False).shape == (3, 3)
     assert PCA_rotation(x * np.nan, 5, full=True).shape == (3, 3)
     assert PCA_rotation(x * np.nan, 5, full=False).shape == (3, 3)
+    assert np.allclose(
+        np.abs(PCA_rotation(x, 3).numpy()), np.abs(np.linalg.svd(x.numpy())[2].T)
+    )
+    x = torch.normal(0, 1, (3, 5))
+    assert PCA_rotation(x, 2, full=False).shape == (5, 2)
+    assert PCA_rotation(x, 2, full=True).shape == (5, 2)
 
 
 def test_dict():

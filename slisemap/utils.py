@@ -182,7 +182,7 @@ def PCA_rotation(
     try:
         components = min(*X.shape, components)
         if full:
-            return torch.linalg.svd(X, full_matrices=False)[2][:, :components]
+            return torch.linalg.svd(X, full_matrices=False)[2].T[:, :components]
         else:
             return torch.pca_lowrank(X, components, center=False, niter=niter)[2]
     except:

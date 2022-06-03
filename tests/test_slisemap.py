@@ -11,6 +11,7 @@ def test_parameters():
     sm5 = get_slisemap(30, 4, intercept=False)
     sm6 = get_slisemap(30, 4, classes=2, radius=3)
     sm7 = get_slisemap(30, 4, d=10)
+    sm7 = get_slisemap(10, 15)
     assert all_finite(
         sm4.lbfgs(10),
         sm5.lbfgs(10),
