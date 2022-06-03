@@ -190,7 +190,7 @@ def test_relevance():
 
 
 def test_purity():
-    sm, clusters = get_slisemap2(50, 8)
+    sm, clusters = get_slisemap2(50, 5)
     cp1 = cluster_purity(sm, clusters)
     dp1 = kernel_purity(sm, clusters, 1.0)
     lp1 = kernel_purity(sm, clusters, 1.0, True)

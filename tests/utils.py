@@ -75,9 +75,9 @@ def all_finite(x: Union[float, np.ndarray], *args: Union[float, np.ndarray]) -> 
 def assert_approx_ge(x, y, label=None, tolerance=0.05):
     tolerance *= (abs(x) + abs(y)) * 0.5
     if label:
-        assert x > y - tolerance, f"{label}: {x} !>= {y}"
+        assert np.all(x > y - tolerance), f"{label}: {x} !>= {y}"
     else:
-        assert x > y - tolerance, f"{x} !>= {y}"
+        assert np.all(x > y - tolerance), f"{x} !>= {y}"
 
 
 def get_rsynth(

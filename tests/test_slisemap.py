@@ -47,8 +47,8 @@ def test_fit_new():
     losses = sm.value(True)
     B1a, Z1a, l1a = sm.fit_new(x1, y1, False, loss=True)
     B1b, Z1b, l1b = sm.fit_new(x1, y1, True, loss=True)
-    # assert l1b[0] < l1a[0] * 1.1
-    # assert l1b[0] < losses[4] * 1.1
+    assert l1b[0] < l1a[0] * 1.1
+    assert l1b[0] < losses[4] * 1.1
     _, _, l2a = sm.fit_new(
         x2, y2, False, between=True, escape_fn=escape_neighbourhood, loss=True
     )
@@ -64,9 +64,9 @@ def test_fit_new():
     _, _, l2e = sm.fit_new(
         x2, y2, optimise=False, between=True, escape_fn=escape_marginal, loss=True
     )
-    # assert np.sum(l2b) < np.sum(l2a) * 1.1
+    assert np.sum(l2b) < np.sum(l2a) * 1.1
     assert np.sum(l2c) < np.sum(l2b) * 1.1
-    # assert np.sum(l2c) < np.sum(l2d) * 1.1
+    assert np.sum(l2c) < np.sum(l2d) * 1.1
     assert np.sum(l2a) < np.sum(l2e) * 1.1
     B2d, Z2d, l2d = sm.fit_new(x2, y2b, False, loss=True)
     B2e, Z2e, l2e = sm.fit_new(x2, y2b, True, False, loss=True)
@@ -79,9 +79,9 @@ def test_fit_new():
         X=sm._as_new_X(np.concatenate((X, x2), 0)),
         Y=sm._as_new_Y(np.concatenate((y, y2), 0)),
         B=torch.cat((sm.B, torch.as_tensor(B2, **sm.tensorargs)), 0),
-        Z=torch.cat((sm.Z, torch.as_tensor(Z2, **sm.tensorargs)), 0),
+        Z=torch.cat((sm.Z, torch.as_tensor(Z2 / sm.radius, **sm.tensorargs)), 0),
     )[sm.n :]
-    assert np.all(l2b_.cpu().numpy() <= l2b + 1e-2)
+    assert_approx_ge(l2b, l2b_.cpu().numpy())
 
 
 def test_loss():

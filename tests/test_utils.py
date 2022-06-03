@@ -96,6 +96,9 @@ def test_PCA():
     x = torch.normal(0, 1, (3, 5))
     assert PCA_rotation(x, 2, full=False).shape == (5, 2)
     assert PCA_rotation(x, 2, full=True).shape == (5, 2)
+    assert np.allclose(
+        np.abs(PCA_rotation(x, 2).numpy()), np.abs(np.linalg.svd(x.numpy())[2][:2].T)
+    )
 
 
 def test_dict():
