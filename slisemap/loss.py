@@ -2,7 +2,7 @@
 This module contains the SLISEMAP loss functions.
 """
 
-from typing import Callable
+from typing import Callable, Tuple
 
 import torch
 from torch.nn.functional import softmax
@@ -25,8 +25,8 @@ def softmax_kernel(D: torch.Tensor) -> torch.Tensor:
 def make_loss(
     local_model: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
     local_loss: Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor],
-    distance: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
-    kernel: Callable[[torch.Tensor], torch.Tensor],
+    distance: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] = torch.cdist,
+    kernel: Callable[[torch.Tensor], torch.Tensor] = softmax_kernel,
     radius: float = 3.5,
     lasso: float = 0.0,
     ridge: float = 0.0,
@@ -38,8 +38,8 @@ def make_loss(
     Args:
         local_model (Callable[[torch.Tensor, torch.Tensor], torch.Tensor]): Prediction function for the local models.
         local_loss (Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor]): Loss function for the local models.
-        distance (Callable[[torch.Tensor, torch.Tensor], torch.Tensor]): Embedding distance function.
-        kernel (Callable[[torch.Tensor], torch.Tensor]): Kernel for embedding distances.
+        distance (Callable[[torch.Tensor, torch.Tensor], torch.Tensor]): Embedding distance function. Defaults to ``torch.cdist`` (Euclidean distance).
+        kernel (Callable[[torch.Tensor], torch.Tensor]): Kernel for embedding distances, Defaults to ``softmax_kernel``.
         radius (float, optional): For enforcing the radius of Z. Defaults to 3.5.
         lasso (float, optional): Lasso-regularisation coefficient for B ($\\lambda_{lasso} * ||B||_1$). Defaults to 0.0.
         ridge (float, optional): Ridge-regularisation coefficient for B ($\\lambda_{ridge} * ||B||_2$). Defaults to 0.0.
@@ -65,9 +65,9 @@ def make_loss(
         """Slisemap loss function.
 
         Args:
-            X (torch.Tensor): Data matrix.
-            Y (torch.Tensor): Target matrix.
-            B (torch.Tensor): Local models.
+            X (torch.Tensor): Data matrix [n, m].
+            Y (torch.Tensor): Target matrix [n, k].
+            B (torch.Tensor): Local models [n, p].
             Z (torch.Tensor): Embedding matrix [n, d].
 
         Returns:
@@ -99,13 +99,16 @@ def make_marginal_loss(
     Ynew: torch.Tensor,
     local_model: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
     local_loss: Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor],
-    distance: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
-    kernel: Callable[[torch.Tensor], torch.Tensor],
+    distance: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] = torch.cdist,
+    kernel: Callable[[torch.Tensor], torch.Tensor] = softmax_kernel,
     radius: float = 3.5,
     lasso: float = 0.0,
     ridge: float = 0.0,
     jit: bool = True,
-) -> Callable[[torch.Tensor, torch.Tensor], torch.Tensor]:
+) -> Tuple[
+    Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
+    Callable[[torch.Tensor, torch.Tensor], None],
+]:
     """Create a loss for adding new points with Slisemap.
 
     Args:
@@ -117,15 +120,15 @@ def make_marginal_loss(
         Ynew (torch.Tensor): The new target matrix [n_new, k].
         local_model (Callable[[torch.Tensor, torch.Tensor], torch.Tensor]): Prediction function for the local models.
         local_loss (Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor]): Loss function for the local models.
-        kernel (Callable[[torch.Tensor], torch.Tensor]): Kernel for embedding distances.
-        distance (Callable[[torch.Tensor, torch.Tensor], torch.Tensor]): Embedding distance function.
+        distance (Callable[[torch.Tensor, torch.Tensor], torch.Tensor]): Embedding distance function. Defaults to ``torch.cdist`` (Euclidean distance).
+        kernel (Callable[[torch.Tensor], torch.Tensor]): Kernel for embedding distances, Defaults to ``softmax_kernel``.
         radius (float, optional): For enforcing the radius of Z. Defaults to 3.5.
         lasso (float, optional): Lasso-regularisation coefficient for B ($\\lambda_{lasso} * ||B||_1$). Defaults to 0.0.
         ridge (float, optional): Ridge-regularisation coefficient for B ($\\lambda_{ridge} * ||B||_2$). Defaults to 0.0.
         jit (bool, optional): Just-In-Time compile the loss function. Defaults to True.
 
     Returns:
-        Callable[[torch.Tensor, torch.Tensor], torch.Tensor]: Loss function that takes `Bnew` [n_new, p] and `Znew` [n_new, d] (or `Xnew`, `Ynew`, `Bnew` and `Znew` if `Xnew` and `Ynew` were not given above).
+        Tuple[Callable[[torch.Tensor, torch.Tensor], torch.Tensor], Callable[[torch.Tensor, torch.Tensor], None]]: A marginal loss function that takes Bnew [n_new, p] and Znew [n_new, d], and a function for changing the Xnew [n_new, m] and Ynew [n_new, k].
     """
     Xcomb = torch.cat((X, Xnew), 0)
     Ycomb = torch.cat((Y, Ynew), 0)
@@ -134,6 +137,12 @@ def make_marginal_loss(
     D0 = distance(Z, Z)  # Nold x Nold
 
     def set_new(Xnew: torch.Tensor, Ynew: torch.Tensor):
+        """Set the Xnew and Ynew for the generated marginal Slisemap loss function.
+
+        Args:
+            Xnew (torch.Tensor): New data matrix [n_new, m].
+            Ynew (torch.Tensor): New target matrix [n_new, k].
+        """
         nonlocal Xcomb, Ycomb, L0
         Xcomb[Nold:] = Xnew
         Ycomb[Nold:] = Ynew
@@ -143,6 +152,15 @@ def make_marginal_loss(
         Zss0 = torch.sum(Z**2)
 
     def loss(Bnew: torch.Tensor, Znew: torch.Tensor) -> torch.Tensor:
+        """Marginal Slisemap loss.
+
+        Args:
+            B (torch.Tensor): New local models [n_new, p].
+            Z (torch.Tensor): New embedding matrix [n_new, d].
+
+        Returns:
+            torch.Tensor: marginal loss value.
+        """
         L1 = local_loss(local_model(Xcomb, Bnew), Ycomb, Bnew)  # Nnew x Ncomb
         L = torch.cat((L0, L1), 0)  # Ncomb x Ncomb
 
