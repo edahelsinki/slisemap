@@ -5,7 +5,6 @@ This module contains the SLISEMAP loss functions.
 from typing import Callable, Tuple
 
 import torch
-from torch.nn.functional import softmax
 
 from slisemap.utils import _warn
 
@@ -19,7 +18,7 @@ def softmax_kernel(D: torch.Tensor) -> torch.Tensor:
     Returns:
         torch.Tensor: Weight matrix.
     """
-    return softmax(-D, 1)
+    return torch.softmax(-D, 1)
 
 
 def make_loss(

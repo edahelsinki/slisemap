@@ -768,9 +768,10 @@ class Slisemap:
         loss = np.repeat(np.inf, 2)
         loss[0] = self.lbfgs(max_iter=max_iter, only_B=True, **kwargs)
         if verbose:
-            print(f"LBFGS   0: {loss[0]:.2f}")
-        cc = CheckConvergence(patience)
-        for i in range(max_escapes):
+            i = 0
+            print(f"LBFGS  {i:2d}: {loss[0]:.2f}")
+        cc = CheckConvergence(patience, max_escapes)
+        while not cc.has_converged(loss, self.copy):
             self.escape(escape_fn=escape_fn)
             loss[1] = self.value()
             if verbose:
@@ -779,9 +780,8 @@ class Slisemap:
                 self._Z = torch.normal(self.Z, noise, generator=self._random_state)
             loss[0] = self.lbfgs(max_iter=max_iter, **kwargs)
             if verbose:
-                print(f"LBFGS  {i+1:2d}: {loss[0]:.2f}")
-            if cc.has_converged(loss, self.copy):
-                break
+                i += 1
+                print(f"LBFGS  {i:2d}: {loss[0]:.2f}")
         if cc.optimal_state is not None:
             self._Z = cc.optimal_state._Z
             self._B = cc.optimal_state._B

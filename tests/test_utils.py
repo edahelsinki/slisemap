@@ -27,11 +27,16 @@ def test_LBFGS_timelimit():
 
 def test_convergence():
     cc = CheckConvergence(0)
+    assert cc.has_converged(1)
+    cc = CheckConvergence(0.01)
     assert not cc.has_converged(1)
     assert cc.has_converged(1)
     cc = CheckConvergence(1)
     assert not cc.has_converged([1, 3])
     assert not cc.has_converged((1, 1))
+    assert cc.has_converged((1, 1))
+    cc = CheckConvergence(100, 2)
+    assert not cc.has_converged([1, 3])
     assert cc.has_converged((1, 1))
 
 

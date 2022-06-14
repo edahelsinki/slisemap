@@ -52,7 +52,8 @@ class CheckConvergence:
     Use it for, e.g., escape+optimisation cycles in Slisemap.
 
     Args:
-        patience (int, optional): How long should the optimisation continue without improvement. Defaults to 3.
+        patience (float, optional): How long should the optimisation continue without improvement. Defaults to 3.
+        max_iter (int, optional): The maximum number of iterations. Defaults to 2**30.
     """
 
     __slots__ = {
@@ -61,14 +62,18 @@ class CheckConvergence:
         "counter": "Number of steps since the best loss value.",
         "patience": "Number of steps allowed without improvement.",
         "optimal_state": "Cache for storing the state that produced the best loss value.",
+        "max_iter": "The maximum number of iterations.",
+        "iter": "The current number of iterations.",
     }
 
-    def __init__(self, patience: int = 3):
+    def __init__(self, patience: float = 3, max_iter=1 << 30):
         self.current = np.inf
         self.best = np.inf
         self.counter = 0
-        self.patience = max(1e-8, patience)
+        self.patience = patience
         self.optimal_state = None
+        self.max_iter = max_iter
+        self.iter = 0
 
     def has_converged(
         self,
@@ -87,21 +92,21 @@ class CheckConvergence:
         Returns:
             bool: True if the optimisation has converged.
         """
+        self.iter += 1
         loss = np.asarray(loss)
         if np.any(np.isnan(loss)):
             _warn("Loss is `nan`", CheckConvergence.has_converged)
             return True
         if np.any(loss < self.best):
-            self.best = np.minimum(loss, self.best)
-            self.current = loss
             self.counter = 0  # Reset the counter if a new best
+            self.best = np.minimum(loss, self.best)
             if store is not None and loss.item(0) < self.best.item(0):
                 self.optimal_state = store()
-            return False
-        # Increase the counter if no improvement
-        self.counter += np.mean(self.current <= loss)
+        else:
+            # Increase the counter if no improvement
+            self.counter += np.mean(self.current <= loss)
         self.current = loss
-        return self.counter >= self.patience  # Has the patience run out
+        return self.counter >= self.patience or self.iter >= self.max_iter
 
 
 def LBFGS(
