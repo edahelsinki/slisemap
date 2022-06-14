@@ -47,46 +47,6 @@ def test_global_model():
     global_model(sm.X, sm.Y, sm.local_model, sm.local_loss, sm.coefficients, 0.01, 0.01)
 
 
-def varimax_numpy(Phi, gamma=1.0, q=20, tol=1e-6):
-    # From: http://en.wikipedia.org/wiki/Talk:Varimax_rotation
-    p, k = Phi.shape
-    R = np.eye(k)
-    d = 0
-    for i in range(q):
-        d_old = d
-        Lambda = np.dot(Phi, R)
-        u, s, vh = np.linalg.svd(
-            np.dot(
-                Phi.T,
-                np.asarray(Lambda) ** 3
-                - (gamma / p)
-                * np.dot(Lambda, np.diag(np.diag(np.dot(Lambda.T, Lambda)))),
-            )
-        )
-        R = np.dot(u, vh)
-        d = sum(s)
-        if d_old != 0 and d / d_old < 1 + tol:
-            break
-    return np.dot(Phi, R)
-
-
-def test_varimax():
-    X = np.random.normal(size=(20, 2))
-    XR = varimax_numpy(X, 1, 20, 1e-6)
-    XRb = varimax_numpy(X[:, :1], 1, 20, 1e-6)
-    X = torch.as_tensor(X)
-    XR = torch.as_tensor(XR)
-    XRb = torch.as_tensor(XRb)
-    assert torch.allclose(torch.cdist(X, X), torch.cdist(XR, XR))
-    assert torch.allclose(torch.cdist(X[:, :1], X[:, :1]), torch.cdist(XRb, XRb))
-    XR2 = varimax(X, 1, 20, 1e-6)
-    assert torch.allclose(XR, XR2)
-    assert torch.allclose(torch.cdist(X, X), torch.cdist(XR2, XR2))
-    XR2b = varimax(X[:, :1], 1, 20, 1e-6)
-    assert torch.allclose(XRb, XR2b)
-    assert torch.allclose(torch.cdist(X[:, :1], X[:, :1]), torch.cdist(XR2b, XR2b))
-
-
 def test_PCA():
     x = torch.normal(0, 1, (5, 3))
     assert PCA_rotation(x, 2, full=True).shape == (3, 2)
@@ -104,6 +64,15 @@ def test_PCA():
     assert np.allclose(
         np.abs(PCA_rotation(x, 2).numpy()), np.abs(np.linalg.svd(x.numpy())[2][:2].T)
     )
+
+
+def test_PCA_for_rotation():
+    for i in range(1, 6):
+        X = torch.normal(0, 1, size=(10 + i * 5, i))
+        XR = X @ PCA_rotation(X)
+        assert X.shape == XR.shape
+        # print(i, torch.abs(torch.cdist(X, X) - torch.cdist(XR, XR)).max())
+        assert torch.allclose(torch.cdist(X, X), torch.cdist(XR, XR), atol=2e-3)
 
 
 def test_dict():

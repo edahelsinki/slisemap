@@ -169,7 +169,7 @@ def LBFGS(
 
 
 def PCA_rotation(
-    X: torch.Tensor, components: int, full: bool = True, niter: int = 10
+    X: torch.Tensor, components: int = -1, full: bool = True, niter: int = 10
 ) -> torch.Tensor:
     """Calculate the rotation matrix from PCA.
 
@@ -177,7 +177,7 @@ def PCA_rotation(
 
     Args:
         X (torch.Tensor): The original matrix.
-        components (int): The number of components in the embedding.
+        components (int, optional): The maximum number of components in the embedding. Defaults to ``min(*X.shape)``.
         full (bool, optional): Use a full SVD for the PCA (slower). Defaults to True.
         niter (int, optional): The number of iterations when a randomised approach is used. Defaults to 10.
 
@@ -185,7 +185,7 @@ def PCA_rotation(
         torch.Tensor: Rotation matrix that turns the original matrix into the embedded space.
     """
     try:
-        components = min(*X.shape, components)
+        components = min(*X.shape, components) if components > 0 else min(*X.shape)
         if full:
             return torch.linalg.svd(X, full_matrices=False)[2].T[:, :components]
         else:
@@ -195,39 +195,6 @@ def PCA_rotation(
         z = torch.zeros((X.shape[1], components), dtype=X.dtype, device=X.device)
         z.fill_diagonal_(1.0, True)
         return z
-
-
-def varimax(
-    X: torch.Tensor, gamma: float = 1.0, max_iter: float = 100, tolerance: float = 1e-8
-) -> torch.Tensor:
-    """Rotate a matrix using varimax (so that the first dimension has the largest variance).
-
-    Code adapted from: http://en.wikipedia.org/wiki/Talk:Varimax_rotation
-
-    Args:
-        X (torch.Tensor): Matrix
-        gamma (float, optional): Learning rate. Defaults to 1.0.
-        max_iter (float, optional): Maximum number of iterations. Defaults to 100.
-        tolerance (float, optional): Early stopping tolerance (relative). Defaults to 1e-8.
-
-    Returns:
-        torch.Tensor: Rotated matrix.
-    """
-    gamma /= X.shape[0]
-    eye = torch.eye(X.shape[1], dtype=X.dtype, device=X.device)
-    R = eye.clone()
-    d = 0.0
-    for _ in range(max_iter):
-        XR = X @ R
-        u, s, vh = torch.linalg.svd(
-            X.T @ (XR**3 - gamma * (XR @ (eye * (XR.T @ XR)))), full_matrices=False
-        )
-        R = u @ vh
-        d_old = d
-        d = torch.sum(s)
-        if d_old != 0.0 and d / d_old < 1.0 + tolerance:
-            break
-    return X @ R
 
 
 def global_model(

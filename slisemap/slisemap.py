@@ -27,7 +27,6 @@ from slisemap.utils import (
     dict_concat,
     global_model,
     tonp,
-    varimax,
 )
 
 
@@ -537,7 +536,7 @@ class Slisemap:
         else:
             Z = self._Z
         if rotate:
-            Z = varimax(Z)
+            Z = Z @ PCA_rotation(Z)
         if numpy:
             return Z.cpu().detach().numpy()
         else:
