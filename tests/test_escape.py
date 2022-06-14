@@ -108,5 +108,5 @@ def test_escape():
     l3 = sm2.lbfgs()
     assert torch.allclose(torch.sqrt(torch.sum(sm2.Z**2) / sm2.n), torch.ones(1))
     assert all_finite(l1, l2, l3)
-    assert l3 <= l2 * 1.02
+    assert l3 <= l2 + 0.1
     assert l2 <= l1 * 1.02

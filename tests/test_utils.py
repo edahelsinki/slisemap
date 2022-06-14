@@ -1,5 +1,6 @@
 from timeit import default_timer as timer
 
+import pytest
 from slisemap.utils import *
 
 from .utils import *
@@ -53,8 +54,10 @@ def test_PCA():
     assert PCA_rotation(x, 2, full=False).shape == (3, 2)
     assert PCA_rotation(x, 5, full=True).shape == (3, 3)
     assert PCA_rotation(x, 5, full=False).shape == (3, 3)
-    assert PCA_rotation(x * np.nan, 5, full=True).shape == (3, 3)
-    assert PCA_rotation(x * np.nan, 5, full=False).shape == (3, 3)
+    with pytest.warns(SlisemapWarning, match="PCA"):
+        assert PCA_rotation(x * np.nan, 5, full=True).shape == (3, 3)
+    with pytest.warns(SlisemapWarning, match="PCA"):
+        assert PCA_rotation(x * np.nan, 5, full=False).shape == (3, 3)
     assert np.allclose(
         np.abs(PCA_rotation(x, 3).numpy()), np.abs(np.linalg.svd(x.numpy())[2].T)
     )

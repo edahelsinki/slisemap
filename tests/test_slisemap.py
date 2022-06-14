@@ -1,6 +1,8 @@
+import pytest
 from slisemap.slisemap import *
 from slisemap.local_models import *
 from slisemap.escape import escape_neighbourhood, escape_marginal
+from slisemap.utils import SlisemapWarning
 
 from .utils import *
 
@@ -10,7 +12,8 @@ def test_parameters():
     sm4 = get_slisemap(30, 4, z_norm=1, radius=4)
     sm5 = get_slisemap(30, 4, intercept=False)
     sm6 = get_slisemap(30, 4, classes=2, radius=3)
-    sm7 = get_slisemap(30, 4, d=10)
+    with pytest.warns(SlisemapWarning, match="dimensions"):
+        sm7 = get_slisemap(30, 4, d=10)
     sm7 = get_slisemap(10, 15)
     assert all_finite(
         sm4.lbfgs(10),
