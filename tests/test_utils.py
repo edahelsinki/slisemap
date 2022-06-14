@@ -33,9 +33,10 @@ def test_convergence():
     assert not cc.has_converged(1)
     assert cc.has_converged(1)
     cc = CheckConvergence(1)
-    assert not cc.has_converged([1, 3])
-    assert not cc.has_converged((1, 1))
-    assert cc.has_converged((1, 1))
+    assert not cc.has_converged([2, 3], lambda: 1)
+    assert not cc.has_converged((1, 1), lambda: 2)
+    assert cc.has_converged((1, 1), lambda: 3)
+    assert cc.optimal == 2
     cc = CheckConvergence(100, 2)
     assert not cc.has_converged([1, 3])
     assert cc.has_converged((1, 1))

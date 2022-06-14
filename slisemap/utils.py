@@ -61,17 +61,17 @@ class CheckConvergence:
         "best": "Best loss value, so far.",
         "counter": "Number of steps since the best loss value.",
         "patience": "Number of steps allowed without improvement.",
-        "optimal_state": "Cache for storing the state that produced the best loss value.",
+        "optimal": "Cache for storing the state that produced the best loss value.",
         "max_iter": "The maximum number of iterations.",
         "iter": "The current number of iterations.",
     }
 
     def __init__(self, patience: float = 3, max_iter=1 << 30):
         self.current = np.inf
-        self.best = np.inf
+        self.best = np.asarray(np.inf)
         self.counter = 0
         self.patience = patience
-        self.optimal_state = None
+        self.optimal = None
         self.max_iter = max_iter
         self.iter = 0
 
@@ -99,9 +99,9 @@ class CheckConvergence:
             return True
         if np.any(loss < self.best):
             self.counter = 0  # Reset the counter if a new best
-            self.best = np.minimum(loss, self.best)
             if store is not None and loss.item(0) < self.best.item(0):
-                self.optimal_state = store()
+                self.optimal = store()
+            self.best = np.minimum(loss, self.best)
         else:
             # Increase the counter if no improvement
             self.counter += np.mean(self.current <= loss)

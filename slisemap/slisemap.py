@@ -712,6 +712,7 @@ class Slisemap:
         self,
         force_move: bool = True,
         escape_fn: Callable = escape_neighbourhood,
+        noise: float = 0.0,
     ):
         """Try to escape a local optimum by moving the items (embedding and local model) to the neighbourhoods best suited for them.
         This is done by finding another item (in the optimal neighbourhood) and copying its values for Z and B.
@@ -719,6 +720,7 @@ class Slisemap:
         Args:
             force_move (bool, optional): Do not allow the items to pair with themselves. Defaults to True.
             escape_fn (Callable, optional): Escape function (escape_neighbourhood/escape_greedy/escape_marginal). Defaults to escape_neighbourhood.
+            noise (float, optional): Scale of the noise added to the embedding matrix if it looses rank after an escape (recommended for gradient based optimisers). Defaults to 0.0.
         """
         self._B, self._Z = escape_fn(
             X=self._X,
@@ -733,6 +735,10 @@ class Slisemap:
             force_move=force_move,
             jit=self.jit,
         )
+        if noise > 0.0:
+            rank = torch.linalg.matrix_rank(self.Z - torch.mean(self.Z, 0, True))
+            if rank.item() < min(*self.Z.shape):
+                self._Z = torch.normal(self.Z, noise, generator=self._random_state)
         self._normalise()
 
     def _normalise(self):
@@ -758,7 +764,7 @@ class Slisemap:
             max_iter (int, optional): Maximum number of LBFGS iterations per round. Defaults to 500.
             escape_fn (Callable, optional): Escape function (escape_neighbourhood/escape_greedy/escape_marginal). Defaults to escape_neighbourhood.
             verbose (bool, optional): Print status messages. Defaults to False.
-            noise (float, optional): Scale of the noise used to avoid disappearing dimensions in the embedding after an escape (gradient based optimisers cannot recover them). Defaults to 1e-4.
+            noise (float, optional): Scale of the noise added to the embedding matrix if it looses rank after an escape. Defaults to 1e-4.
             **kwargs: Optional keyword arguments to Slisemap.lbfgs.
 
         Returns:
@@ -771,19 +777,16 @@ class Slisemap:
             print(f"LBFGS  {i:2d}: {loss[0]:.2f}")
         cc = CheckConvergence(patience, max_escapes)
         while not cc.has_converged(loss, self.copy):
-            self.escape(escape_fn=escape_fn)
+            self.escape(escape_fn=escape_fn, noise=noise)
             loss[1] = self.value()
             if verbose:
                 print(f"Escape {i:2d}: {loss[1]:.2f}")
-            if noise > 0.0:
-                self._Z = torch.normal(self.Z, noise, generator=self._random_state)
             loss[0] = self.lbfgs(max_iter=max_iter, **kwargs)
             if verbose:
                 i += 1
                 print(f"LBFGS  {i:2d}: {loss[0]:.2f}")
-        if cc.optimal_state is not None:
-            self._Z = cc.optimal_state._Z
-            self._B = cc.optimal_state._B
+        self._Z = cc.optimal._Z
+        self._B = cc.optimal._B
         loss = self.lbfgs(max_iter=max_iter * 2, **kwargs)
         if verbose:
             print(f"Final    : {loss:.2f}")
