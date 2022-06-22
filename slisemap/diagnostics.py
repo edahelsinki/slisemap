@@ -39,7 +39,7 @@ def _frac(n: int, part: Union[float, int]) -> float:
 
 def global_model_losses(
     sm: Slisemap, indices: Optional[np.ndarray] = None, **kwargs
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> torch.Tensor:
     """Train a global model
 
     Args:
@@ -48,7 +48,7 @@ def global_model_losses(
         **kwargs: Optional keyword arguments to LBFGS.
 
     Returns:
-        Tuple[torch.Tensor, torch.Tensor]: Tuple with vector of individual losses and vector of model coefficients.
+        torch.Tensor: Vector of individual losses for a global model.
     """
     if indices is None:
         X = sm.X
@@ -290,7 +290,22 @@ def global_loss_diagnostic(
     ]
     treshold = np.mean(glosses) + np.std(glosses) * sd
     llosses = sm.get_L(numpy=False).sum(1)
-    return (llosses < treshold).cpu().numpy()
+    return tonp(llosses < treshold)
+
+
+def quantile_loss_diagnostic(sm: Slisemap, quantile: float = 0.4) -> np.ndarray:
+    """Check if any fidelity is worse than a quantile of all losses.
+
+    Args:
+        sm (Slisemap): Trained Slisemap solution.
+        quantile (float, optional): The quantile percentage. Defaults to 0.4.
+
+    Returns:
+        np.ndarray: Boolean mask of problematic data items.
+    """
+    L = sm.get_L(numpy=False)
+    treshold = torch.quantile(L.ravel(), _frac(sm.n, quantile))
+    return tonp(L.diag() > treshold)
 
 
 def optics_diagnostic(sm: Slisemap, min_size: Union[float, int] = 0.1, **kwargs):
@@ -336,6 +351,7 @@ def diagnose(
             "Weight Neighbourhood": weight_neighbourhood_diagnostic(
                 sm, min_size, max_size
             ),
+            "Quantile Loss": quantile_loss_diagnostic(sm, max_size),
         }
     else:
         return {
@@ -348,4 +364,5 @@ def diagnose(
             "Loss Neighbourhood": loss_neighbourhood_diagnostic(sm, min_size),
             "Global Loss": global_loss_diagnostic(sm),
             "Clustering": optics_diagnostic(sm, min_size),
+            "Quantile Loss": quantile_loss_diagnostic(sm, max_size),
         }

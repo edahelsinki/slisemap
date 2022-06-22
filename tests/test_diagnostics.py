@@ -20,24 +20,29 @@ def test_print_plot():
 
 
 def test_diagnose():
-    sm = get_slisemap(30, 4)
+    set_seed(3247809527)
+    sm, _ = get_slisemap2(60, 4)
+    sm.optimise()
     for name, mask in diagnose(sm, conservative=False).items():
         assert isinstance(name, str)
         assert isinstance(mask, np.ndarray)
         assert mask.shape[0] == sm.n
+        assert np.mean(mask) < 0.2
     for name, mask in diagnose(sm, conservative=True).items():
         assert isinstance(name, str)
         assert isinstance(mask, np.ndarray)
         assert mask.shape[0] == sm.n
+        assert np.mean(mask) < 0.2
 
 
 def test_underfit():
-    sm = get_slisemap(60, 4, radius=0.5)
+    sm, _ = get_slisemap2(60, 4, radius=0.5)
     sm.optimise()
     assert np.mean(lightweight_diagnostic(sm)) > 0.1
     assert np.mean(weight_neighbourhood_diagnostic(sm)) > 0.1
     assert np.mean(loss_neighbourhood_diagnostic(sm)) > 0.1
     assert np.mean(global_loss_diagnostic(sm)) > 0.1
+    assert np.mean(quantile_loss_diagnostic(sm)) > 0.1
 
 
 def test_overfit():
