@@ -1044,8 +1044,11 @@ class Slisemap:
             B if B is not None else self.get_B()
         )
         # Sort according to value for the most influential coefficient
-        influence = np.abs(km.cluster_centers_)
-        influence = influence.max(0) + influence.mean(0)
+        influence = (
+            km.cluster_centers_.var(0)
+            + np.abs(km.cluster_centers_).mean(0)
+            + np.abs(km.cluster_centers_).max(0)
+        )
         col = np.argmax(influence)
         ord = np.argsort(km.cluster_centers_[:, col])
         return np.argsort(ord)[km.labels_], km.cluster_centers_[ord]
@@ -1255,26 +1258,27 @@ class Slisemap:
         w = 1 / col_wrap
         h = 1 / ((L.shape[1] - 1) // col_wrap + 1)
         if selection and index is not None:
+            size = plt.rcParams["lines.markersize"] ** 2 * 3
             for i, ax in zip(index, g.axes.ravel()):
-                ax.scatter(Z[i, 0], Z[i, 1], 100, "#9b52b4", "X")
+                ax.scatter(Z[i, 0], Z[i, 1], size, "#fd8431", "X")
             g.add_legend(
                 legend,
                 "Fidelity",
                 loc="lower center" if inside else "upper right",
-                bbox_to_anchor=(1 - w, h * 0.4, w * 0.9, h * 0.5) if inside else None,
+                bbox_to_anchor=(1 - w, h * 0.35, w * 0.9, h * 0.6) if inside else None,
             )
             g.add_legend(
-                {"": Line2D([], [], None, "None", "#9b52b4", "X", 8)},
+                {"": Line2D([], [], None, "None", "#fd8431", "X", 5)},
                 "Selected",
                 loc="upper center" if inside else "lower right",
-                bbox_to_anchor=(1 - w, 0.0, w * 0.9, h * 0.4) if inside else None,
+                bbox_to_anchor=(1 - w, h * 0.05, w * 0.9, h * 0.3) if inside else None,
             )
         else:
             g.add_legend(
                 legend,
                 "Fidelity",
                 loc="center" if inside else "center right",
-                bbox_to_anchor=(1 - w, 0, w * 0.9, h) if inside else None,
+                bbox_to_anchor=(1 - w, 0.05, w * 0.9, h * 0.9) if inside else None,
             )
         g.set_titles("")
         plt.suptitle(title)
