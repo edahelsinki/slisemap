@@ -7,8 +7,7 @@ from .utils import *
 
 
 def test_save_load(tmp_path):
-    sm = get_slisemap(30, 4, random_state=3459453)
-    sm.lbfgs()
+    sm = get_slisemap(30, 4, randomB=True, random_state=3459453)
     sm.save(tmp_path / "tmp.sm")
     sm2 = Slisemap.load(tmp_path / "tmp.sm")
     assert_allclose(sm.get_L(), sm2.get_L())

@@ -42,7 +42,15 @@ def get_slisemap(
 
 
 def get_slisemap2(
-    n=20, m=5, s=0.3, classes=False, seed=None, randomB=False, lasso=1e-4, **kwargs
+    n=20,
+    m=5,
+    s=0.3,
+    classes=False,
+    seed=None,
+    randomB=False,
+    cheat=False,
+    lasso=1e-4,
+    **kwargs,
 ) -> Tuple[Slisemap, np.ndarray]:
     cl, X, y, B = get_rsynth(n, m, s=s, seed=seed)
     if classes:
@@ -53,12 +61,19 @@ def get_slisemap2(
             local_model=logistic_regression,
             local_loss=logistic_regression_loss,
             lasso=lasso * 10,
+            random_state=seed,
             **kwargs,
         )
     else:
-        sm = Slisemap(X, y, lasso=lasso, **kwargs)
+        sm = Slisemap(X, y, lasso=lasso, random_state=seed, **kwargs)
     if randomB:
-        sm._B = torch.normal(0, 1, sm.B.shape, **sm.tensorargs)
+        sm._B = torch.normal(
+            0, 1, sm.B.shape, **sm.tensorargs, generator=sm._random_state
+        )
+    if cheat:
+        angles = np.pi * cl / 3  # Assume k=3, d=2
+        Z = np.stack((np.sin(angles), np.cos(angles)), 1)
+        sm._Z = torch.as_tensor(Z, **sm.tensorargs)
     return (sm, cl)
 
 
@@ -85,7 +100,7 @@ def get_rsynth(
     M: int = 11,
     k: int = 3,
     s: float = 0.25,
-    se: float = 0.1,
+    se: float = 0.075,
     seed: Union[None, int, np.random.RandomState] = None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Generate synthetic regression data
@@ -97,7 +112,7 @@ def get_rsynth(
         M (int, optional): Number of columns in X. Defaults to 11.
         k (int, optional): Number of clusters (with their own true model). Defaults to 3.
         s (float, optional): Scale for the randomisation of the cluster centers. Defaults to 0.25.
-        se (float, optional): Scale for the noise of y. Defaults to 0.1.
+        se (float, optional): Scale for the noise of y. Defaults to 0.075.
         seed (Union[None, int, np.random.RandomState], optional): Local random seed. Defaults to None.
 
     Returns:

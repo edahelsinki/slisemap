@@ -37,8 +37,7 @@ def test_lbfgs():
 
 
 def test_fit_new():
-    set_seed(2391)
-    sm, _ = get_slisemap2(60, 5)
+    sm, _ = get_slisemap2(60, 5, cheat=True, seed=239177)
     sm.lbfgs()
     X = sm.get_X(intercept=False)
     y = sm.get_Y()
@@ -47,11 +46,9 @@ def test_fit_new():
     x2 = X[:2, :]
     y2 = y[:2, :]
     y2b = y[:2, 0]
-    losses = sm.value(True)
-    B1a, Z1a, l1a = sm.fit_new(x1, y1, False, loss=True)
-    B1b, Z1b, l1b = sm.fit_new(x1, y1, True, loss=True)
-    assert l1b[0] < l1a[0] * 1.1
-    assert l1b[0] < losses[4] * 1.1
+    _, _, l1a = sm.fit_new(x1, y1, False, loss=True)
+    _, _, l1b = sm.fit_new(x1, y1, True, loss=True)
+    assert l1b[0] <= l1a[0] * 1.1
     _, _, l2a = sm.fit_new(
         x2, y2, False, between=True, escape_fn=escape_neighbourhood, loss=True
     )
@@ -67,7 +64,8 @@ def test_fit_new():
     _, _, l2e = sm.fit_new(
         x2, y2, optimise=False, between=True, escape_fn=escape_marginal, loss=True
     )
-    assert_approx_ge(l2a, l2b)
+    assert np.sum(np.abs(l2c - l2b)) < 0.01
+    assert_approx_ge(l2a, l2c)
     assert_approx_ge(l2e, l2d)
     assert_approx_ge(l2e, l2a)
     B2d, Z2d, l2d = sm.fit_new(x2, y2b, False, loss=True)
@@ -83,7 +81,7 @@ def test_fit_new():
         B=torch.cat((sm.B, torch.as_tensor(B2, **sm.tensorargs)), 0),
         Z=torch.cat((sm.Z, torch.as_tensor(Z2 / sm.radius, **sm.tensorargs)), 0),
     )[sm.n :]
-    assert_approx_ge(l2b, l2b_.cpu().numpy())
+    assert np.sum(np.abs(tonp(l2b_) - l2b)) < 0.01
 
 
 def test_loss():

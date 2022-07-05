@@ -20,7 +20,7 @@ def escape_one(x, y, B, Z, local_model, local_loss, kernel, radius=3.5, avoid=-1
 def test_escape_internal():
     # Test that the vectorised version is as good as the slow implementation of escape
     set_seed(3451653)
-    sm, _ = get_slisemap2(40, 3)
+    sm, _ = get_slisemap2(40, 3, cheat=True)
     sm.lbfgs()
     B2, Z2 = escape_neighbourhood(
         X=sm.X[:4],

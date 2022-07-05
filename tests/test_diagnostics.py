@@ -20,32 +20,28 @@ def test_print_plot():
 
 
 def test_diagnose():
-    set_seed(3247809527)
-    sm, _ = get_slisemap2(60, 4)
-    sm.optimise()
+    sm, _ = get_slisemap2(60, 4, cheat=True, seed=4590849)
+    sm.lbfgs()
     for name, mask in diagnose(sm, conservative=False).items():
         assert isinstance(name, str)
         assert isinstance(mask, np.ndarray)
         assert mask.shape[0] == sm.n
-        assert (
-            np.mean(mask) < 0.25
-        ), f"Too many data items flagged in diagnostic: {name}"
+        assert np.mean(mask) < 0.2, f"Too many data items flagged in diagnostic: {name}"
 
 
 def test_underfit():
-    sm, _ = get_slisemap2(60, 4, radius=0.5)
-    sm.optimise()
+    sm, _ = get_slisemap2(60, 4, radius=0.5, seed=359784)
+    sm.optimise(max_escapes=2)
     assert np.mean(lightweight_diagnostic(sm)) > 0.1
     assert np.mean(weight_neighbourhood_diagnostic(sm)) > 0.1
-    assert np.mean(loss_neighbourhood_diagnostic(sm)) > 0.1
+    assert np.mean(loss_neighbourhood_diagnostic(sm)) > 0.08
     assert np.mean(global_loss_diagnostic(sm)) > 0.1
     assert np.mean(quantile_loss_diagnostic(sm)) > 0.1
 
 
 def test_overfit():
-    set_seed(1821)
-    sm, _ = get_slisemap2(60, 4, radius=10)
-    sm.optimise()
+    sm, _ = get_slisemap2(60, 4, radius=10, seed=75308)
+    sm.lbfgs()
     assert np.mean(distant_diagnostic(sm)) > 0.1
     assert np.mean(heavyweight_diagnostic(sm)) > 0.1
     assert np.mean(weight_neighbourhood_diagnostic(sm)) > 0.1
@@ -56,6 +52,6 @@ def test_overfit():
 def test_loss_neigh():
     sm, _ = get_slisemap2(60, 4)
     sm._Y += 10
-    sm.optimise()
+    sm.lbfgs()
     sm.lasso = 10000
     assert np.mean(loss_neighbourhood_diagnostic(sm)) == 0
