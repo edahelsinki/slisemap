@@ -114,7 +114,7 @@ def get_rsynth(
     while not _are_models_different(B):
         B = npr.normal(size=[k, M + 1])
     c = npr.normal(scale=s, size=[k, M])  # k X M
-    j = npr.randint(k, size=N)  # N
+    j = np.repeat(np.arange(k), N // k + 1)[:N]  # N
     e = npr.normal(scale=se, size=N)  # N
     X = npr.normal(loc=c[j, :])  # N x M
     X = (X - np.mean(X, 0, keepdims=True)) / np.std(X, 0, keepdims=True)
