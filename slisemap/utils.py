@@ -236,7 +236,7 @@ def global_model(
 
 
 def dict_array(dict: Dict[str, Any]) -> Dict[str, np.ndarray]:
-    """Turn a dictionary of various values to a dictionary of numpy arrays with equal length (inplace).
+    """Turn a dictionary of various values to a dictionary of numpy arrays with equal length inplace.
 
     Args:
         dict (Dict[str, Any]): Dictionary.
@@ -257,19 +257,37 @@ def dict_array(dict: Dict[str, Any]) -> Dict[str, np.ndarray]:
     return dict
 
 
-def dict_concat(dicts: Iterator[Dict[str, Any]]) -> Dict[str, np.ndarray]:
+def dict_append(df: Dict[str, np.ndarray], d: Dict[str, Any]) -> Dict[str, np.ndarray]:
+    """Append a dictionary of values to a dictionary of numpy arrays (see ``dict_array``) inplace.
+
+    Args:
+        df (Dict[str, np.ndarray]): Dictionary of numpy arrays.
+        d (Dict[str, Any]): Dictionary to append.
+
+    Returns:
+        Dict[str, np.ndarray]: The same dictionary as ``df`` with the values from ``d`` appended.
+    """
+    d = dict_array(d)
+    for k in df.keys():
+        df[k] = np.concatenate((df[k], d[k]), 0)
+    return df
+
+
+def dict_concat(
+    dicts: Union[Sequence[Dict[str, Any]], Iterator[Dict[str, Any]]]
+) -> Dict[str, np.ndarray]:
     """Combine multiple dictionaries into one by concatenating the values.
     Calls ``dict_array`` to pre-process the dictionaries.
 
     Args:
-        dicts (Iterator[Dict[str, Any]]): Generator with dictionaries (all must have the same keys).
+        dicts (Union[Sequence[Dict[str, Any]], Iterator[Dict[str, Any]]]): Sequence or Generator with dictionaries (all must have the same keys).
 
     Returns:
         Dict[str, np.ndarray]: Combined dictionary.
     """
+    if isinstance(dicts, Sequence):
+        dicts = (d for d in dicts)
     df = dict_array(next(dicts))
     for d in dicts:
-        d = dict_array(d)
-        for k in df.keys():
-            df[k] = np.concatenate((df[k], d[k]), 0)
+        dict_append(df, d)
     return df
