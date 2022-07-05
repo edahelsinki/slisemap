@@ -71,9 +71,13 @@ def get_slisemap2(
             0, 1, sm.B.shape, **sm.tensorargs, generator=sm._random_state
         )
     if cheat:
-        angles = np.pi * cl / 3  # Assume k=3, d=2
+        angles = 2 * np.pi * cl / 3  # Assume k=3, d=2
         Z = np.stack((np.sin(angles), np.cos(angles)), 1)
+        end = [sm.radius * 0.99, sm.radius * 1.01]
+        Z = Z * np.linspace(end, end[::-1], len(cl))
         sm._Z = torch.as_tensor(Z, **sm.tensorargs)
+        sm._B = torch.as_tensor(B[cl], **sm.tensorargs)
+        sm._normalise()
     return (sm, cl)
 
 
