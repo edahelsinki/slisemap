@@ -105,7 +105,7 @@ def get_rsynth(
     k: int = 3,
     s: float = 0.25,
     se: float = 0.075,
-    seed: Union[None, int, np.random.RandomState] = None,
+    seed: Union[None, int, np.random.RandomState, np.random.Generator] = None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Generate synthetic regression data
 
@@ -124,10 +124,10 @@ def get_rsynth(
     """
     if seed is None:
         npr = np.random
-    elif isinstance(seed, np.random.RandomState):
+    elif isinstance(seed, (np.random.RandomState, np.random.Generator)):
         npr = seed
     else:
-        npr = np.random.RandomState(seed)
+        npr = np.random.Generator(np.random.PCG64(seed))
 
     B = npr.normal(size=[k, M + 1])  # k x (M+1)
     while not _are_models_different(B):

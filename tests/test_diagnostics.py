@@ -34,9 +34,9 @@ def test_underfit():
     sm.lbfgs()
     assert np.mean(lightweight_diagnostic(sm)) > 0.2
     assert np.mean(weight_neighbourhood_diagnostic(sm)) > 0.2
-    assert np.mean(global_loss_diagnostic(sm)) > 0.2
+    assert np.mean(loss_neighbourhood_diagnostic(sm)) > 0.05
+    assert np.mean(global_loss_diagnostic(sm)) > 0.05
     assert np.mean(quantile_loss_diagnostic(sm)) > 0.2
-    assert False
 
 
 def test_overfit():
