@@ -982,17 +982,26 @@ class Slisemap:
         other._Z = other._Z.clone().detach()
         return other
 
-    def save(self, f: Union[str, PathLike, BinaryIO], **kwargs):
+    def save(
+        self, f: Union[str, PathLike, BinaryIO], any_extension: bool = False, **kwargs
+    ):
         """Save the Slisemap object to a file.
         This method uses ``torch.save``, which uses ``pickle`` for the non-pytorch properties.
         This comes with the normal caveats like lambda-functions not being supported.
         However, the default pickle module can be overridden (see ``torch.save``).
-        The default ending for ``torch.save`` is ".pt" and by default the file is compressed.
+        The default file extension is ".sm" and by default the file is compressed.
 
         Args:
             f (Union[str, PathLike, BinaryIO]): Either a Path-like object or a (writable) File-like object.
+            any_extension (bool, optional): Do not check the file extension. Defaults to False.
             **kwargs: Parameters forwarded to ``torch.save``.
         """
+        if not any_extension and isinstance(f, (str, PathLike)):
+            if not str(f).endswith(".sm"):
+                _warn(
+                    "When saving Slisemap objects, consider using the '.sm' extension for consistency.",
+                    Slisemap.save,
+                )
         loss = self._loss
         prng = self._random_state
         try:
