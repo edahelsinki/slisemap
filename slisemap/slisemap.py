@@ -754,6 +754,7 @@ class Slisemap:
         escape_fn: Callable = escape_neighbourhood,
         verbose: bool = False,
         noise: float = 1e-4,
+        only_B: bool = False,
         **kwargs,
     ) -> float:
         """Optimise Slisemap by alternating between Slisemap.lbfgs and Slisemap.escape until convergence.
@@ -765,6 +766,7 @@ class Slisemap:
             escape_fn (Callable, optional): Escape function (escape_neighbourhood/escape_greedy/escape_marginal). Defaults to escape_neighbourhood.
             verbose (bool, optional): Print status messages. Defaults to False.
             noise (float, optional): Scale of the noise added to the embedding matrix if it looses rank after an escape. Defaults to 1e-4.
+            only_B (bool, optional): Only optimise the local models, not the embedding. Defaults to False.
             **kwargs: Optional keyword arguments to Slisemap.lbfgs.
 
         Returns:
@@ -775,6 +777,8 @@ class Slisemap:
         if verbose:
             i = 0
             print(f"LBFGS  {i:2d}: {loss[0]:.2f}")
+        if only_B:
+            return loss[0]
         cc = CheckConvergence(patience, max_escapes)
         while not cc.has_converged(loss, self.copy):
             self.escape(escape_fn=escape_fn, noise=noise)
