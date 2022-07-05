@@ -30,23 +30,23 @@ def test_diagnose():
 
 
 def test_underfit():
-    sm, _ = get_slisemap2(60, 4, radius=0.5, seed=359784)
-    sm.optimise(max_escapes=2)
-    assert np.mean(lightweight_diagnostic(sm)) > 0.1
-    assert np.mean(weight_neighbourhood_diagnostic(sm)) > 0.1
-    assert np.mean(loss_neighbourhood_diagnostic(sm)) > 0.08
-    assert np.mean(global_loss_diagnostic(sm)) > 0.08
-    assert np.mean(quantile_loss_diagnostic(sm)) > 0.1
+    sm, _ = get_slisemap2(60, 4, radius=0.5, lasso=0, seed=359784)
+    sm.lbfgs()
+    assert np.mean(lightweight_diagnostic(sm)) > 0.2
+    assert np.mean(weight_neighbourhood_diagnostic(sm)) > 0.2
+    assert np.mean(global_loss_diagnostic(sm)) > 0.2
+    assert np.mean(quantile_loss_diagnostic(sm)) > 0.2
+    assert False
 
 
 def test_overfit():
-    sm, _ = get_slisemap2(60, 4, radius=10, seed=75308)
+    sm, _ = get_slisemap2(60, 4, radius=10, lasso=0.01, seed=75308)
     sm.lbfgs()
     assert np.mean(distant_diagnostic(sm)) > 0.1
-    assert np.mean(heavyweight_diagnostic(sm)) > 0.1
-    assert np.mean(weight_neighbourhood_diagnostic(sm)) > 0.1
-    assert np.mean(loss_neighbourhood_diagnostic(sm)) > 0.02
-    assert np.mean(optics_diagnostic(sm)) > 0.05
+    assert np.mean(heavyweight_diagnostic(sm)) > 0.2
+    assert np.mean(weight_neighbourhood_diagnostic(sm)) > 0.2
+    assert np.mean(loss_neighbourhood_diagnostic(sm)) > 0.05
+    assert np.mean(optics_diagnostic(sm)) > 0.1
 
 
 def test_loss_neigh():
