@@ -27,12 +27,14 @@ def test_diagnose():
         assert isinstance(name, str)
         assert isinstance(mask, np.ndarray)
         assert mask.shape[0] == sm.n
-        assert np.mean(mask) < 0.2
+        assert np.mean(mask) < 0.2, f"Too many data items flagged in diagnostic: {name}"
     for name, mask in diagnose(sm, conservative=True).items():
         assert isinstance(name, str)
         assert isinstance(mask, np.ndarray)
         assert mask.shape[0] == sm.n
-        assert np.mean(mask) < 0.2
+        assert (
+            np.mean(mask) < 0.2
+        ), f"Too many data items flagged in (conservative) diagnostic: {name}"
 
 
 def test_underfit():
