@@ -90,7 +90,7 @@ def print_table(
     df2.sort_values(["data", "n", "method"], inplace=True)
     if dense_data == 2:
         rename = lambda x: (
-            f"\\multicolumn{{3}}{{l}}{{{{\\sc {x[0].lower()}}}}}\\\\${x[1]:4d}\\times {x[2]-1:2d}$"
+            f"\\multicolumn{{3}}{{l}}{{{{\\sc {x[0].lower()}}}: ${x[1]:4d}\\times {x[2]-1:2d}$}}\\\\"
         )
     elif dense_data:
         rename = lambda x: f"{{\\sc {x[0].lower()}}}\\\\${x[1]:4d}\\times {x[2]-1:2d}$"
@@ -119,8 +119,12 @@ def print_table(
             position="ht" if ht else None,
         )
         .replace("\\\\$", "\\\\\n$")
+        .replace("\\\\ &", "\\\\\n &")
         .replace("\\\\{", "\\\\\n{")
         .replace("\\midrule\n\\\\\n", "\\midrule\n")
+        .replace("Dataset", "")
+        .replace("\\toprule\n", "\\toprule\n\multicolumn{2}{l}{Dataset}")
+        .replace("&", "", 1)
     )
 
 

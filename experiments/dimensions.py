@@ -22,7 +22,9 @@ import seaborn as sns
 import torch
 from matplotlib import pyplot as plt
 
-sys.path.append(str(Path(__file__).parent.parent))  # Add the project root to the path
+sys.path.insert(
+    0, str(Path(__file__).parent.parent)
+)  # Add the project root to the path
 from slisemap.metrics import (
     coverage,
     euclidean_nearest_neighbours,
@@ -31,6 +33,7 @@ from slisemap.metrics import (
 )
 from slisemap.slisemap import Slisemap
 from experiments.large_evaluation import get_data, global_model
+from experiments.utils import paper_theme
 
 RESULTS_DIR = Path(__file__).parent / "results" / "dimensions"
 
@@ -216,8 +219,8 @@ def plot_matching(
         col_wrap=4,
         kind="line",
         ci=None,
-        height=3,
         facet_kws=dict(sharey=False),
+        **paper_theme(0.9, 1, 4, 3),
     )
     if metric == "matching":
         for ax in g.axes.ravel():
@@ -253,8 +256,8 @@ def plot_metric(df, metric="coverage_nn20", sharey=False):
         style="d",
         kind="line",
         palette="bright",
-        height=3,
         facet_kws=dict(sharey=sharey),
+        **paper_theme(0.9, 1, 4, 3),
     )
     plt.show()
 
@@ -268,12 +271,13 @@ def plot_box(df, metric="loss", title="Loss", sharey=False, pdf=False):
         hue="d",
         kind="box",
         palette="bright",
-        height=3,
         col_wrap=4,
         sharey=sharey,
+        **paper_theme(1, 1, 4, 2),
     )
     g.set_titles("{col_name}")
     g.set_ylabels(title)
+    g.tight_layout(h_pad=0, w_pad=0)
     for ax in g.axes.flat:
         ax.set_ylim((0, ax.get_ylim()[1]))
     if pdf:
@@ -295,8 +299,8 @@ def plot_model(df):
         kind="box",
         palette="bright",
         col_wrap=4,
-        height=3,
         sharey=False,
+        **paper_theme(0.9, 1, 4, 3),
     )
     sns.move_legend(
         g,
@@ -323,11 +327,14 @@ def plot_metric_nn(
         kind="line",
         palette="bright",
         facet_kws=dict(sharey="row"),
-        height=(12 - 1) / len(np.unique(df["d"].values)),
         ci=None,
+        **paper_theme(
+            0.95, 1, len(np.unique(df["d"].values)), len(np.unique(df["data"].values))
+        ),
     )
     g.set(xlabel="Nearest Neighbours", ylabel=title)
     g.set_titles("{row_name}, d = {col_name}")
+    g.tight_layout(w_pad=0)
     if pdf:
         plt.savefig(
             Path(__file__).parent

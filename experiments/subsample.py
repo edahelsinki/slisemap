@@ -23,10 +23,13 @@ import torch
 import seaborn as sns
 from matplotlib import pyplot as plt
 
-sys.path.append(str(Path(__file__).parent.parent))  # Add the project root to the path
+sys.path.insert(
+    0, str(Path(__file__).parent.parent)
+)  # Add the project root to the path
 from slisemap.slisemap import Slisemap
 from experiments.large_evaluation import get_data
 from slisemap.metrics import accuracy, fidelity, coverage
+from experiments.utils import paper_theme
 
 RESULTS_DIR = Path(__file__).parent / "results" / "subset"
 
@@ -60,12 +63,13 @@ def plot_distance(df, pdf=False):
         hue="old",
         style="individual",
         col_wrap=4,
-        height=3,
         kind="line",
+        **paper_theme(0.9, 1, 4, 2),
     )
     g.set_titles("{col_name}")
     g.set(ylabel="Average Minimum Distance")
     g._legend.set_title(None)
+    g.tight_layout(w_pad=0)
     if pdf:
         plt.savefig(Path(__file__).parent / "results" / "subset_distance.pdf")
         plt.close()
@@ -73,24 +77,29 @@ def plot_distance(df, pdf=False):
         plt.show()
 
 
-def plot_subsample(df, metric="loss", label="Mean Loss", ind=False, pdf=False):
+def plot_subsample(df, metric: str = "loss", label="Mean Loss", ind=False, pdf=False):
     df2 = df[df["optim"] * (df["old"] + (df["individual"] == ind))].copy()
     df2["set"] = np.array(["Test", "Train"])[df2["old"].values.astype(int)]
-    g = sns.relplot(
+    capmet = metric.capitalize()
+    df2[capmet] = df2[metric]
+    g: sns.FacetGrid = sns.relplot(
         data=df2,
         x="n",
-        y=metric,
+        y=capmet,
         col="data",
         hue="set",
         style="set",
         col_wrap=4,
-        height=3,
         kind="line",
         facet_kws=dict(sharey=False),
+        **paper_theme(0.93, 1, 4, 2),
     )
     g.set_titles("{col_name}")
-    g.set(ylabel=label)
     g._legend.set_title(None)
+    g.set(xlabel=None)
+    for ax in g.axes.ravel():
+        ax.set_ylim(ymin=0)
+    g.tight_layout(w_pad=0)
     if pdf:
         plt.savefig(
             Path(__file__).parent

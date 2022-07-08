@@ -226,7 +226,7 @@ def method_generator(c=None, B=None):
 
         def train_fn(sm: Slisemap):
             sm._B = torch.as_tensor(B[c], **sm.tensorargs)
-            angles = np.pi * c / (np.max(c) + 1)
+            angles = 2 * np.pi * c / (np.max(c) + 1)
             Z = np.stack((np.sin(angles), np.cos(angles)), 1)
             sm._Z = torch.as_tensor(Z, **sm.tensorargs)
             sm.lbfgs()

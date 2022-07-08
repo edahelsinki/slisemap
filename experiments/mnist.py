@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from matplotlib.colors import TwoSlopeNorm
+from matplotlib.colors import TwoSlopeNorm, LinearSegmentedColormap
 from matplotlib.offsetbox import AnnotationBbox, OffsetImage
 from sklearn.model_selection import train_test_split
 from scipy.special import logit
@@ -20,10 +20,19 @@ import torch
 import torch.nn.functional
 import torch.utils.data
 
-sys.path.append(str(Path(__file__).parent.parent))  # Add the project root to the path
+sys.path.insert(
+    0, str(Path(__file__).parent.parent)
+)  # Add the project root to the path
 from slisemap import Slisemap
-from slisemap.local_models import logistic_regression, logistic_regression_loss
-from experiments.data import get_mnist
+from slisemap.utils import tonp
+from slisemap.local_models import (
+    logistic_regression,
+    logistic_regression_loss,
+    linear_regression,
+    linear_regression_loss,
+)
+from experiments.data import get_mnist, get_emnist
+from experiments.utils import paper_theme
 
 
 RESULTS_DIR = Path(__file__).parent / "results" / "mnist"
@@ -100,9 +109,12 @@ def plot_scatter_img(
     title="",
     show=True,
     ax=None,
+    transparent=False,
+    **kwargs,
 ):
     if ax is None:
-        fig, ax = plt.subplots(figsize=(12, 12))
+        paper_theme(0.8)
+        fig, ax = plt.subplots()
     sns.scatterplot(
         x=pos[:, 0],
         y=pos[:, 1],
@@ -110,6 +122,7 @@ def plot_scatter_img(
         style=cls,
         ax=ax,
         palette=["#5e4cb2", "#e87b11"],  # "PuOr"
+        **kwargs,
     )
     counter = 0
     radius = (
@@ -123,7 +136,11 @@ def plot_scatter_img(
         image = np.reshape(imgs[i], (28, 28))
         im = OffsetImage(image, zoom=zoom, cmap=cmap, norm=norm)
         ab = AnnotationBbox(
-            im, (pos[i, 0], pos[i, 1]), xycoords="data", frameon=True, pad=pad
+            im,
+            (pos[i, 0], pos[i, 1]),
+            xycoords="data",
+            frameon=not transparent,
+            pad=pad,
         )
         ax.add_artist(ab)
         counter += 1
@@ -141,8 +158,22 @@ def plot_scatter_img(
 
 
 def plot_scatter_img2(Z, X, B, classes, show=True, **kwargs):
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 7))
-    plot_scatter_img(Z, X, classes, title="Embedding", show=False, ax=ax1, **kwargs)
+    paper_theme(1, 1, 2)
+    fig, (ax1, ax2) = plt.subplots(1, 2)
+    cmap = plt.get_cmap("Greys")(range(256))
+    cmap[0, -1] = 0
+    cmap = LinearSegmentedColormap.from_list("TrGreys", colors=cmap)
+    plot_scatter_img(
+        Z,
+        X,
+        classes,
+        title="Embedding",
+        show=False,
+        ax=ax1,
+        cmap=cmap,
+        transparent=True,
+        **kwargs,
+    )
     plot_scatter_img(
         Z,
         B,
@@ -164,9 +195,13 @@ if __name__ == "__main__":
     X, Y = get_mnist()
     y = np.argmax(Y, 1)
     yc = pd.Categorical(y)
+    yc2 = None
+    linear = True
+    class1 = 2
+    class2 = 3
     # plot_scatter_img(PCA(2).fit_transform(X)[::10], X[::10], yc[::10], 100, title="PCA on MNIST")
 
-    map_path = RESULTS_DIR / "slisemap.pt"
+    map_path = RESULTS_DIR / f"slisemap_{class1}{class2}{'r' if linear else 'c'}.sm"
     model_path = RESULTS_DIR / "model.pt"
 
     if not map_path.exists():
@@ -190,11 +225,12 @@ if __name__ == "__main__":
         Ycnn = torch.softmax(network(Xt), 1).detach().cpu().numpy()
         del network
 
-        class1 = 2
-        class2 = 3
         mask = yc.isin([class1, class2])
-        Y2 = Ycnn[mask, class1] / (Ycnn[mask, class1] + Ycnn[mask, class2])
-        Y2 = logit(Y2 * 0.98 + 0.01)
+        Y2 = Ycnn[mask][:, [class1, class2]]
+        Y2 = Y2 / Y2.sum(1, keepdims=True)
+        if linear:
+            # Use a logistic approximation (with linear regression instead of logistic regression)
+            Y2 = logit(Y2[:, 0] * 0.98 + 0.01)
         X2, _, Y2, _, yc2, _ = train_test_split(
             X[mask],
             Y2,
@@ -209,7 +245,7 @@ if __name__ == "__main__":
 
     if map_path.exists():
         print("Loading Slisemap")
-        sm = Slisemap.load(map_path)
+        sm = Slisemap.load(map_path, None if torch.cuda.is_available() else "cpu")
     else:
         print("Optimising Slisemap")
         sm = Slisemap(
@@ -218,17 +254,35 @@ if __name__ == "__main__":
             lasso=0.01,
             ridge=0.01,
             radius=3,
-            # local_model=logistic_regression,
-            # local_loss=logistic_regression_loss,
+            intercept=False,
+            random_state=42,
+            local_model=linear_regression if linear else logistic_regression,
+            local_loss=linear_regression_loss if linear else logistic_regression_loss,
         )
         sm.optimise(verbose=True)
         sm.save(map_path)
 
     # sm.plot(jitter=0.1, clusters=yc2, show=False)
-    # plot_scatter_img2(sm.get_Z(), X2, sm.get_B()[:, :-1], yc2)
+    # plot_scatter_img2(sm.get_Z(), X2, sm.get_B(), yc2)
+
+    if yc2 is None:
+        print("Matching Slisemap data to MNIST indices")
+        X2 = sm.get_X(intercept=False, numpy=False)
+        X3 = torch.as_tensor(X, dtype=X2.dtype, device=X2.device)
+        D = torch.cdist(X2, X3)
+        m = tonp(torch.argmin(D, 1))
+        yc2 = yc[m].remove_unused_categories()
+        X2 = tonp(X2)
 
     plot_scatter_img2(
-        sm.get_Z(), X2, sm.get_B()[:, :-1], yc2, False, num=40, radius=0.115, zoom=2.1
+        sm.get_Z(),
+        X2,
+        sm.get_B(),
+        yc2,
+        False,
+        num=40,
+        radius=0.1,
+        zoom=0.6,
     )
     plt.savefig(RESULTS_DIR / ".." / f"mnist_{class1}vs{class2}.pdf")
     plt.close()

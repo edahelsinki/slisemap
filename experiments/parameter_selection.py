@@ -15,8 +15,9 @@ import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
 
-sys.path.append(str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 from experiments.large_evaluation import get_results
+from experiments.utils import paper_theme
 
 
 def plot_parameter_nn(
@@ -46,8 +47,8 @@ def plot_parameter_nn(
         col_wrap=4,
         kind="line",
         facet_kws=dict(sharey=False, legend_out=False),
-        height=3,
         ci=None,
+        **paper_theme(1, 1, 4, 3),
     )
     sns.move_legend(
         g,
@@ -57,6 +58,7 @@ def plot_parameter_nn(
     )
     g._legend.set_title("$z_{radius}$")
     g.set_titles("{col_name}")
+    g.tight_layout(h_pad=0, w_pad=0)
     if pdf:
         plt.savefig(
             Path(__file__).parent

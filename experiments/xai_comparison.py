@@ -3,7 +3,7 @@
 # This experiment compares Slisemap to local explanation methods.
 # This experiment is designed to be run in parallel (e.g. on a computer cluster).
 #
-# Run this script to perform the experiments, where $index is [1..50]:
+# Run this script to perform the experiments, where $index is [1..40]:
 #   `python experiments/xai_comparison.py $index`
 #
 # Run this script again without additional arguments to produce a latex table from the results:
@@ -36,7 +36,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.svm import SVR
 
 sys.path.append(str(Path(__file__).parent.parent))  # Add the project root to the path
-from slisemap.slisemap import LBFGS, Slisemap, _tonp
+from slisemap.slisemap import LBFGS, Slisemap, tonp
 from slisemap.diagnostics import global_model_losses
 
 from experiments.data import get_airquality, get_boston, get_higgs, get_spam
@@ -250,7 +250,7 @@ def evaluate(sm, fn, error_tolerance, method, data, job, subsample=0):
         m=sm.m,
         time=time,
         fidelity=L.diag()[subset].mean().cpu().item(),
-        coverage=_tonp(L[subset] < error_tolerance).mean(),
+        coverage=tonp(L[subset] < error_tolerance).mean(),
         max_loss=error_tolerance,
     )
 
@@ -264,37 +264,42 @@ if __name__ == "__main__":
         job_index = int(sys.argv[1]) - 1
         sm, data, pred_fn = get_data(job_index)
         out_path = RESULTS_DIR / f"xai_{job_index:02d}_{data}.parquet"
-        if not out_path.exists():
-            print(f"{job_index:02d} {data}: Setup", flush=True)
-            epsilon = torch.quantile(global_model_losses(sm), 0.3).cpu().item()
+        print(f"{job_index:02d} {data}: Setup", flush=True)
+        epsilon = torch.quantile(global_model_losses(sm), 0.3).cpu().item()
+        if out_path.exists():
+            df = pd.read_parquet(out_path)
+            # df = df[df["method"] != "Slisemap"]
+        else:
             RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-            results = []
-            for method, fn in [
-                ("SLISE", lambda sm, **kw: slise_L(sm, epsilon, **kw)),
-                ("Global", global_L),
-                ("Slisemap", slisemap_L),
-                ("SHAP", lambda sm, **kw: shap_L(sm, pred_fn, **kw)),
-                ("LIME", lambda sm, **kw: lime_L(sm, pred_fn, **kw)),
-                ("LIME (nd)", lambda sm, **kw: lime_L(sm, pred_fn, **kw, disc=False)),
-            ]:
+            df = None
+        for method, fn in [
+            ("Global", global_L),
+            ("Slisemap", slisemap_L),
+            ("SLISE", lambda sm, **kw: slise_L(sm, epsilon, **kw)),
+            ("SHAP", lambda sm, **kw: shap_L(sm, pred_fn, **kw)),
+            ("LIME (nd)", lambda sm, **kw: lime_L(sm, pred_fn, **kw, disc=False)),
+            ("LIME", lambda sm, **kw: lime_L(sm, pred_fn, **kw)),
+        ]:
+            if df is None or not df["method"].isin([method]).any():
                 try:
-                    results.append(
-                        evaluate(
-                            sm,
-                            fn,
-                            epsilon,
-                            method,
-                            data,
-                            job_index,
-                            200 if method == "LIME" and sm.n > 600 else 0,
-                        )
+                    res = evaluate(
+                        sm,
+                        fn,
+                        epsilon,
+                        method,
+                        data,
+                        job_index,
+                        200 if method == "LIME" and sm.n > 600 else 0,
                     )
-                    # print(results[-1])
-                    df = pd.DataFrame(results)
+                    res = pd.DataFrame([res])
+                    if df is None:
+                        df = res
+                    else:
+                        df = pd.concat((df, res), ignore_index=True)
                     df["data"] = df["data"].astype("category")
                     df["method"] = df["method"].astype("category")
                     df.to_parquet(out_path)
                 except Exception as e:
                     print(f"{job_index:02d} {data}: Error\n", e, flush=True)
-                    # raise e
-            print(f"{job_index:02d} {data}: Done", flush=True)
+                    raise e
+        print(f"{job_index:02d} {data}: Done", flush=True)

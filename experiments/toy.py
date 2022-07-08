@@ -17,8 +17,9 @@ from matplotlib import pyplot as plt
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 
-sys.path.append(str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 from slisemap.slisemap import Slisemap
+from experiments.utils import paper_theme
 
 RESULTS_DIR = Path(__file__).parent / "results"
 
@@ -58,10 +59,10 @@ def plot_scatter(df: pd.DataFrame, file: str):
         hue="c",
         style="c",
         col="method",
-        height=3.5,
         palette="bright",
         kind="scatter",
         facet_kws=dict(sharex=False, sharey=False),
+        **paper_theme(0.8, 1, 2)
     )
     for ax in g.axes.flat:
         ax.axis("equal")
