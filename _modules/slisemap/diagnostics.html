@@ -238,7 +238,7 @@
 
 <div class="viewcode-block" id="global_model_losses"><a class="viewcode-back" href="../../slisemap.html#slisemap.diagnostics.global_model_losses">[docs]</a><span class="k">def</span> <span class="nf">global_model_losses</span><span class="p">(</span>
     <span class="n">sm</span><span class="p">:</span> <span class="n">Slisemap</span><span class="p">,</span> <span class="n">indices</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
     <span class="sd">"""Train a global model</span>
 
 <span class="sd">    Args:</span>
@@ -247,7 +247,7 @@
 <span class="sd">        **kwargs: Optional keyword arguments to LBFGS.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Tuple[torch.Tensor, torch.Tensor]: Tuple with vector of individual losses and vector of model coefficients.</span>
+<span class="sd">        torch.Tensor: Vector of individual losses for a global model.</span>
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="n">indices</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">X</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">X</span>
@@ -489,7 +489,22 @@
     <span class="p">]</span>
     <span class="n">treshold</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">glosses</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">glosses</span><span class="p">)</span> <span class="o">*</span> <span class="n">sd</span>
     <span class="n">llosses</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">get_L</span><span class="p">(</span><span class="n">numpy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-    <span class="k">return</span> <span class="p">(</span><span class="n">llosses</span> <span class="o">&lt;</span> <span class="n">treshold</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span></div>
+    <span class="k">return</span> <span class="n">tonp</span><span class="p">(</span><span class="n">llosses</span> <span class="o">&lt;</span> <span class="n">treshold</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="quantile_loss_diagnostic"><a class="viewcode-back" href="../../slisemap.html#slisemap.diagnostics.quantile_loss_diagnostic">[docs]</a><span class="k">def</span> <span class="nf">quantile_loss_diagnostic</span><span class="p">(</span><span class="n">sm</span><span class="p">:</span> <span class="n">Slisemap</span><span class="p">,</span> <span class="n">quantile</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.4</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="sd">"""Check if any fidelity is worse than a quantile of all losses.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sm (Slisemap): Trained Slisemap solution.</span>
+<span class="sd">        quantile (float, optional): The quantile percentage. Defaults to 0.4.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        np.ndarray: Boolean mask of problematic data items.</span>
+<span class="sd">    """</span>
+    <span class="n">L</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">get_L</span><span class="p">(</span><span class="n">numpy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">treshold</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="n">L</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">_frac</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="n">quantile</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">tonp</span><span class="p">(</span><span class="n">L</span><span class="o">.</span><span class="n">diag</span><span class="p">()</span> <span class="o">&gt;</span> <span class="n">treshold</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="optics_diagnostic"><a class="viewcode-back" href="../../slisemap.html#slisemap.diagnostics.optics_diagnostic">[docs]</a><span class="k">def</span> <span class="nf">optics_diagnostic</span><span class="p">(</span><span class="n">sm</span><span class="p">:</span> <span class="n">Slisemap</span><span class="p">,</span> <span class="n">min_size</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -535,6 +550,7 @@
             <span class="s2">"Weight Neighbourhood"</span><span class="p">:</span> <span class="n">weight_neighbourhood_diagnostic</span><span class="p">(</span>
                 <span class="n">sm</span><span class="p">,</span> <span class="n">min_size</span><span class="p">,</span> <span class="n">max_size</span>
             <span class="p">),</span>
+            <span class="s2">"Quantile Loss"</span><span class="p">:</span> <span class="n">quantile_loss_diagnostic</span><span class="p">(</span><span class="n">sm</span><span class="p">,</span> <span class="n">max_size</span><span class="p">),</span>
         <span class="p">}</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="p">{</span>
@@ -547,6 +563,7 @@
             <span class="s2">"Loss Neighbourhood"</span><span class="p">:</span> <span class="n">loss_neighbourhood_diagnostic</span><span class="p">(</span><span class="n">sm</span><span class="p">,</span> <span class="n">min_size</span><span class="p">),</span>
             <span class="s2">"Global Loss"</span><span class="p">:</span> <span class="n">global_loss_diagnostic</span><span class="p">(</span><span class="n">sm</span><span class="p">),</span>
             <span class="s2">"Clustering"</span><span class="p">:</span> <span class="n">optics_diagnostic</span><span class="p">(</span><span class="n">sm</span><span class="p">,</span> <span class="n">min_size</span><span class="p">),</span>
+            <span class="s2">"Quantile Loss"</span><span class="p">:</span> <span class="n">quantile_loss_diagnostic</span><span class="p">(</span><span class="n">sm</span><span class="p">,</span> <span class="n">max_size</span><span class="p">),</span>
         <span class="p">}</span></div>
 </pre></div>
         </article>

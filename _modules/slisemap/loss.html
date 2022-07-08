@@ -201,10 +201,9 @@
 <span class="sd">This module contains the SLISEMAP loss functions.</span>
 <span class="sd">"""</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">torch.nn.functional</span> <span class="kn">import</span> <span class="n">softmax</span>
 
 <span class="kn">from</span> <span class="nn">slisemap.utils</span> <span class="kn">import</span> <span class="n">_warn</span>
 
@@ -218,14 +217,14 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        torch.Tensor: Weight matrix.</span>
 <span class="sd">    """</span>
-    <span class="k">return</span> <span class="n">softmax</span><span class="p">(</span><span class="o">-</span><span class="n">D</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="o">-</span><span class="n">D</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="make_loss"><a class="viewcode-back" href="../../slisemap.html#slisemap.loss.make_loss">[docs]</a><span class="k">def</span> <span class="nf">make_loss</span><span class="p">(</span>
     <span class="n">local_model</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
     <span class="n">local_loss</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
-    <span class="n">distance</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
-    <span class="n">kernel</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+    <span class="n">distance</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cdist</span><span class="p">,</span>
+    <span class="n">kernel</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="n">softmax_kernel</span><span class="p">,</span>
     <span class="n">radius</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">3.5</span><span class="p">,</span>
     <span class="n">lasso</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="n">ridge</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
@@ -237,8 +236,8 @@
 <span class="sd">    Args:</span>
 <span class="sd">        local_model (Callable[[torch.Tensor, torch.Tensor], torch.Tensor]): Prediction function for the local models.</span>
 <span class="sd">        local_loss (Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor]): Loss function for the local models.</span>
-<span class="sd">        distance (Callable[[torch.Tensor, torch.Tensor], torch.Tensor]): Embedding distance function.</span>
-<span class="sd">        kernel (Callable[[torch.Tensor], torch.Tensor]): Kernel for embedding distances.</span>
+<span class="sd">        distance (Callable[[torch.Tensor, torch.Tensor], torch.Tensor]): Embedding distance function. Defaults to ``torch.cdist`` (Euclidean distance).</span>
+<span class="sd">        kernel (Callable[[torch.Tensor], torch.Tensor]): Kernel for embedding distances, Defaults to ``softmax_kernel``.</span>
 <span class="sd">        radius (float, optional): For enforcing the radius of Z. Defaults to 3.5.</span>
 <span class="sd">        lasso (float, optional): Lasso-regularisation coefficient for B ($\\lambda_{lasso} * ||B||_1$). Defaults to 0.0.</span>
 <span class="sd">        ridge (float, optional): Ridge-regularisation coefficient for B ($\\lambda_{ridge} * ||B||_2$). Defaults to 0.0.</span>
@@ -264,9 +263,9 @@
         <span class="sd">"""Slisemap loss function.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            X (torch.Tensor): Data matrix.</span>
-<span class="sd">            Y (torch.Tensor): Target matrix.</span>
-<span class="sd">            B (torch.Tensor): Local models.</span>
+<span class="sd">            X (torch.Tensor): Data matrix [n, m].</span>
+<span class="sd">            Y (torch.Tensor): Target matrix [n, k].</span>
+<span class="sd">            B (torch.Tensor): Local models [n, p].</span>
 <span class="sd">            Z (torch.Tensor): Embedding matrix [n, d].</span>
 
 <span class="sd">        Returns:</span>
@@ -298,13 +297,16 @@
     <span class="n">Ynew</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">local_model</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
     <span class="n">local_loss</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
-    <span class="n">distance</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
-    <span class="n">kernel</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+    <span class="n">distance</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cdist</span><span class="p">,</span>
+    <span class="n">kernel</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="n">softmax_kernel</span><span class="p">,</span>
     <span class="n">radius</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">3.5</span><span class="p">,</span>
     <span class="n">lasso</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="n">ridge</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="n">jit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span>
+    <span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+    <span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="kc">None</span><span class="p">],</span>
+<span class="p">]:</span>
     <span class="sd">"""Create a loss for adding new points with Slisemap.</span>
 
 <span class="sd">    Args:</span>
@@ -316,15 +318,15 @@
 <span class="sd">        Ynew (torch.Tensor): The new target matrix [n_new, k].</span>
 <span class="sd">        local_model (Callable[[torch.Tensor, torch.Tensor], torch.Tensor]): Prediction function for the local models.</span>
 <span class="sd">        local_loss (Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor]): Loss function for the local models.</span>
-<span class="sd">        kernel (Callable[[torch.Tensor], torch.Tensor]): Kernel for embedding distances.</span>
-<span class="sd">        distance (Callable[[torch.Tensor, torch.Tensor], torch.Tensor]): Embedding distance function.</span>
+<span class="sd">        distance (Callable[[torch.Tensor, torch.Tensor], torch.Tensor]): Embedding distance function. Defaults to ``torch.cdist`` (Euclidean distance).</span>
+<span class="sd">        kernel (Callable[[torch.Tensor], torch.Tensor]): Kernel for embedding distances, Defaults to ``softmax_kernel``.</span>
 <span class="sd">        radius (float, optional): For enforcing the radius of Z. Defaults to 3.5.</span>
 <span class="sd">        lasso (float, optional): Lasso-regularisation coefficient for B ($\\lambda_{lasso} * ||B||_1$). Defaults to 0.0.</span>
 <span class="sd">        ridge (float, optional): Ridge-regularisation coefficient for B ($\\lambda_{ridge} * ||B||_2$). Defaults to 0.0.</span>
 <span class="sd">        jit (bool, optional): Just-In-Time compile the loss function. Defaults to True.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Callable[[torch.Tensor, torch.Tensor], torch.Tensor]: Loss function that takes `Bnew` [n_new, p] and `Znew` [n_new, d] (or `Xnew`, `Ynew`, `Bnew` and `Znew` if `Xnew` and `Ynew` were not given above).</span>
+<span class="sd">        Tuple[Callable[[torch.Tensor, torch.Tensor], torch.Tensor], Callable[[torch.Tensor, torch.Tensor], None]]: A marginal loss function that takes Bnew [n_new, p] and Znew [n_new, d], and a function for changing the Xnew [n_new, m] and Ynew [n_new, k].</span>
 <span class="sd">    """</span>
     <span class="n">Xcomb</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">X</span><span class="p">,</span> <span class="n">Xnew</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
     <span class="n">Ycomb</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">Y</span><span class="p">,</span> <span class="n">Ynew</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
@@ -333,6 +335,12 @@
     <span class="n">D0</span> <span class="o">=</span> <span class="n">distance</span><span class="p">(</span><span class="n">Z</span><span class="p">,</span> <span class="n">Z</span><span class="p">)</span>  <span class="c1"># Nold x Nold</span>
 
     <span class="k">def</span> <span class="nf">set_new</span><span class="p">(</span><span class="n">Xnew</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Ynew</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+        <span class="sd">"""Set the Xnew and Ynew for the generated marginal Slisemap loss function.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            Xnew (torch.Tensor): New data matrix [n_new, m].</span>
+<span class="sd">            Ynew (torch.Tensor): New target matrix [n_new, k].</span>
+<span class="sd">        """</span>
         <span class="k">nonlocal</span> <span class="n">Xcomb</span><span class="p">,</span> <span class="n">Ycomb</span><span class="p">,</span> <span class="n">L0</span>
         <span class="n">Xcomb</span><span class="p">[</span><span class="n">Nold</span><span class="p">:]</span> <span class="o">=</span> <span class="n">Xnew</span>
         <span class="n">Ycomb</span><span class="p">[</span><span class="n">Nold</span><span class="p">:]</span> <span class="o">=</span> <span class="n">Ynew</span>
@@ -342,6 +350,15 @@
         <span class="n">Zss0</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Z</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="n">Bnew</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Znew</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">"""Marginal Slisemap loss.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            B (torch.Tensor): New local models [n_new, p].</span>
+<span class="sd">            Z (torch.Tensor): New embedding matrix [n_new, d].</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.Tensor: marginal loss value.</span>
+<span class="sd">        """</span>
         <span class="n">L1</span> <span class="o">=</span> <span class="n">local_loss</span><span class="p">(</span><span class="n">local_model</span><span class="p">(</span><span class="n">Xcomb</span><span class="p">,</span> <span class="n">Bnew</span><span class="p">),</span> <span class="n">Ycomb</span><span class="p">,</span> <span class="n">Bnew</span><span class="p">)</span>  <span class="c1"># Nnew x Ncomb</span>
         <span class="n">L</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">L0</span><span class="p">,</span> <span class="n">L1</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># Ncomb x Ncomb</span>
 

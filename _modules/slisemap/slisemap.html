@@ -226,7 +226,6 @@
     <span class="n">dict_concat</span><span class="p">,</span>
     <span class="n">global_model</span><span class="p">,</span>
     <span class="n">tonp</span><span class="p">,</span>
-    <span class="n">varimax</span><span class="p">,</span>
 <span class="p">)</span>
 
 
@@ -736,7 +735,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">Z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Z</span>
         <span class="k">if</span> <span class="n">rotate</span><span class="p">:</span>
-            <span class="n">Z</span> <span class="o">=</span> <span class="n">varimax</span><span class="p">(</span><span class="n">Z</span><span class="p">)</span>
+            <span class="n">Z</span> <span class="o">=</span> <span class="n">Z</span> <span class="o">@</span> <span class="n">PCA_rotation</span><span class="p">(</span><span class="n">Z</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">numpy</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">Z</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
@@ -912,6 +911,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">force_move</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">escape_fn</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">escape_neighbourhood</span><span class="p">,</span>
+        <span class="n">noise</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">"""Try to escape a local optimum by moving the items (embedding and local model) to the neighbourhoods best suited for them.</span>
 <span class="sd">        This is done by finding another item (in the optimal neighbourhood) and copying its values for Z and B.</span>
@@ -919,6 +919,7 @@
 <span class="sd">        Args:</span>
 <span class="sd">            force_move (bool, optional): Do not allow the items to pair with themselves. Defaults to True.</span>
 <span class="sd">            escape_fn (Callable, optional): Escape function (escape_neighbourhood/escape_greedy/escape_marginal). Defaults to escape_neighbourhood.</span>
+<span class="sd">            noise (float, optional): Scale of the noise added to the embedding matrix if it looses rank after an escape (recommended for gradient based optimisers). Defaults to 0.0.</span>
 <span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_B</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Z</span> <span class="o">=</span> <span class="n">escape_fn</span><span class="p">(</span>
             <span class="n">X</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_X</span><span class="p">,</span>
@@ -933,6 +934,10 @@
             <span class="n">force_move</span><span class="o">=</span><span class="n">force_move</span><span class="p">,</span>
             <span class="n">jit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">jit</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="k">if</span> <span class="n">noise</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">rank</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">matrix_rank</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Z</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Z</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="kc">True</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">rank</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">&lt;</span> <span class="nb">min</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">Z</span><span class="o">.</span><span class="n">shape</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_Z</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Z</span><span class="p">,</span> <span class="n">noise</span><span class="p">,</span> <span class="n">generator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_random_state</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_normalise</span><span class="p">()</span></div>
 
     <span class="k">def</span> <span class="nf">_normalise</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -948,6 +953,7 @@
         <span class="n">escape_fn</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">escape_neighbourhood</span><span class="p">,</span>
         <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">noise</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-4</span><span class="p">,</span>
+        <span class="n">only_B</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
         <span class="sd">"""Optimise Slisemap by alternating between Slisemap.lbfgs and Slisemap.escape until convergence.</span>
@@ -958,7 +964,8 @@
 <span class="sd">            max_iter (int, optional): Maximum number of LBFGS iterations per round. Defaults to 500.</span>
 <span class="sd">            escape_fn (Callable, optional): Escape function (escape_neighbourhood/escape_greedy/escape_marginal). Defaults to escape_neighbourhood.</span>
 <span class="sd">            verbose (bool, optional): Print status messages. Defaults to False.</span>
-<span class="sd">            noise (float, optional): Scale of the noise used to avoid disappearing dimensions in the embedding after an escape (gradient based optimisers cannot recover them). Defaults to 1e-4.</span>
+<span class="sd">            noise (float, optional): Scale of the noise added to the embedding matrix if it looses rank after an escape. Defaults to 1e-4.</span>
+<span class="sd">            only_B (bool, optional): Only optimise the local models, not the embedding. Defaults to False.</span>
 <span class="sd">            **kwargs: Optional keyword arguments to Slisemap.lbfgs.</span>
 
 <span class="sd">        Returns:</span>
@@ -967,23 +974,22 @@
         <span class="n">loss</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
         <span class="n">loss</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lbfgs</span><span class="p">(</span><span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">only_B</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"LBFGS   0: </span><span class="si">{</span><span class="n">loss</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-        <span class="n">cc</span> <span class="o">=</span> <span class="n">CheckConvergence</span><span class="p">(</span><span class="n">patience</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_escapes</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="n">escape_fn</span><span class="o">=</span><span class="n">escape_fn</span><span class="p">)</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"LBFGS  </span><span class="si">{</span><span class="n">i</span><span class="si">:</span><span class="s2">2d</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">loss</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">only_B</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">loss</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">cc</span> <span class="o">=</span> <span class="n">CheckConvergence</span><span class="p">(</span><span class="n">patience</span><span class="p">,</span> <span class="n">max_escapes</span><span class="p">)</span>
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">cc</span><span class="o">.</span><span class="n">has_converged</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">copy</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="n">escape_fn</span><span class="o">=</span><span class="n">escape_fn</span><span class="p">,</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">)</span>
             <span class="n">loss</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">()</span>
             <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
                 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Escape </span><span class="si">{</span><span class="n">i</span><span class="si">:</span><span class="s2">2d</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">loss</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">noise</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_Z</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Z</span><span class="p">,</span> <span class="n">noise</span><span class="p">,</span> <span class="n">generator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_random_state</span><span class="p">)</span>
             <span class="n">loss</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lbfgs</span><span class="p">(</span><span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"LBFGS  </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">:</span><span class="s2">2d</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">loss</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">cc</span><span class="o">.</span><span class="n">has_converged</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">copy</span><span class="p">):</span>
-                <span class="k">break</span>
-        <span class="k">if</span> <span class="n">cc</span><span class="o">.</span><span class="n">optimal_state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_Z</span> <span class="o">=</span> <span class="n">cc</span><span class="o">.</span><span class="n">optimal_state</span><span class="o">.</span><span class="n">_Z</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_B</span> <span class="o">=</span> <span class="n">cc</span><span class="o">.</span><span class="n">optimal_state</span><span class="o">.</span><span class="n">_B</span>
+                <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"LBFGS  </span><span class="si">{</span><span class="n">i</span><span class="si">:</span><span class="s2">2d</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">loss</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Z</span> <span class="o">=</span> <span class="n">cc</span><span class="o">.</span><span class="n">optimal</span><span class="o">.</span><span class="n">_Z</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_B</span> <span class="o">=</span> <span class="n">cc</span><span class="o">.</span><span class="n">optimal</span><span class="o">.</span><span class="n">_B</span>
         <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lbfgs</span><span class="p">(</span><span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Final    : </span><span class="si">{</span><span class="n">loss</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
@@ -1175,17 +1181,26 @@
         <span class="n">other</span><span class="o">.</span><span class="n">_Z</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">_Z</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">other</span></div>
 
-<div class="viewcode-block" id="Slisemap.save"><a class="viewcode-back" href="../../slisemap.html#slisemap.slisemap.Slisemap.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">PathLike</span><span class="p">,</span> <span class="n">BinaryIO</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="Slisemap.save"><a class="viewcode-back" href="../../slisemap.html#slisemap.slisemap.Slisemap.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">PathLike</span><span class="p">,</span> <span class="n">BinaryIO</span><span class="p">],</span> <span class="n">any_extension</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>
         <span class="sd">"""Save the Slisemap object to a file.</span>
 <span class="sd">        This method uses ``torch.save``, which uses ``pickle`` for the non-pytorch properties.</span>
 <span class="sd">        This comes with the normal caveats like lambda-functions not being supported.</span>
 <span class="sd">        However, the default pickle module can be overridden (see ``torch.save``).</span>
-<span class="sd">        The default ending for ``torch.save`` is ".pt" and by default the file is compressed.</span>
+<span class="sd">        The default file extension is ".sm" and by default the file is compressed.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            f (Union[str, PathLike, BinaryIO]): Either a Path-like object or a (writable) File-like object.</span>
+<span class="sd">            any_extension (bool, optional): Do not check the file extension. Defaults to False.</span>
 <span class="sd">            **kwargs: Parameters forwarded to ``torch.save``.</span>
 <span class="sd">        """</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">any_extension</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">PathLike</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">str</span><span class="p">(</span><span class="n">f</span><span class="p">)</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">".sm"</span><span class="p">):</span>
+                <span class="n">_warn</span><span class="p">(</span>
+                    <span class="s2">"When saving Slisemap objects, consider using the '.sm' extension for consistency."</span><span class="p">,</span>
+                    <span class="n">Slisemap</span><span class="o">.</span><span class="n">save</span><span class="p">,</span>
+                <span class="p">)</span>
         <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loss</span>
         <span class="n">prng</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_random_state</span>
         <span class="k">try</span><span class="p">:</span>
@@ -1241,8 +1256,11 @@
             <span class="n">B</span> <span class="k">if</span> <span class="n">B</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_B</span><span class="p">()</span>
         <span class="p">)</span>
         <span class="c1"># Sort according to value for the most influential coefficient</span>
-        <span class="n">influence</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">km</span><span class="o">.</span><span class="n">cluster_centers_</span><span class="p">)</span>
-        <span class="n">influence</span> <span class="o">=</span> <span class="n">influence</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">influence</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">influence</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">km</span><span class="o">.</span><span class="n">cluster_centers_</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">km</span><span class="o">.</span><span class="n">cluster_centers_</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">km</span><span class="o">.</span><span class="n">cluster_centers_</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="p">)</span>
         <span class="n">col</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">influence</span><span class="p">)</span>
         <span class="nb">ord</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">km</span><span class="o">.</span><span class="n">cluster_centers_</span><span class="p">[:,</span> <span class="n">col</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="nb">ord</span><span class="p">)[</span><span class="n">km</span><span class="o">.</span><span class="n">labels_</span><span class="p">],</span> <span class="n">km</span><span class="o">.</span><span class="n">cluster_centers_</span><span class="p">[</span><span class="nb">ord</span><span class="p">]</span></div>
@@ -1452,26 +1470,27 @@
         <span class="n">w</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">col_wrap</span>
         <span class="n">h</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">((</span><span class="n">L</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">col_wrap</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">selection</span> <span class="ow">and</span> <span class="n">index</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">size</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">"lines.markersize"</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="mi">3</span>
             <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ax</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">g</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">ravel</span><span class="p">()):</span>
-                <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">Z</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">Z</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="mi">100</span><span class="p">,</span> <span class="s2">"#9b52b4"</span><span class="p">,</span> <span class="s2">"X"</span><span class="p">)</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">Z</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">Z</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">size</span><span class="p">,</span> <span class="s2">"#fd8431"</span><span class="p">,</span> <span class="s2">"X"</span><span class="p">)</span>
             <span class="n">g</span><span class="o">.</span><span class="n">add_legend</span><span class="p">(</span>
                 <span class="n">legend</span><span class="p">,</span>
                 <span class="s2">"Fidelity"</span><span class="p">,</span>
                 <span class="n">loc</span><span class="o">=</span><span class="s2">"lower center"</span> <span class="k">if</span> <span class="n">inside</span> <span class="k">else</span> <span class="s2">"upper right"</span><span class="p">,</span>
-                <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">*</span> <span class="mf">0.4</span><span class="p">,</span> <span class="n">w</span> <span class="o">*</span> <span class="mf">0.9</span><span class="p">,</span> <span class="n">h</span> <span class="o">*</span> <span class="mf">0.5</span><span class="p">)</span> <span class="k">if</span> <span class="n">inside</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">*</span> <span class="mf">0.35</span><span class="p">,</span> <span class="n">w</span> <span class="o">*</span> <span class="mf">0.9</span><span class="p">,</span> <span class="n">h</span> <span class="o">*</span> <span class="mf">0.6</span><span class="p">)</span> <span class="k">if</span> <span class="n">inside</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">g</span><span class="o">.</span><span class="n">add_legend</span><span class="p">(</span>
-                <span class="p">{</span><span class="s2">""</span><span class="p">:</span> <span class="n">Line2D</span><span class="p">([],</span> <span class="p">[],</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">"None"</span><span class="p">,</span> <span class="s2">"#9b52b4"</span><span class="p">,</span> <span class="s2">"X"</span><span class="p">,</span> <span class="mi">8</span><span class="p">)},</span>
+                <span class="p">{</span><span class="s2">""</span><span class="p">:</span> <span class="n">Line2D</span><span class="p">([],</span> <span class="p">[],</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">"None"</span><span class="p">,</span> <span class="s2">"#fd8431"</span><span class="p">,</span> <span class="s2">"X"</span><span class="p">,</span> <span class="mi">5</span><span class="p">)},</span>
                 <span class="s2">"Selected"</span><span class="p">,</span>
                 <span class="n">loc</span><span class="o">=</span><span class="s2">"upper center"</span> <span class="k">if</span> <span class="n">inside</span> <span class="k">else</span> <span class="s2">"lower right"</span><span class="p">,</span>
-                <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">w</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">w</span> <span class="o">*</span> <span class="mf">0.9</span><span class="p">,</span> <span class="n">h</span> <span class="o">*</span> <span class="mf">0.4</span><span class="p">)</span> <span class="k">if</span> <span class="n">inside</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">*</span> <span class="mf">0.05</span><span class="p">,</span> <span class="n">w</span> <span class="o">*</span> <span class="mf">0.9</span><span class="p">,</span> <span class="n">h</span> <span class="o">*</span> <span class="mf">0.3</span><span class="p">)</span> <span class="k">if</span> <span class="n">inside</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">g</span><span class="o">.</span><span class="n">add_legend</span><span class="p">(</span>
                 <span class="n">legend</span><span class="p">,</span>
                 <span class="s2">"Fidelity"</span><span class="p">,</span>
                 <span class="n">loc</span><span class="o">=</span><span class="s2">"center"</span> <span class="k">if</span> <span class="n">inside</span> <span class="k">else</span> <span class="s2">"center right"</span><span class="p">,</span>
-                <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">w</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">w</span> <span class="o">*</span> <span class="mf">0.9</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span> <span class="k">if</span> <span class="n">inside</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">w</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="n">w</span> <span class="o">*</span> <span class="mf">0.9</span><span class="p">,</span> <span class="n">h</span> <span class="o">*</span> <span class="mf">0.9</span><span class="p">)</span> <span class="k">if</span> <span class="n">inside</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="n">g</span><span class="o">.</span><span class="n">set_titles</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
         <span class="n">plt</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>

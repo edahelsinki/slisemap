@@ -251,7 +251,8 @@
 <span class="sd">    Use it for, e.g., escape+optimisation cycles in Slisemap.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        patience (int, optional): How long should the optimisation continue without improvement. Defaults to 3.</span>
+<span class="sd">        patience (float, optional): How long should the optimisation continue without improvement. Defaults to 3.</span>
+<span class="sd">        max_iter (int, optional): The maximum number of iterations. Defaults to 2**30.</span>
 <span class="sd">    """</span>
 
     <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">{</span>
@@ -259,15 +260,19 @@
         <span class="s2">"best"</span><span class="p">:</span> <span class="s2">"Best loss value, so far."</span><span class="p">,</span>
         <span class="s2">"counter"</span><span class="p">:</span> <span class="s2">"Number of steps since the best loss value."</span><span class="p">,</span>
         <span class="s2">"patience"</span><span class="p">:</span> <span class="s2">"Number of steps allowed without improvement."</span><span class="p">,</span>
-        <span class="s2">"optimal_state"</span><span class="p">:</span> <span class="s2">"Cache for storing the state that produced the best loss value."</span><span class="p">,</span>
+        <span class="s2">"optimal"</span><span class="p">:</span> <span class="s2">"Cache for storing the state that produced the best loss value."</span><span class="p">,</span>
+        <span class="s2">"max_iter"</span><span class="p">:</span> <span class="s2">"The maximum number of iterations."</span><span class="p">,</span>
+        <span class="s2">"iter"</span><span class="p">:</span> <span class="s2">"The current number of iterations."</span><span class="p">,</span>
     <span class="p">}</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">patience</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">patience</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">30</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">current</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">best</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">best</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">patience</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1e-8</span><span class="p">,</span> <span class="n">patience</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">optimal_state</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">patience</span> <span class="o">=</span> <span class="n">patience</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optimal</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">=</span> <span class="n">max_iter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iter</span> <span class="o">=</span> <span class="mi">0</span>
 
 <div class="viewcode-block" id="CheckConvergence.has_converged"><a class="viewcode-back" href="../../slisemap.html#slisemap.utils.CheckConvergence.has_converged">[docs]</a>    <span class="k">def</span> <span class="nf">has_converged</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -286,21 +291,21 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            bool: True if the optimisation has converged.</span>
 <span class="sd">        """</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iter</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="n">loss</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">loss</span><span class="p">)):</span>
             <span class="n">_warn</span><span class="p">(</span><span class="s2">"Loss is `nan`"</span><span class="p">,</span> <span class="n">CheckConvergence</span><span class="o">.</span><span class="n">has_converged</span><span class="p">)</span>
             <span class="k">return</span> <span class="kc">True</span>
         <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">loss</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">best</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">best</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">best</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">current</span> <span class="o">=</span> <span class="n">loss</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># Reset the counter if a new best</span>
             <span class="k">if</span> <span class="n">store</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">best</span><span class="o">.</span><span class="n">item</span><span class="p">(</span><span class="mi">0</span><span class="p">):</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">optimal_state</span> <span class="o">=</span> <span class="n">store</span><span class="p">()</span>
-            <span class="k">return</span> <span class="kc">False</span>
-        <span class="c1"># Increase the counter if no improvement</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">counter</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current</span> <span class="o">&lt;=</span> <span class="n">loss</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">optimal</span> <span class="o">=</span> <span class="n">store</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">best</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">best</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Increase the counter if no improvement</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">counter</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current</span> <span class="o">&lt;=</span> <span class="n">loss</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">current</span> <span class="o">=</span> <span class="n">loss</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">counter</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">patience</span>  <span class="c1"># Has the patience run out</span></div></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">counter</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">patience</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span></div></div>
 
 
 <div class="viewcode-block" id="LBFGS"><a class="viewcode-back" href="../../slisemap.html#slisemap.utils.LBFGS">[docs]</a><span class="k">def</span> <span class="nf">LBFGS</span><span class="p">(</span>
@@ -363,7 +368,7 @@
 
 
 <div class="viewcode-block" id="PCA_rotation"><a class="viewcode-back" href="../../slisemap.html#slisemap.utils.PCA_rotation">[docs]</a><span class="k">def</span> <span class="nf">PCA_rotation</span><span class="p">(</span>
-    <span class="n">X</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">components</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">full</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">niter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span>
+    <span class="n">X</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">components</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">full</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">niter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
     <span class="sd">"""Calculate the rotation matrix from PCA.</span>
 
@@ -371,7 +376,7 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        X (torch.Tensor): The original matrix.</span>
-<span class="sd">        components (int): The number of components in the embedding.</span>
+<span class="sd">        components (int, optional): The maximum number of components in the embedding. Defaults to ``min(*X.shape)``.</span>
 <span class="sd">        full (bool, optional): Use a full SVD for the PCA (slower). Defaults to True.</span>
 <span class="sd">        niter (int, optional): The number of iterations when a randomised approach is used. Defaults to 10.</span>
 
@@ -379,7 +384,7 @@
 <span class="sd">        torch.Tensor: Rotation matrix that turns the original matrix into the embedded space.</span>
 <span class="sd">    """</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">components</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="o">*</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">components</span><span class="p">)</span>
+        <span class="n">components</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="o">*</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">components</span><span class="p">)</span> <span class="k">if</span> <span class="n">components</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="nb">min</span><span class="p">(</span><span class="o">*</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">full</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">full_matrices</span><span class="o">=</span><span class="kc">False</span><span class="p">)[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">[:,</span> <span class="p">:</span><span class="n">components</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
@@ -389,39 +394,6 @@
         <span class="n">z</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">components</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">X</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">X</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
         <span class="n">z</span><span class="o">.</span><span class="n">fill_diagonal_</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">z</span></div>
-
-
-<div class="viewcode-block" id="varimax"><a class="viewcode-back" href="../../slisemap.html#slisemap.utils.varimax">[docs]</a><span class="k">def</span> <span class="nf">varimax</span><span class="p">(</span>
-    <span class="n">X</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">gamma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">max_iter</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">tolerance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-    <span class="sd">"""Rotate a matrix using varimax (so that the first dimension has the largest variance).</span>
-
-<span class="sd">    Code adapted from: http://en.wikipedia.org/wiki/Talk:Varimax_rotation</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        X (torch.Tensor): Matrix</span>
-<span class="sd">        gamma (float, optional): Learning rate. Defaults to 1.0.</span>
-<span class="sd">        max_iter (float, optional): Maximum number of iterations. Defaults to 100.</span>
-<span class="sd">        tolerance (float, optional): Early stopping tolerance (relative). Defaults to 1e-8.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        torch.Tensor: Rotated matrix.</span>
-<span class="sd">    """</span>
-    <span class="n">gamma</span> <span class="o">/=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">eye</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">X</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">X</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-    <span class="n">R</span> <span class="o">=</span> <span class="n">eye</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
-    <span class="n">d</span> <span class="o">=</span> <span class="mf">0.0</span>
-    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_iter</span><span class="p">):</span>
-        <span class="n">XR</span> <span class="o">=</span> <span class="n">X</span> <span class="o">@</span> <span class="n">R</span>
-        <span class="n">u</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">vh</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span>
-            <span class="n">X</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="p">(</span><span class="n">XR</span><span class="o">**</span><span class="mi">3</span> <span class="o">-</span> <span class="n">gamma</span> <span class="o">*</span> <span class="p">(</span><span class="n">XR</span> <span class="o">@</span> <span class="p">(</span><span class="n">eye</span> <span class="o">*</span> <span class="p">(</span><span class="n">XR</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">XR</span><span class="p">)))),</span> <span class="n">full_matrices</span><span class="o">=</span><span class="kc">False</span>
-        <span class="p">)</span>
-        <span class="n">R</span> <span class="o">=</span> <span class="n">u</span> <span class="o">@</span> <span class="n">vh</span>
-        <span class="n">d_old</span> <span class="o">=</span> <span class="n">d</span>
-        <span class="n">d</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">d_old</span> <span class="o">!=</span> <span class="mf">0.0</span> <span class="ow">and</span> <span class="n">d</span> <span class="o">/</span> <span class="n">d_old</span> <span class="o">&lt;</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="n">tolerance</span><span class="p">:</span>
-            <span class="k">break</span>
-    <span class="k">return</span> <span class="n">X</span> <span class="o">@</span> <span class="n">R</span></div>
 
 
 <div class="viewcode-block" id="global_model"><a class="viewcode-back" href="../../slisemap.html#slisemap.utils.global_model">[docs]</a><span class="k">def</span> <span class="nf">global_model</span><span class="p">(</span>
@@ -463,7 +435,7 @@
 
 
 <div class="viewcode-block" id="dict_array"><a class="viewcode-back" href="../../slisemap.html#slisemap.utils.dict_array">[docs]</a><span class="k">def</span> <span class="nf">dict_array</span><span class="p">(</span><span class="nb">dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-    <span class="sd">"""Turn a dictionary of various values to a dictionary of numpy arrays with equal length (inplace).</span>
+    <span class="sd">"""Turn a dictionary of various values to a dictionary of numpy arrays with equal length inplace.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        dict (Dict[str, Any]): Dictionary.</span>
@@ -484,21 +456,39 @@
     <span class="k">return</span> <span class="nb">dict</span></div>
 
 
-<div class="viewcode-block" id="dict_concat"><a class="viewcode-back" href="../../slisemap.html#slisemap.utils.dict_concat">[docs]</a><span class="k">def</span> <span class="nf">dict_concat</span><span class="p">(</span><span class="n">dicts</span><span class="p">:</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<div class="viewcode-block" id="dict_append"><a class="viewcode-back" href="../../slisemap.html#slisemap.utils.dict_append">[docs]</a><span class="k">def</span> <span class="nf">dict_append</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="n">d</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+    <span class="sd">"""Append a dictionary of values to a dictionary of numpy arrays (see ``dict_array``) inplace.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        df (Dict[str, np.ndarray]): Dictionary of numpy arrays.</span>
+<span class="sd">        d (Dict[str, Any]): Dictionary to append.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict[str, np.ndarray]: The same dictionary as ``df`` with the values from ``d`` appended.</span>
+<span class="sd">    """</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">dict_array</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">df</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">df</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="p">]),</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df</span></div>
+
+
+<div class="viewcode-block" id="dict_concat"><a class="viewcode-back" href="../../slisemap.html#slisemap.utils.dict_concat">[docs]</a><span class="k">def</span> <span class="nf">dict_concat</span><span class="p">(</span>
+    <span class="n">dicts</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
     <span class="sd">"""Combine multiple dictionaries into one by concatenating the values.</span>
 <span class="sd">    Calls ``dict_array`` to pre-process the dictionaries.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        dicts (Iterator[Dict[str, Any]]): Generator with dictionaries (all must have the same keys).</span>
+<span class="sd">        dicts (Union[Sequence[Dict[str, Any]], Iterator[Dict[str, Any]]]): Sequence or Generator with dictionaries (all must have the same keys).</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Dict[str, np.ndarray]: Combined dictionary.</span>
 <span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dicts</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">):</span>
+        <span class="n">dicts</span> <span class="o">=</span> <span class="p">(</span><span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dicts</span><span class="p">)</span>
     <span class="n">df</span> <span class="o">=</span> <span class="n">dict_array</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="n">dicts</span><span class="p">))</span>
     <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dicts</span><span class="p">:</span>
-        <span class="n">d</span> <span class="o">=</span> <span class="n">dict_array</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-            <span class="n">df</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">df</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="p">]),</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">dict_append</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">df</span></div>
 </pre></div>
         </article>
