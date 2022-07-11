@@ -19,10 +19,11 @@ from sklearn.svm import SVR
 
 def find_path(dir_name: str = "data") -> Path:
     path = Path(dir_name)
-    if path.is_absolute():
-        return path
-    # Use the path of this file to find the root directory of the project
-    return Path(__file__).parent.parent / dir_name
+    if not path.is_absolute():
+        # Use the path of this file to find the root directory of the project
+        path = Path(__file__).parent.parent / dir_name
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 def _get_dataset(id: int, cache_dir: Union[str, Path]) -> openml.OpenMLDataset:
