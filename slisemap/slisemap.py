@@ -986,10 +986,13 @@ class Slisemap:
         self, f: Union[str, PathLike, BinaryIO], any_extension: bool = False, **kwargs
     ):
         """Save the Slisemap object to a file.
-        This method uses ``torch.save``, which uses ``pickle`` for the non-pytorch properties.
-        This comes with the normal caveats like lambda-functions not being supported.
-        However, the default pickle module can be overridden (see ``torch.save``).
-        The default file extension is ".sm" and by default the file is compressed.
+
+        This method uses ``torch.save`` (which uses ``pickle`` for the non-pytorch properties).
+        This means that lambda-functions are not supported (unless a custom pickle module is used, see ``torch.save``).
+
+        Note that the random state is not saved, only the initial seed (if set).
+
+        The default file extension is ".sm".
 
         Args:
             f (Union[str, PathLike, BinaryIO]): Either a Path-like object or a (writable) File-like object.
@@ -1022,8 +1025,10 @@ class Slisemap:
         **kwargs,
     ) -> "Slisemap":
         """Load a Slisemap object from a file.
-        This method uses ``torch.load``, which uses ``pickle`` for the non-pytorch properties.
-        However, the default pickle module can be overridden (see ``torch.load``).
+
+        This function uses ``torch.load``, so the tensors are restored to their previous devices.
+        Use ``device="cpu"`` to avoid assuming that the same device exists.
+        This is useful if the Slisemap object has been trained on a GPU, but the current computer lacks a GPU.
 
         Note that this is a classmethod, use it with: ``Slisemap.load(...)``.
 
