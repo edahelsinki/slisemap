@@ -4,6 +4,7 @@
 name: Build documentation
 
 on:
+  workflow_dispatch:
   release:
     branches: [master, main]
     types: [released]
