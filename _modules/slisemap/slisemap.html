@@ -1185,10 +1185,13 @@
         <span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">PathLike</span><span class="p">,</span> <span class="n">BinaryIO</span><span class="p">],</span> <span class="n">any_extension</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
     <span class="p">):</span>
         <span class="sd">"""Save the Slisemap object to a file.</span>
-<span class="sd">        This method uses ``torch.save``, which uses ``pickle`` for the non-pytorch properties.</span>
-<span class="sd">        This comes with the normal caveats like lambda-functions not being supported.</span>
-<span class="sd">        However, the default pickle module can be overridden (see ``torch.save``).</span>
-<span class="sd">        The default file extension is ".sm" and by default the file is compressed.</span>
+
+<span class="sd">        This method uses ``torch.save`` (which uses ``pickle`` for the non-pytorch properties).</span>
+<span class="sd">        This means that lambda-functions are not supported (unless a custom pickle module is used, see ``torch.save``).</span>
+
+<span class="sd">        Note that the random state is not saved, only the initial seed (if set).</span>
+
+<span class="sd">        The default file extension is ".sm".</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            f (Union[str, PathLike, BinaryIO]): Either a Path-like object or a (writable) File-like object.</span>
@@ -1221,8 +1224,10 @@
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"Slisemap"</span><span class="p">:</span>
         <span class="sd">"""Load a Slisemap object from a file.</span>
-<span class="sd">        This method uses ``torch.load``, which uses ``pickle`` for the non-pytorch properties.</span>
-<span class="sd">        However, the default pickle module can be overridden (see ``torch.load``).</span>
+
+<span class="sd">        This function uses ``torch.load``, so the tensors are restored to their previous devices.</span>
+<span class="sd">        Use ``device="cpu"`` to avoid assuming that the same device exists.</span>
+<span class="sd">        This is useful if the Slisemap object has been trained on a GPU, but the current computer lacks a GPU.</span>
 
 <span class="sd">        Note that this is a classmethod, use it with: ``Slisemap.load(...)``.</span>
 
