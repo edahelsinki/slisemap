@@ -39,9 +39,9 @@ from slisemap import Slisemap
 
 X = np.array(...)
 y = np.array(...)
-sm = Slisemap(X, y, radius=3.5, lasso=0.001)
+sm = Slisemap(X, y, radius=3.5, lasso=0.01)
 sm.optimise()
-sm.plot(clusters=4, bars=5)
+sm.plot(clusters=5, bars=5)
 ```
 ![Example plot of the results from using SLISEMAP on the *Auto MPG* dataset](examples/autompg.webp)
 
