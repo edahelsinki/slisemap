@@ -231,16 +231,19 @@ def get_autompg(
         (X.values[:, :-1].astype(float), np.eye(3)[X["origin"].values.astype(int) - 1]),
         1,
     )
+    mask = ~np.isnan(X[:, 2])
+    X = X[mask]
+    y = y[mask]
     anames = anames[:-2] + ["year", "origin USA", "origin Europe", "origin Japan"]
     if blackbox is None:
         Y = y.values
     elif blackbox.lower() in ("svm", "svr"):
-        Y = _get_predictions(9918402, ("prediction",), dir)[:, 0]
+        Y = _get_predictions(9918402, ("prediction",), dir)[mask, 0]
+    elif blackbox.lower() in ("rf", "randomforest", "random forest"):
+        random_forest = RandomForestRegressor(random_state=42).fit(X, y.ravel())
+        Y = random_forest.predict(X)
     else:
         raise Exception(f"Unimplemented black box for Auto MPG: '{blackbox}'")
-    mask = ~np.isnan(X[:, 2])
-    X = X[mask]
-    Y = Y[mask]
     if normalise:
         X[:, :-3] = StandardScaler().fit_transform(X[:, :-3])
         Y = StandardScaler().fit_transform(Y[:, None])[:, 0]
