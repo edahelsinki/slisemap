@@ -2,7 +2,7 @@
 
 SLISEMAP is a supervised dimensionality reduction method, that takes data, in the form of vectors, and predictions from a *black box* regression or classification model as input. SLISEMAP then simultaneously finds local explanations for all data items and builds a (typically) two-dimensional global visualisation of the black box model such that data items with similar local explanations are projected nearby. The explanations consists of *white box* models that locally approximate the *black box* model.
 
-SLISEMAP is implemented in *Python* using *PyTorch* for efficient optimisation, and optional GPU-acceleration. For more information see the [full paper](https://arxiv.org/abs/2201.04455), the [demo paper](https://github.com/edahelsinki/slisemap/blob/main/examples/demo_paper.pdf), the [demonstration video](https://youtu.be/xp4LTysr8PA) ([slides](https://github.com/edahelsinki/slisemap/blob/main/examples/slisemap_demo_paper.pptx)), the [examples directory](https://github.com/edahelsinki/slisemap/tree/master/examples), or the [documentation](https://edahelsinki.github.io/slisemap).
+SLISEMAP is implemented in *Python* using *PyTorch* for efficient optimisation, and optional GPU-acceleration. For more information see the [full paper](https://arxiv.org/abs/2201.04455), the [demo paper](https://github.com/edahelsinki/slisemap/blob/main/examples/demo_paper.pdf), the [demonstration video](https://youtu.be/xp4LTysr8PA) ([slides](https://github.com/edahelsinki/slisemap/blob/main/examples/slisemap_demo_paper.pptx)), the [examples](https://github.com/edahelsinki/slisemap/tree/main/examples), or the [documentation](https://edahelsinki.github.io/slisemap/slisemap.html).
 
 
 ## Citation
@@ -39,10 +39,10 @@ from slisemap import Slisemap
 
 X = np.array(...)
 y = np.array(...)
-sm = Slisemap(X, y, radius=3.5, lasso=0.001)
+sm = Slisemap(X, y, radius=3.5, lasso=0.01)
 sm.optimise()
-sm.plot(clusters=4, bars=5)
+sm.plot(clusters=5, bars=5)
 ```
 ![Example plot of the results from using SLISEMAP on the *Auto MPG* dataset](examples/autompg.webp)
 
-See the [examples directory](https://github.com/edahelsinki/slisemap/tree/master/examples) for more detailed examples, and the [documentation](https://edahelsinki.github.io/slisemap) for more detailed instructions.
+See the [examples](https://github.com/edahelsinki/slisemap/tree/main/examples) for more detailed examples, and the [documentation](https://edahelsinki.github.io/slisemap/slisemap.html) for more detailed instructions.
