@@ -24,7 +24,7 @@ def linear_regression(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
     """
     _assert_no_trace(
         lambda: X.shape[1] == B.shape[1],
-        "The B matrix has too many columns\n\
+        "The B matrix does not have the same number of columns as X.\n\
         Did you mean to use `multiple_linear_regression` \
         for a multidimensional Y?",
     )
