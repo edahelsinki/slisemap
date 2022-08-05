@@ -8,6 +8,7 @@ from warnings import warn
 
 import numpy as np
 import torch
+import warnings
 
 
 class SlisemapException(Exception):
@@ -23,6 +24,12 @@ class SlisemapWarning(Warning):
 def _assert(condition: bool, message: str):
     if not condition:
         raise SlisemapException(message)
+
+
+def _assert_no_trace(condition: Callable[[], bool], message: str):
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=torch.jit.TracerWarning)
+        _assert(condition(), message)
 
 
 def _warn(warning: str, method: Optional[Callable] = None):

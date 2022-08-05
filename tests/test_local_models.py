@@ -1,4 +1,6 @@
+import pytest
 from slisemap.local_models import *
+from slisemap.utils import SlisemapException
 
 from .utils import *
 
@@ -23,6 +25,8 @@ def test_linear_model():
     assert L.shape == (10, 10)
     L = linear_regression_loss(Y, Y)
     assert L.shape == (10,)
+    with pytest.raises(SlisemapException, match=r"multiple_linear_regression"):
+        linear_regression(X, B)
 
 
 def test_logistic_model():
