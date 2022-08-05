@@ -9,7 +9,7 @@ import numpy as np
 import torch
 from torch.nn.functional import softmax
 
-from slisemap.utils import _assert
+from slisemap.utils import _assert, _assert_no_trace
 
 
 def linear_regression(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
@@ -22,8 +22,8 @@ def linear_regression(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
     Returns:
         torch.Tensor: Prediction tensor [n_b, n_x, 1]
     """
-    _assert(
-        X.shape[1] == B.shape[1],
+    _assert_no_trace(
+        lambda: X.shape[1] == B.shape[1],
         "The B matrix has too many columns\n\
         Did you mean to use `multiple_linear_regression` \
         for a multidimensional Y?",
