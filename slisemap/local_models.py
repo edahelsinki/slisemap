@@ -22,6 +22,13 @@ def linear_regression(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
     Returns:
         torch.Tensor: Prediction tensor [n_b, n_x, 1]
     """
+    _assert(
+        X.shape[1] == B.shape[1],
+        "The B matrix has too many columns\n\
+        Did you mean to use `multiple_linear_regression` \
+        for a multidimensional Y?",
+    )
+
     return (B @ X.T)[:, :, None]
 
 
