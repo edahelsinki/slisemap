@@ -9,8 +9,8 @@ import torch
 from slisemap.utils import _warn
 
 
-def softmax_kernel(D: torch.Tensor) -> torch.Tensor:
-    """Kernel function based on softmax.
+def softmax_row_kernel(D: torch.Tensor) -> torch.Tensor:
+    """Kernel function that applies softmax on the rows.
 
     Args:
         D (torch.Tensor): Distance matrix.
@@ -18,7 +18,22 @@ def softmax_kernel(D: torch.Tensor) -> torch.Tensor:
     Returns:
         torch.Tensor: Weight matrix.
     """
-    return torch.softmax(-D, 1)
+    return torch.softmax(-D, 0)
+
+
+def softmax_column_kernel(D: torch.Tensor) -> torch.Tensor:
+    """Kernel function that applies softmax on the columns.
+
+    Args:
+        D (torch.Tensor): Distance matrix.
+
+    Returns:
+        torch.Tensor: Weight matrix.
+    """
+    return torch.softmax(-D, 0)
+
+
+softmax_kernel = softmax_row_kernel
 
 
 def make_loss(

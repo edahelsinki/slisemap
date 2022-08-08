@@ -27,8 +27,8 @@ def linear_regression(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
         "The B matrix does not have the same number of columns as X.\n\
         Did you mean to use `multiple_linear_regression` \
         for a multidimensional Y?",
+        linear_regression,
     )
-
     return (B @ X.T)[:, :, None]
 
 
@@ -139,6 +139,7 @@ def logistic_regression_coefficients(
     _assert(
         len(Y.shape) > 1 and Y.shape[1] > 1,
         "Logistic regression requires Y:s with multiple classes",
+        logistic_regression_coefficients,
     )
     return (X.shape[1] + intercept) * (Y.shape[1] - 1)
 

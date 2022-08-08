@@ -58,6 +58,7 @@ def escape_neighbourhood(
         _assert(
             K.shape[0] == K.shape[1],
             "force_move only works if (X, Y) corresponds to (B, Z)",
+            escape_neighbourhood,
         )
         K.fill_diagonal_(np.inf)
     index = torch.argmin(K, 0)
@@ -101,6 +102,7 @@ def escape_greedy(
         _assert(
             L.shape[0] == L.shape[1],
             "force_move only works if (X, Y) corresponds to (B, Z)",
+            escape_greedy,
         )
         L.fill_diagonal_(np.inf)
     index = torch.argmin(L, 0)
@@ -153,6 +155,7 @@ def escape_combined(
         _assert(
             K.shape[0] == K.shape[1],
             "force_move only works if (X, Y) corresponds to (B, Z)",
+            escape_combined,
         )
         K.fill_diagonal_(np.inf)
     index = torch.argmin(K, 0)
@@ -202,10 +205,12 @@ def escape_marginal(
     _assert(
         not force_move or X.shape[0] == Z.shape[0],
         "force_move only works if (X, Y) corresponds to (B, Z)",
+        escape_marginal,
     )
     _assert(
         Xold is not None or X.shape[0] == Z.shape[0],
         "(Xold Yold) is required if (X, Y) does not correspond to (B, Z)",
+        escape_marginal,
     )
     if radius > 0:
         Z2 = Z * (radius / (torch.sqrt(torch.sum(Z**2) / Z.shape[0]) + 1e-8))

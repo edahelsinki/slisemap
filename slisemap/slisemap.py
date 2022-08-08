@@ -152,6 +152,7 @@ class Slisemap:
         _assert(
             self._Y.shape[0] == n,
             f"The length of y must match X: {self._Y.shape[0]} != {n}",
+            Slisemap,
         )
         if len(self._Y.shape) == 1:
             self._Y = self._Y[:, None]
@@ -170,6 +171,7 @@ class Slisemap:
             _assert(
                 self._Z0.shape == (n, d),
                 f"Z0 has the wrong shape: {self._Z0.shape} != ({n}, {d})",
+                Slisemap,
             )
         if radius > 0:
             norm = 1 / (torch.sqrt(torch.sum(self._Z0**2) / self._Z0.shape[0]) + 1e-8)
@@ -200,11 +202,14 @@ class Slisemap:
         else:
             self._B0 = torch.as_tensor(B0, **tensorargs)
             if coefficients is None:
-                _assert(len(B0.shape) > 1, "B0 must have more than one dimension")
+                _assert(
+                    len(B0.shape) > 1, "B0 must have more than one dimension", Slisemap
+                )
                 coefficients = B0.shape[1]
             _assert(
                 self._B0.shape == (n, coefficients),
                 f"B0 has the wrong shape: {self._B0.shape} != ({n}, {coefficients})",
+                Slisemap,
             )
         self._B = self._B0.detach().clone()
 
@@ -236,7 +241,9 @@ class Slisemap:
 
     @d.setter
     def d(self, value: int):
-        _assert(value > 0, "The number of embedding dimensions must be positive")
+        _assert(
+            value > 0, "The number of embedding dimensions must be positive", Slisemap.d
+        )
         if self.d != value:
             self._loss = None  # invalidate cached loss function
             self._Z = self._Z.detach()
@@ -263,7 +270,7 @@ class Slisemap:
 
     @radius.setter
     def radius(self, value: float):
-        _assert(value >= 0, "radius must not be negative")
+        _assert(value >= 0, "radius must not be negative", Slisemap.radius)
         self._radius = value
         self._loss = None  # invalidate cached loss function
 
@@ -274,7 +281,7 @@ class Slisemap:
 
     @lasso.setter
     def lasso(self, value: float):
-        _assert(value >= 0, "lasso must not be negative")
+        _assert(value >= 0, "lasso must not be negative", Slisemap.lasso)
         self._lasso = value
         self._loss = None  # invalidate cached loss function
 
@@ -285,7 +292,7 @@ class Slisemap:
 
     @ridge.setter
     def ridge(self, value: float):
-        _assert(value >= 0, "ridge must not be negative")
+        _assert(value >= 0, "ridge must not be negative", Slisemap.ridge)
         self._ridge = value
         self._loss = None  # invalidate cached loss function
 
@@ -296,7 +303,7 @@ class Slisemap:
 
     @z_norm.setter
     def z_norm(self, value: float):
-        _assert(value >= 0, "z_norm must not be negative")
+        _assert(value >= 0, "z_norm must not be negative", Slisemap.z_norm)
         self._z_norm = value
         self._loss = None  # invalidate cached loss function
 
@@ -307,7 +314,7 @@ class Slisemap:
 
     @local_model.setter
     def local_model(self, value: Callable[[torch.Tensor, torch.Tensor], torch.Tensor]):
-        _assert(callable(value), "local_model must be callable")
+        _assert(callable(value), "local_model must be callable", Slisemap.local_model)
         self._local_model = value
         self._loss = None  # invalidate cached loss function
 
@@ -322,7 +329,7 @@ class Slisemap:
     def local_loss(
         self, value: Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor]
     ):
-        _assert(callable(value), "local_loss must be callable")
+        _assert(callable(value), "local_loss must be callable", Slisemap.local_loss)
         self._local_loss = value
         self._loss = None  # invalidate cached loss function
 
@@ -333,7 +340,7 @@ class Slisemap:
 
     @distance.setter
     def distance(self, value: Callable[[torch.Tensor, torch.Tensor], torch.Tensor]):
-        _assert(callable(value), "distance must be callable")
+        _assert(callable(value), "distance must be callable", Slisemap.distance)
         self._distance = value
         self._loss = None  # invalidate cached loss function
 
@@ -344,7 +351,7 @@ class Slisemap:
 
     @kernel.setter
     def kernel(self, value: Callable[[torch.Tensor], torch.Tensor]):
-        _assert(callable(value), "kernel must be callable")
+        _assert(callable(value), "kernel must be callable", Slisemap.kernel)
         self._kernel = value
         self._loss = None  # invalidate cached loss function
 
@@ -442,7 +449,7 @@ class Slisemap:
     ) -> Callable[
         [torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor
     ]:
-        """Returns the slisemap loss function.
+        """Returns the Slisemap loss function.
         This function JITs and caches the loss function for efficiency.
 
         Args:
@@ -494,6 +501,7 @@ class Slisemap:
         _assert(
             X.shape[1] == self.m,
             f"X has the wrong shape {X.shape[1]} != {self.m}",
+            Slisemap._as_new_X,
         )
         return X
 
@@ -509,6 +517,7 @@ class Slisemap:
         _assert(
             Y.shape == (n, self.p),
             f"Y has the wrong shape {Y.shape} != {(n, self.p)}",
+            Slisemap._as_new_Y,
         )
         return Y
 
@@ -950,12 +959,14 @@ class Slisemap:
         _assert(
             Xnew.shape == (N, self.m),
             f"Xnew has the wrong shape {Xnew.shape} != {(N, self.m)}",
+            Slisemap.predict,
         )
         Znew = torch.as_tensor(Znew, **self.tensorargs)
         Znew = torch.atleast_2d(Znew)
         _assert(
             Znew.shape == (N, self.d),
             f"Znew has the wrong shape {Znew.shape} != {(N, self.d)}",
+            Slisemap.predict,
         )
         D = self._distance(Znew, self._Z)
         W = self.kernel(D)
@@ -1126,6 +1137,7 @@ class Slisemap:
             _assert(
                 len(variables) == B.shape[1],
                 f"The number of variable names ({len(variables)}) must match the number of coefficients ({B.shape[1]})",
+                Slisemap.plot,
             )
         if isinstance(clusters, int):
             clusters, centers = self.get_model_clusters(clusters, B)
@@ -1152,7 +1164,11 @@ class Slisemap:
                 B = centers
         else:
             B = B[np.argsort(Z[:, 0])]
-            _assert(not bars, "`bar!=False` requires that `clusters` is an integer")
+            _assert(
+                not bars,
+                "`bar!=False` requires that `clusters` is an integer",
+                Slisemap.plot,
+            )
         if clusters is None:
             if Z.shape[0] == self.Z.shape[0]:
                 L = tonp(torch.diagonal(self.get_L(numpy=False))).ravel()
@@ -1240,7 +1256,9 @@ class Slisemap:
             Z = np.random.normal(Z, jitter)
         if index is None:
             _assert(
-                X is not None and Y is not None, "Either index or X and Y must be given"
+                X is not None and Y is not None,
+                "Either index or X and Y must be given",
+                Slisemap.plot_position,
             )
             L = self.get_L(X, Y)
         else:

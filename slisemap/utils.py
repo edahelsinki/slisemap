@@ -2,13 +2,12 @@
 This module contains various useful functions.
 """
 
+import warnings
 from timeit import default_timer as timer
 from typing import Any, Callable, Dict, Iterator, List, Optional, Sequence, Union
-from warnings import warn
 
 import numpy as np
 import torch
-import warnings
 
 
 class SlisemapException(Exception):
@@ -21,22 +20,27 @@ class SlisemapWarning(Warning):
     pass
 
 
-def _assert(condition: bool, message: str):
+def _assert(condition: bool, message: str, method: Optional[Callable] = None):
     if not condition:
-        raise SlisemapException(message)
+        if method is None:
+            raise SlisemapException(f"AssertionError: {message}")
+        else:
+            raise SlisemapException(f"AssertionError, {method.__qualname__}: {message}")
 
 
-def _assert_no_trace(condition: Callable[[], bool], message: str):
+def _assert_no_trace(
+    condition: Callable[[], bool], message: str, method: Optional[Callable] = None
+):
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=torch.jit.TracerWarning)
-        _assert(condition(), message)
+        _assert(condition(), message, method)
 
 
 def _warn(warning: str, method: Optional[Callable] = None):
     if method is None:
-        warn(warning, SlisemapWarning, 2)
+        warnings.warn(warning, SlisemapWarning, 2)
     else:
-        warn(f"{method.__qualname__}: {warning}", SlisemapWarning, 2)
+        warnings.warn(f"{method.__qualname__}: {warning}", SlisemapWarning, 2)
 
 
 def tonp(x: torch.Tensor) -> np.ndarray:
