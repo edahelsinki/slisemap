@@ -504,20 +504,23 @@ class Slisemap:
             X = torch.cat([X, torch.ones((X.shape[0], 1), **tensorargs)], 1)
         _assert(
             X.shape[1] == self.m,
-            f"X has the wrong shape {X.shape[1]} != {self.m}",
+            f"X has the wrong shape {X.shape} != {(X.shape[0], self.m)}",
             Slisemap._as_new_X,
         )
         return X
 
     def _as_new_Y(
-        self, Y: Union[None, float, np.ndarray, torch.Tensor] = None, n: int = -1
+        self,
+        Y: Union[None, float, np.ndarray, torch.Tensor] = None,
+        n: Optional[int] = None,
     ) -> torch.Tensor:
         if Y is None:
             return self._Y
         Y = torch.as_tensor(Y, **self.tensorargs)
         if len(Y.shape) < 2:
-            Y = torch.reshape(Y, (n, self.p))
-        n = Y.shape[0]
+            Y = torch.reshape(Y, (-1, self.p))
+        if n is None:
+            n = Y.shape[0]
         _assert(
             Y.shape == (n, self.p),
             f"Y has the wrong shape {Y.shape} != {(n, self.p)}",
