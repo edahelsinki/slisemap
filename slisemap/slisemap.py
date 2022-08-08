@@ -114,8 +114,9 @@ class Slisemap:
     ):
         if lasso is None and ridge is None:
             _warn(
-                "Consider using regularisation (lasso/l1 and ridge/l2 regularisation is built-in, via the parameters ``lasso`` and ``ridge``). "
+                "Consider using regularisation!\n"
                 + "Regularisation is important for handling small neighbourhoods, and also makes the local models more local. "
+                + "Lasso (l1) and ridge (l2) regularisation is built-in, via the parameters ``lasso`` and ``ridge``. "
                 + "Set ``lasso=0`` to disable this warning (if no regularisation is really desired).",
                 Slisemap,
             )
@@ -647,7 +648,7 @@ class Slisemap:
             individual (bool, optional): Give loss individual loss values for the data points. Defaults to False.
 
         Returns:
-            Union[float, np.ndarray]: loss value(s).
+            Union[float, np.ndarray, torch.Tensor]: loss value(s).
         """
         loss = self.get_loss_fn(individual)
         loss = loss(X=self._X, Y=self._Y, B=self._B, Z=self._Z)
