@@ -18,7 +18,7 @@ def softmax_row_kernel(D: torch.Tensor) -> torch.Tensor:
     Returns:
         torch.Tensor: Weight matrix.
     """
-    return torch.softmax(-D, 0)
+    return torch.softmax(-D, 1)
 
 
 def softmax_column_kernel(D: torch.Tensor) -> torch.Tensor:
