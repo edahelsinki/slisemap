@@ -445,7 +445,7 @@ class Slisemap:
         self.random_state = self._rs0
         self._loss = None  # invalidate cached loss function
 
-    def get_loss_fn(
+    def _get_loss_fn(
         self, individual: bool = False
     ) -> Callable[
         [torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor
@@ -489,6 +489,9 @@ class Slisemap:
                     self._loss, (self._X[:1], self._Y[:1], self._B[:1], self._Z[:1])
                 )
         return self._loss
+
+    # Add a deprecation warning sometime in the future
+    get_loss_fn = _get_loss_fn
 
     def _as_new_X(
         self, X: Union[None, np.ndarray, torch.Tensor] = None
@@ -650,7 +653,7 @@ class Slisemap:
         Returns:
             Union[float, np.ndarray, torch.Tensor]: loss value(s).
         """
-        loss = self.get_loss_fn(individual)
+        loss = self._get_loss_fn(individual)
         loss = loss(X=self._X, Y=self._Y, B=self._B, Z=self._Z)
         if individual:
             return tonp(loss) if numpy else loss.detach()
@@ -692,7 +695,7 @@ class Slisemap:
         Z = self._Z.detach().clone().requires_grad_(True)
         B = self._B.detach().clone().requires_grad_(True)
 
-        loss_ = self.get_loss_fn()
+        loss_ = self._get_loss_fn()
         loss_fn = lambda: loss_(self._X, self._Y, B, Z)
         pre_loss = loss_fn().cpu().detach().item()
         LBFGS(loss_fn, [B] if only_B else [Z, B], max_iter=max_iter, **kwargs)
@@ -909,7 +912,7 @@ class Slisemap:
         if loss:
             if verbose:
                 print("Calculating individual losses")
-            lf = self.get_loss_fn(individual=True)
+            lf = self._get_loss_fn(individual=True)
             if between:
                 loss = lf(
                     X=torch.cat((self.X, Xnew), 0),

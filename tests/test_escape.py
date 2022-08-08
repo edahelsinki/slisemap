@@ -59,7 +59,7 @@ def test_escape_internal():
     # This asserts that that happens less than 20% of the time:
     assert torch.sum(torch.sum(torch.abs(Z2 - Z4), 1) < 1e-4) >= 0.8 * sm.n
     assert torch.sum(torch.sum(torch.abs(B2 - B4), 1) < 1e-4) >= 0.8 * sm.n
-    loss = sm.get_loss_fn()
+    loss = sm._get_loss_fn()
     l1 = loss(sm.X, sm.Y, sm.B, sm.Z)
     l2 = loss(sm.X, sm.Y, B2, Z2)
     l4 = loss(sm.X, sm.Y, B4, Z4)

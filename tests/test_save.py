@@ -24,7 +24,7 @@ def test_save_load(tmp_path):
 def test_anonymous_function_fail(tmp_path):
     sm = get_slisemap(30, 4)
     sm.kernel = lambda x: x
-    sm.get_loss_fn()
+    sm._get_loss_fn()
     try:
         sm.save(tmp_path / "tmp.sm")
     except:
