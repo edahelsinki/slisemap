@@ -541,22 +541,14 @@ class Slisemap:
         Returns:
             Union[np.ndarray, torch.Tensor]: The Z matrix
         """
-        if scale:
-            if self.radius > 0:
-                Zss = torch.sum(self._Z**2)
-                Z = self._Z * (
-                    self.radius / (torch.sqrt(Zss / self._Z.shape[0]) + 1e-8)
-                )
-            else:
-                Z = self._Z - self._Z.mean(dim=0, keepdim=True)
+        self._normalise()
+        if scale and self.radius > 0:
+            Z = self._Z * self.radius
         else:
             Z = self._Z
         if rotate:
             Z = Z @ PCA_rotation(Z)
-        if numpy:
-            return Z.cpu().detach().numpy()
-        else:
-            return Z.detach().clone()
+        return tonp(Z) if numpy else Z
 
     def get_B(self, numpy: bool = True) -> Union[np.ndarray, torch.Tensor]:
         """Get the B matrix
@@ -567,7 +559,7 @@ class Slisemap:
         Returns:
             Union[np.ndarray, torch.Tensor]: The B matrix
         """
-        return tonp(self._B) if numpy else self._B.detach().clone()
+        return tonp(self._B) if numpy else self._B
 
     def get_D(self, numpy: bool = True) -> Union[np.ndarray, torch.Tensor]:
         """Get the embedding distance matrix
@@ -580,7 +572,7 @@ class Slisemap:
         """
         Z = self.get_Z(rotate=False, numpy=False)
         D = self._distance(Z, Z)
-        return tonp(D) if numpy else D.detach()
+        return tonp(D) if numpy else D
 
     def get_L(
         self,
@@ -601,7 +593,7 @@ class Slisemap:
         X = self._as_new_X(X)
         Y = self._as_new_Y(Y, X.shape[0])
         L = self.local_loss(self.local_model(X, self._B), Y, self._B)
-        return tonp(L) if numpy else L.detach()
+        return tonp(L) if numpy else L
 
     def get_W(self, numpy: bool = True) -> Union[np.ndarray, torch.Tensor]:
         """Get the weight matrix
@@ -613,7 +605,7 @@ class Slisemap:
             Union[np.ndarray, torch.Tensor]: The W matrix
         """
         W = self.kernel(self.get_D(numpy=False))
-        return tonp(W) if numpy else W.detach()
+        return tonp(W) if numpy else W
 
     def get_X(
         self, numpy: bool = True, intercept: bool = True
@@ -628,7 +620,7 @@ class Slisemap:
             Union[np.ndarray, torch.Tensor]: The X matrix
         """
         X = self._X if intercept or not self._intercept else self._X[:, :-1]
-        return tonp(X) if numpy else X.detach().clone()
+        return tonp(X) if numpy else X
 
     def get_Y(
         self, numpy: bool = True, ravel: bool = False
@@ -643,7 +635,7 @@ class Slisemap:
             Union[np.ndarray, torch.Tensor]: The Y matrix
         """
         Y = self._Y.ravel() if ravel else self._Y
-        return tonp(Y) if numpy else Y.detach().clone()
+        return tonp(Y) if numpy else Y
 
     def value(
         self, individual: bool = False, numpy: bool = True
@@ -659,9 +651,9 @@ class Slisemap:
         loss = self._get_loss_fn(individual)
         loss = loss(X=self._X, Y=self._Y, B=self._B, Z=self._Z)
         if individual:
-            return tonp(loss) if numpy else loss.detach()
+            return tonp(loss) if numpy else loss
         else:
-            return loss.cpu().detach().item() if numpy else loss.detach()
+            return loss.cpu().item() if numpy else loss
 
     def entropy(
         self, aggregate: bool = True, numpy: bool = True
@@ -678,10 +670,10 @@ class Slisemap:
         W = self.get_W(False)
         entropy = -(W * W.log()).sum(dim=1)
         if aggregate:
-            entropy = (entropy.mean().exp() / self.n).detach()
+            entropy = entropy.mean().exp() / self.n
             return entropy.cpu().item() if numpy else entropy
         else:
-            return tonp(entropy) if numpy else entropy.detach()
+            return tonp(entropy) if numpy else entropy
 
     def lbfgs(self, max_iter: int = 500, *, only_B: bool = False, **kwargs) -> float:
 
@@ -714,15 +706,17 @@ class Slisemap:
             Z = self._Z.detach().requires_grad_(True)
             B = self._B.detach().requires_grad_(True)
             LBFGS(loss_fn, [B] if only_B else [Z, B], max_iter=1, **kwargs)
+            post_loss = loss_fn().cpu().detach().item()
         elif pre_loss <= post_loss:
             Z = self._Z
             B = self._B
+            post_loss = pre_loss
 
         self._Z = Z.detach()
         self._B = B.detach()
         self._normalise()
 
-        return self.value()
+        return post_loss
 
     def escape(
         self,
