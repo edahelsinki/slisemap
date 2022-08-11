@@ -500,7 +500,7 @@ class Slisemap:
             return self._X
         tensorargs = self.tensorargs
         X = torch.atleast_2d(torch.as_tensor(X, **tensorargs))
-        if self._intercept:
+        if self._intercept and X.shape[1] == self.m - 1:
             X = torch.cat([X, torch.ones((X.shape[0], 1), **tensorargs)], 1)
         _assert(
             X.shape[1] == self.m,
@@ -534,7 +534,7 @@ class Slisemap:
         """Get the Z matrix
 
         Args:
-            scaled (bool, optional): Scale the returned Z to match self.radius. Defaults to True.
+            scale (bool, optional): Scale the returned Z to match self.radius. Defaults to True.
             rotate (bool, optional): Rotate the returned Z so that the first dimension is the major axis. Defaults to False.
             numpy (bool, optional): Return the matrix as a numpy (True) or pytorch (False) matrix. Defaults to True.
 
@@ -570,7 +570,7 @@ class Slisemap:
         Returns:
             Union[np.ndarray, torch.Tensor]: The D matrix
         """
-        Z = self.get_Z(rotate=False, numpy=False)
+        Z = self.get_Z(rotate=False, scale=True, numpy=False)
         D = self._distance(Z, Z)
         return tonp(D) if numpy else D
 
