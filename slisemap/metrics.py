@@ -587,6 +587,7 @@ def accuracy(
     sm: Slisemap,
     X: Optional[np.ndarray] = None,
     Y: Optional[np.ndarray] = None,
+    fidelity: bool = False,
     **kwargs,
 ) -> float:
     """Evaluate a SLISEMAP solution by checking how well the fitted models work on new points
@@ -595,6 +596,7 @@ def accuracy(
         sm (Slisemap): Trained Slisemap solution.
         X (Optional[np.ndarray], optional): New data matrix (uses the training data if None). Defaults to None.
         Y (Optional[np.ndarray], optional): New target matrix (uses the training data if None). Defaults to None.
+        fidelity (bool, optional): Return the mean fidelity instead of mean loss. Defaults to False.
         **kwargs: Optional keyword arguments to Slisemap.fit_new.
 
     Returns:
@@ -603,5 +605,12 @@ def accuracy(
     if X is None or Y is None:
         X = sm.get_X(intercept=False, numpy=False)
         Y = sm.get_Y(numpy=False)
-    B, Z, loss = sm.fit_new(X, Y, loss=True, **kwargs)
-    return loss.mean()
+    if not fidelity:
+        _, _, loss = sm.fit_new(X, Y, loss=True, **kwargs)
+        return loss.mean()
+    else:
+        B, _ = sm.fit_new(X, Y, loss=False, **kwargs)
+        X = sm._as_new_X(X)
+        Y = sm._as_new_Y(Y, X.shape[0])
+        B = torch.as_tensor(B, **sm.tensorargs)
+        return sm.local_loss(sm.local_model(X, B), Y, B).diag().mean().cpu().item()
