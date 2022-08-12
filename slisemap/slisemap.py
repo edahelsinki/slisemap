@@ -758,7 +758,9 @@ class Slisemap:
     def _normalise(self):
         """Normalise Z."""
         if self.radius > 0:
-            self._Z *= 1 / (torch.sqrt(torch.sum(self._Z**2) / self.n) + 1e-8)
+            scale = torch.sqrt(torch.sum(self._Z**2) / self.n)
+            if not torch.allclose(scale, torch.ones_like(scale)):
+                self._Z *= 1 / (scale + 1e-8)
 
     def optimise(
         self,

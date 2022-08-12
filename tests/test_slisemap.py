@@ -145,7 +145,7 @@ def test_get():
     assert torch.allclose(
         torch.sqrt(torch.sum(Z**2) / sm.n) / sm.radius, torch.ones(1)
     )
-    assert torch.allclose(sm.get_D(numpy=False), torch.cdist(Z, Z))
+    assert torch.allclose(sm.get_D(numpy=False), torch.cdist(Z, Z), 1e-4, 1e-6)
     assert torch.allclose(sm.get_W(numpy=False), sm.kernel(torch.cdist(Z, Z)))
     assert sm.get_X(intercept=False).shape[1] == sm.m - 1
     assert np.allclose(sm.value(True), np.sum(sm.get_L() * sm.get_W(), 1))
