@@ -302,3 +302,24 @@ def dict_concat(
     for d in dicts:
         dict_append(df, d)
     return df
+
+
+def _expand_variable_names(
+    variables: Sequence[str],
+    intercept: bool,
+    columns: int,
+    targets: Union[None, str, Sequence[str]],
+    coefficients: int,
+) -> List[str]:
+    if intercept and len(variables) == columns - 1:
+        variables = list(variables) + ["Intercept"]
+    if targets and not isinstance(targets, str) and len(targets) > 0:
+        if coefficients % len(variables) == 0 and coefficients % len(targets) == 0:
+            variables = [f"{t}: {v}" for t in targets for v in variables]
+            variables = variables[:coefficients]
+    _assert(
+        len(variables) == coefficients,
+        f"The number of variable names ({len(variables)}) must match the number of coefficients ({coefficients})",
+        _expand_variable_names,
+    )
+    return variables

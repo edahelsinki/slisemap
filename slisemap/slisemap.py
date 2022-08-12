@@ -27,6 +27,7 @@ from slisemap.utils import (
     dict_concat,
     global_model,
     tonp,
+    _expand_variable_names,
 )
 
 
@@ -55,10 +56,11 @@ class Slisemap:
         kernel (Callable[[torch.Tensor], torch.Tensor], optional): Kernel function. Defaults to ``softmax_kernel``.
         B0 (Union[None, np.ndarray, torch.Tensor], optional): Initial value for B (random if None). Defaults to None.
         Z0 (Union[None, np.ndarray, torch.Tensor], optional): Initial value for Z (PCA if None). Defaults to None.
-        dtype (torch.dtype, optional): Floating type. Defaults to ``torch.float32``.
         jit (bool, optional): Just-In-Time compile the loss function for increased performance (see ``torch.jit.trace`` for caveats). Defaults to True.
         random_state (Optional[int], optional): Set an explicit seed for the random number generator (i.e. ``torch.manual_seed``). Defaults to None.
-        cuda (Optional[bool], optional): Use cuda if available (defaults to true if the data is large enough). Defaults to None.
+        dtype (torch.dtype, optional): Floating type. Defaults to ``torch.float32``.
+        device (Optional[torch.device], optional): Torch device (see ``cuda`` if None). Defaults to None.
+        cuda (Optional[bool], optional): Use cuda if available. Defaults to True, if the data is large enough.
     """
 
     # Make Python faster and safer by not creating a Slisemap.__dict__
@@ -107,9 +109,10 @@ class Slisemap:
         kernel: Callable[[torch.Tensor], torch.Tensor] = softmax_kernel,
         B0: Union[None, np.ndarray, torch.Tensor] = None,
         Z0: Union[None, np.ndarray, torch.Tensor] = None,
-        dtype: torch.dtype = torch.float32,
         jit: bool = True,
         random_state: Optional[int] = None,
+        dtype: torch.dtype = torch.float32,
+        device: Optional[torch.device] = None,
         cuda: Optional[bool] = None,
     ):
         if lasso is None and ridge is None:
@@ -132,15 +135,16 @@ class Slisemap:
         self._jit = jit
         self._rs0 = random_state
 
-        if cuda is None:
-            scale = (
-                X.shape[0] ** 2 * X.shape[1] * (1 if len(y.shape) < 2 else y.shape[1])
-            )
-            cuda = scale > 1_000_000 and torch.cuda.is_available()
-        tensorargs = {
-            "device": torch.device("cuda" if cuda else "cpu"),
-            "dtype": dtype,
-        }
+        if device is None:
+            if cuda is None and isinstance(X, torch.Tensor):
+                device = X.device
+            else:
+                if cuda is None:
+                    scale = X.shape[0] ** 2 * X.shape[1]
+                    scale *= 1 if len(y.shape) < 2 else y.shape[1]
+                    cuda = scale > 1_000_000 and torch.cuda.is_available()
+                device = torch.device("cuda" if cuda else "cpu")
+        tensorargs = {"device": device, "dtype": dtype}
 
         self._X = torch.as_tensor(X, **tensorargs)
         if intercept:
@@ -1070,9 +1074,8 @@ class Slisemap:
         Returns:
             Tuple[np.ndarray, np.ndarray]: vector of cluster labels an matrix of cluster centers.
         """
-        km = KMeans(clusters, random_state=random_state).fit(
-            B if B is not None else self.get_B()
-        )
+        B = B if B is not None else self.get_B()
+        km = KMeans(clusters, random_state=random_state).fit(B)
         # Sort according to value for the most influential coefficient
         influence = (
             km.cluster_centers_.var(0)
@@ -1129,16 +1132,8 @@ class Slisemap:
         kwargs.setdefault("figsize", (12, 6))
         fig, (ax1, ax2) = plt.subplots(1, 2, **kwargs)
         if variables is not None:
-            if self._intercept and len(variables) == self.m - 1:
-                variables = list(variables) + ["Intercept"]
-            if targets and not isinstance(targets, str) and len(targets) > 0:
-                if B.shape[1] % len(variables) == 0 and B.shape[1] % len(targets) == 0:
-                    variables = [f"{t}: {v}" for t in targets for v in variables]
-                    variables = variables[: B.shape[1]]
-            _assert(
-                len(variables) == B.shape[1],
-                f"The number of variable names ({len(variables)}) must match the number of coefficients ({B.shape[1]})",
-                Slisemap.plot,
+            variables = _expand_variable_names(
+                variables, self.intercept, self.m, targets, self.coefficients
             )
         if isinstance(clusters, int):
             clusters, centers = self.get_model_clusters(clusters, B)
