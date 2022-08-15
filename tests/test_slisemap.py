@@ -138,7 +138,7 @@ def test_predict():
 
 
 def test_get():
-    sm = get_slisemap(40, 5, intercept=True, lasso=0, ridge=0)
+    sm = get_slisemap(40, 5, intercept=True, lasso=0, ridge=0, z_norm=0)
     assert torch.allclose(sm.Z, sm.get_Z(False, False, False))
     assert torch.allclose(torch.sqrt(torch.sum(sm.Z**2) / sm.n), torch.ones(1))
     Z = sm.get_Z(numpy=False)
@@ -148,12 +148,12 @@ def test_get():
     assert torch.allclose(sm.get_D(numpy=False), torch.cdist(Z, Z), 1e-4, 1e-6)
     assert torch.allclose(sm.get_W(numpy=False), sm.kernel(torch.cdist(Z, Z)))
     assert sm.get_X(intercept=False).shape[1] == sm.m - 1
-    assert np.allclose(sm.value(True), np.sum(sm.get_L() * sm.get_W(), 1))
-    sm.get_Y(False, True)
-    sm.get_Y(False, False)
-    sm.get_X(False, False)
-    sm.get_X(False, True)
-    sm.get_B(False)
+    assert np.allclose(sm.value(True), np.sum(sm.get_L() * sm.get_W(), 1), 1e-4, 1e-6)
+    assert sm.get_Y(False, True).shape == (40,)
+    assert sm.get_Y(False, False).shape == (40, 1)
+    assert sm.get_X(False, False).shape == (40, 5)
+    assert sm.get_X(False, True).shape == (40, 6)
+    assert sm.get_B(False).shape == (40, 6)
     assert torch.allclose(
         sm.get_L(numpy=False), sm.get_L(X=sm._X[:, :-1], Y=sm._Y, numpy=False)
     )
