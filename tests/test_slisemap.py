@@ -148,7 +148,9 @@ def test_get():
     assert torch.allclose(sm.get_D(numpy=False), torch.cdist(Z, Z), 1e-4, 1e-6)
     assert torch.allclose(sm.get_W(numpy=False), sm.kernel(torch.cdist(Z, Z)))
     assert sm.get_X(intercept=False).shape[1] == sm.m - 1
-    assert np.allclose(sm.value(True), np.sum(sm.get_L() * sm.get_W(), 1), 1e-4, 1e-6)
+    L = sm.get_L(numpy=False)
+    W = sm.get_W(numpy=False)
+    assert np.allclose(sm.value(True), tonp(torch.sum(L * W, 1)), 1e-4, 1e-6)
     assert sm.get_Y(False, True).shape == (40,)
     assert sm.get_Y(False, False).shape == (40, 1)
     assert sm.get_X(False, False).shape == (40, 5)
