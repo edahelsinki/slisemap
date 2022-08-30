@@ -10,19 +10,18 @@ items with similar local explanations are projected nearby. The explanations con
 "white box" models that locally approximate the "black box" model.
 
 SLISEMAP uses *PyTorch* for efficient optimisation, and optional GPU-acceleration. For
-more information see the the `repository <https://github.com/edahelsinki/slisemap>`_ or
-the `paper <https://arxiv.org/abs/2201.04455>`_.
+more information see the the [repository](https://github.com/edahelsinki/slisemap) or
+the [paper](https://arxiv.org/abs/2201.04455).
 
 Citation
 --------
-| Björklund, A., Mäkelä, J. & Puolamäki, K. (2022).  
-| SLISEMAP: Supervised dimensionality reduction through local explanations.  
-| arXiv:2201.04455 [cs], https://arxiv.org/abs/2201.04455.  
+> Björklund, A., Mäkelä, J. & Puolamäki, K. (2022).  
+> SLISEMAP: Supervised dimensionality reduction through local explanations.  
+> arXiv:2201.04455 [cs], https://arxiv.org/abs/2201.04455.  
 
 
 Example Usage
 -------------
-.. code-block:: python
 
     from slisemap import Slisemap
     import numpy as np

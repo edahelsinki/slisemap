@@ -20,11 +20,11 @@ def linear_regression(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
         B (torch.Tensor): Coefficient Matrix [n_b, m].
 
     Returns:
-        torch.Tensor: Prediction tensor [n_b, n_x, 1]
+        (torch.Tensor): Prediction tensor [n_b, n_x, 1]
     """
     _assert_no_trace(
         lambda: X.shape[1] == B.shape[1],
-        "The B matrix does not have the same number of columns as X.\n\tDid you mean to use ``multiple_linear_regression`` for a multidimensional Y?",
+        "The B matrix does not have the same number of columns as X.\n\tDid you mean to use `multiple_linear_regression` for a multidimensional Y?",
         linear_regression,
     )
     return (B @ X.T)[:, :, None]
@@ -38,7 +38,7 @@ def multiple_linear_regression(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor
         B (torch.Tensor): Coefficient Matrix [n_b, m*p].
 
     Returns:
-        torch.Tensor: Prediction tensor [n_b, n_x, p]
+        (torch.Tensor): Prediction tensor [n_b, n_x, p]
     """
     n_x, m = X.shape
     n_b, o = B.shape
@@ -60,7 +60,7 @@ def linear_regression_loss(
         B (Optional[torch.Tensor], optional): Coefficient matrix (not used, the regularisation is part of Slisemap). Defaults to None.
 
     Returns:
-        torch.Tensor: Loss values [n_b, n_x].
+        (torch.Tensor): Loss values [n_b, n_x].
     """
     return ((Ytilde - Y.expand(Ytilde.shape)) ** 2).sum(dim=-1)
 
@@ -78,7 +78,7 @@ def linear_regression_coefficients(
         intercept (bool, optional): Add an (additional) intercept to X. Defaults to False.
 
     Returns:
-        int: Number of coefficients (columns of B).
+        (int): Number of coefficients (columns of B).
     """
     return (X.shape[1] + intercept) * (1 if len(Y.shape) < 2 else Y.shape[1])
 
@@ -92,7 +92,7 @@ def logistic_regression(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
         B (torch.Tensor): Coefficient Matrix [n_b, m*(p-1)].
 
     Returns:
-        torch.Tensor: Prediction tensor [n_b, n_x, p]
+        (torch.Tensor): Prediction tensor [n_b, n_x, p]
     """
     n_x, m = X.shape
     n_b, o = B.shape
@@ -114,7 +114,7 @@ def logistic_regression_loss(
         B (Optional[torch.Tensor], optional): Coefficient matrix (not used, the regularisation is part of Slisemap). Defaults to None.
 
     Returns:
-        torch.Tensor: Loss values [n_b, n_x].
+        (torch.Tensor): Loss values [n_b, n_x].
     """
     return ((Ytilde.sqrt() - Y.sqrt().expand(Ytilde.shape)) ** 2).sum(dim=-1) * 0.5
 
@@ -132,7 +132,7 @@ def logistic_regression_coefficients(
         intercept (bool, optional): Add an (additional) intercept to X. Defaults to False.
 
     Returns:
-        int: Number of coefficients (columns of B).
+        (int): Number of coefficients (columns of B).
     """
     _assert(
         len(Y.shape) > 1 and Y.shape[1] > 1,
@@ -151,7 +151,7 @@ def logistic_regression_log(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
         B (torch.Tensor): Coefficient Matrix [n_b, m*(p-1)].
 
     Returns:
-        torch.Tensor: Prediction tensor [n_b, n_x, p]
+        (torch.Tensor): Prediction tensor [n_b, n_x, p]
     """
     n_x, m = X.shape
     n_b, o = B.shape
@@ -166,7 +166,7 @@ def logistic_regression_log_loss(
     Ytilde: torch.Tensor, Y: torch.Tensor, B: Optional[torch.Tensor] = None
 ) -> torch.Tensor:
     """Cross entropy loss function for (multinomial) logistic regression.
-    Note that this loss function expects ``Ytilde`` to be the **log of the predicted probabilities**.
+    Note that this loss function expects `Ytilde` to be the **log of the predicted probabilities**.
 
     Args:
         Ytilde (torch.Tensor): Predicted logits [n_b, n_x, p].
@@ -174,6 +174,6 @@ def logistic_regression_log_loss(
         B (Optional[torch.Tensor], optional): Coefficient matrix (not used, the regularisation is part of Slisemap). Defaults to None.
 
     Returns:
-        torch.Tensor: Loss values [n_b, n_x].
+        (torch.Tensor): Loss values [n_b, n_x].
     """
     return torch.sum(-Y * Ytilde - (1 - Y) * torch.log1p(-torch.exp(Ytilde)), -1)

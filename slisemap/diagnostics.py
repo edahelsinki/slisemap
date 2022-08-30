@@ -1,15 +1,13 @@
 """
 These are diagnostics for identifying potential issues with SLISEMAP solutions.
 
-Typical usage:
+**Typical usage:**
 
-.. code-block:: python
-
-        sm = Slisemap(...)
-        sm.optimise()
-        diagnostics = diagnose(sm)
-        print_diagnostics(diagnostics)
-        plot_diagnostics(sm, diagnostics)
+    sm = Slisemap(...)
+    sm.optimise()
+    diagnostics = diagnose(sm)
+    print_diagnostics(diagnostics)
+    plot_diagnostics(sm, diagnostics)
 """
 from functools import reduce
 from typing import Dict, Optional, Tuple, Union
@@ -45,10 +43,11 @@ def global_model_losses(
     Args:
         sm (Slisemap): Slisemap object.
         indices (Optional[np.ndarray], optional): Optional subsampling indices. Defaults to None.
-        **kwargs: Optional keyword arguments to LBFGS.
+    Keyword Args:
+        **kwargs (Dict[str, Any]): Optional keyword arguments to LBFGS.
 
     Returns:
-        torch.Tensor: Vector of individual losses for a global model.
+        (torch.Tensor): Vector of individual losses for a global model.
     """
     if indices is None:
         X = sm.X
@@ -110,10 +109,11 @@ def plot_diagnostics(
         summary (bool, optional): Combine multiple diagnostics into one plot. Defaults to False.
         title (str, optional): Title of the plot. Defaults to "Slisemap Diagnostics".
         show (bool, optional): Show the plot. Defaults to True.
-        **kwargs: Additional parameters to ``seaborn.relplot``.
+    Keyword Args:
+        **kwargs (Dict[str, Any]): Additional parameters to `seaborn.relplot`.
 
     Returns:
-        Optional[sns.FacetGrid]: Seaborn FacetGrid if show=False.
+        (Optional[sns.FacetGrid]): Seaborn FacetGrid if show=False.
     """
     if isinstance(Z, Slisemap):
         Z = Z.get_Z(rotate=True)
@@ -179,7 +179,7 @@ def distant_diagnostic(sm: Slisemap, max_distance: float = 10.0) -> np.ndarray:
         max_distance (float, optional): Maximum distance from origo in the embedding. Defaults to 10.0.
 
     Returns:
-        np.ndarray: Boolean mask of problematic data items.
+        (np.ndarray): Boolean mask of problematic data items.
     """
     return np.sum(sm.get_Z() ** 2, 1) > max_distance**2
 
@@ -194,7 +194,7 @@ def heavyweight_diagnostic(
         min_size (Union[float, int], optional): Miniumum neighbourhood/cluster size (as a fraction or absolute number). Defaults to 0.1.
 
     Returns:
-        np.ndarray: Boolean mask of problematic data items.
+        (np.ndarray): Boolean mask of problematic data items.
     """
     return tonp(sm.get_W(numpy=False).diag() > _frac(sm.n, min_size))
 
@@ -209,7 +209,7 @@ def lightweight_diagnostic(
         max_size (Union[float, int], optional): Maximum neighbourhood/cluster size (as a fraction or absolute number). Defaults to 0.5.
 
     Returns:
-        np.ndarray: Boolean mask of problematic data items.
+        (np.ndarray): Boolean mask of problematic data items.
     """
     return tonp(sm.get_W(numpy=False).diag() < (1 / _size(sm.n, max_size)))
 
@@ -225,7 +225,7 @@ def weight_neighbourhood_diagnostic(
         max_size (Union[float, int], optional): Maximum neighbourhood/cluster size (as a fraction or absolute number). Defaults to 0.5.
 
     Returns:
-        np.ndarray: Boolean mask of problematic data items.
+        (np.ndarray): Boolean mask of problematic data items.
     """
     min_size = _size(sm.n, min_size)
     max_size = _size(sm.n, max_size)
@@ -247,7 +247,7 @@ def loss_neighbourhood_diagnostic(
         median (bool, optional): Compare against the median global loss instead of the mean global loss. Defaults to False.
 
     Returns:
-        np.ndarray: Boolean mask of problematic data items.
+        (np.ndarray): Boolean mask of problematic data items.
     """
     min_size = _size(sm.n, min_size)
     if median:
@@ -282,7 +282,7 @@ def global_loss_diagnostic(
         sd (float, optional): Number of standard deviations from the mean (of global models losses) to consider a local model global. Defaults to 1.0.
 
     Returns:
-        np.ndarray: Boolean mask of problematic data items.
+        (np.ndarray): Boolean mask of problematic data items.
     """
     glosses = [
         global_model_losses(sm, np.random.randint(sm.n, size=sm.n)).sum().cpu().item()
@@ -301,14 +301,16 @@ def quantile_loss_diagnostic(sm: Slisemap, quantile: float = 0.4) -> np.ndarray:
         quantile (float, optional): The quantile percentage. Defaults to 0.4.
 
     Returns:
-        np.ndarray: Boolean mask of problematic data items.
+        (np.ndarray): Boolean mask of problematic data items.
     """
     L = sm.get_L(numpy=False)
     treshold = torch.quantile(L.ravel(), _frac(sm.n, quantile))
     return tonp(L.diag() > treshold)
 
 
-def optics_diagnostic(sm: Slisemap, min_size: Union[float, int] = 0.1, **kwargs):
+def optics_diagnostic(
+    sm: Slisemap, min_size: Union[float, int] = 0.1, **kwargs
+) -> np.ndarray:
     """Use a clustering method to check for problematic data items in the embedding.
 
     Args:
@@ -316,7 +318,7 @@ def optics_diagnostic(sm: Slisemap, min_size: Union[float, int] = 0.1, **kwargs)
         min_size (Union[float, int], optional): Miniumum neighbourhood/cluster size (as a fraction or absolute number). Defaults to 0.1.
 
     Returns:
-        np.ndarray: Boolean mask of problematic data items.
+        (np.ndarray): Boolean mask of problematic data items.
     """
     from sklearn.cluster import OPTICS
 
@@ -341,7 +343,7 @@ def diagnose(
         conservative (bool, optional): Only run the most conservative diagnostics. Defaults to False.
 
     Returns:
-        Dict[str, np.ndarray]: Dictionary of the the diagnostics results.
+        (Dict[str, np.ndarray]): Dictionary of the the diagnostics results.
     """
     if conservative:
         return {
