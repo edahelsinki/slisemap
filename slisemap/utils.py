@@ -50,7 +50,7 @@ def tonp(x: torch.Tensor) -> np.ndarray:
         x (torch.Tensor): Input torch.Tensor.
 
     Returns:
-        np.ndarray: Output numpy.ndarray.
+        (np.ndarray): Output numpy.ndarray.
     """
     return x.cpu().detach().numpy()
 
@@ -64,7 +64,7 @@ class CheckConvergence:
 
     Args:
         patience (float, optional): How long should the optimisation continue without improvement. Defaults to 3.
-        max_iter (int, optional): The maximum number of iterations. Defaults to 2**30.
+        max_iter (int, optional): The maximum number of iterations. Defaults to `2**20`.
     """
 
     __slots__ = {
@@ -77,7 +77,7 @@ class CheckConvergence:
         "iter": "The current number of iterations.",
     }
 
-    def __init__(self, patience: float = 3, max_iter=1 << 30):
+    def __init__(self, patience: float = 3, max_iter=1 << 20):
         self.current = np.inf
         self.best = np.asarray(np.inf)
         self.counter = 0
@@ -93,15 +93,15 @@ class CheckConvergence:
     ) -> bool:
         """Check if the optimisation has converged.
 
-        If more than one loss value is provided, then only the first one is checked when storing the ``optimal_state``.
+        If more than one loss value is provided, then only the first one is checked when storing the `optimal_state`.
         The other losses are only used for checking convergence.
 
         Args:
             loss (Union[float, Sequence[float]]): The latest loss value(s).
-            store (Optional[Callable[[], Any]], optional): Function that returns the current state for storing in ``self.optimal_state``. Defaults to None.
+            store (Optional[Callable[[], Any]], optional): Function that returns the current state for storing in `self.optimal_state`. Defaults to None.
 
         Returns:
-            bool: True if the optimisation has converged.
+            (bool): True if the optimisation has converged.
         """
         self.iter += 1
         loss = np.asarray(loss)
@@ -141,7 +141,7 @@ def LBFGS(
         **kwargs (optional): Argumemts passed to `torch.optim.LBFGS`.
 
     Returns:
-        torch.optim.LBFGS: The LBFGS optimiser.
+        (torch.optim.LBFGS): The LBFGS optimiser.
     """
     optimiser = torch.optim.LBFGS(
         variables,
@@ -188,12 +188,12 @@ def PCA_rotation(
 
     Args:
         X (torch.Tensor): The original matrix.
-        components (int, optional): The maximum number of components in the embedding. Defaults to ``min(*X.shape)``.
+        components (int, optional): The maximum number of components in the embedding. Defaults to `min(*X.shape)`.
         full (bool, optional): Use a full SVD for the PCA (slower). Defaults to True.
         niter (int, optional): The number of iterations when a randomised approach is used. Defaults to 10.
 
     Returns:
-        torch.Tensor: Rotation matrix that turns the original matrix into the embedded space.
+        (torch.Tensor): Rotation matrix that turns the original matrix into the embedded space.
     """
     try:
         components = min(*X.shape, components) if components > 0 else min(*X.shape)
@@ -229,7 +229,7 @@ def global_model(
         ridge (float, optional): Ridge-regularisation coefficient for B ($\\lambda_{ridge} * ||B||_2$). Defaults to 0.0.
 
     Returns:
-        torch.Tensor: Global model coefficients.
+        (torch.Tensor): Global model coefficients.
     """
     shape = (1, X.shape[1] * Y.shape[1] if coefficients is None else coefficients)
     B = torch.zeros(shape, dtype=X.dtype, device=X.device).requires_grad_(True)
@@ -253,7 +253,7 @@ def dict_array(dict: Dict[str, Any]) -> Dict[str, np.ndarray]:
         dict (Dict[str, Any]): Dictionary.
 
     Returns:
-        Dict[str, np.ndarray]: The same dictionary where the values are numpy arrays with equal length.
+        (Dict[str, np.ndarray]): The same dictionary where the values are numpy arrays with equal length.
     """
     n = 1
     for k, v in dict.items():
@@ -269,14 +269,14 @@ def dict_array(dict: Dict[str, Any]) -> Dict[str, np.ndarray]:
 
 
 def dict_append(df: Dict[str, np.ndarray], d: Dict[str, Any]) -> Dict[str, np.ndarray]:
-    """Append a dictionary of values to a dictionary of numpy arrays (see ``dict_array``) inplace.
+    """Append a dictionary of values to a dictionary of numpy arrays (see `dict_array`) inplace.
 
     Args:
         df (Dict[str, np.ndarray]): Dictionary of numpy arrays.
         d (Dict[str, Any]): Dictionary to append.
 
     Returns:
-        Dict[str, np.ndarray]: The same dictionary as ``df`` with the values from ``d`` appended.
+        (Dict[str, np.ndarray]): The same dictionary as `df` with the values from `d` appended.
     """
     d = dict_array(d)
     for k in df.keys():
@@ -288,13 +288,13 @@ def dict_concat(
     dicts: Union[Sequence[Dict[str, Any]], Iterator[Dict[str, Any]]]
 ) -> Dict[str, np.ndarray]:
     """Combine multiple dictionaries into one by concatenating the values.
-    Calls ``dict_array`` to pre-process the dictionaries.
+    Calls `dict_array` to pre-process the dictionaries.
 
     Args:
         dicts (Union[Sequence[Dict[str, Any]], Iterator[Dict[str, Any]]]): Sequence or Generator with dictionaries (all must have the same keys).
 
     Returns:
-        Dict[str, np.ndarray]: Combined dictionary.
+        (Dict[str, np.ndarray]): Combined dictionary.
     """
     if isinstance(dicts, Sequence):
         dicts = (d for d in dicts)

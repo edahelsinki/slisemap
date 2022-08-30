@@ -40,7 +40,8 @@ def escape_neighbourhood(
         force_move (bool, optional): Do not allow the items to pair with themselves. Defaults to True.
 
     Returns:
-        Tuple[torch.Tensor, torch.Tensor]: Escaped `B` and `Z`.
+        B (torch.Tensor): Escaped `B`.
+        Z (torch.Tensor]): Escaped `Z`.
     """
     L = local_loss(local_model(X, B), Y, B)
     if radius > 0:
@@ -95,7 +96,8 @@ def escape_greedy(
         force_move (bool, optional): Do not allow the items to pair with themselves. Defaults to True.
 
     Returns:
-        Tuple[torch.Tensor, torch.Tensor]: Escaped `B` and `Z`.
+        B (torch.Tensor): Escaped `B`.
+        Z (torch.Tensor]): Escaped `Z`.
     """
     L = local_loss(local_model(X, B), Y, B)
     if force_move:
@@ -141,7 +143,8 @@ def escape_combined(
         force_move (bool, optional): Do not allow the items to pair with themselves. Defaults to True.
 
     Returns:
-        Tuple[torch.Tensor, torch.Tensor]: Escaped `B` and `Z`.
+        B (torch.Tensor): Escaped `B`.
+        Z (torch.Tensor]): Escaped `Z`.
     """
     L = local_loss(local_model(X, B), Y, B)
     if radius > 0:
@@ -198,7 +201,8 @@ def escape_marginal(
         jit (bool, optional): Just-In-Time compile the loss function. Defaults to True.
 
     Returns:
-        Tuple[torch.Tensor, torch.Tensor]: Escaped `B` and `Z`.
+        B (torch.Tensor): Escaped `B`.
+        Z (torch.Tensor]): Escaped `Z`.
     """
     from slisemap.slisemap import make_marginal_loss
 

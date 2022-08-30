@@ -42,7 +42,7 @@ def euclidean_nearest_neighbours(
         include_self (bool, optional): include the item in its' neighbourhood. Defaults to True.
 
     Returns:
-        torch.LongTensor: Vector of indices for the neighbours.
+        (torch.LongTensor): Vector of indices for the neighbours.
     """
     if isinstance(k, float) and 0 < k <= 1:
         k = int(k * D.shape[0])
@@ -69,7 +69,7 @@ def kernel_neighbours(
         include_self (bool, optional): include the item in its' neighbourhood. Defaults to True.
 
     Returns:
-        torch.LongTensor: Vector of indices for the neighbours.
+        (torch.LongTensor): Vector of indices for the neighbours.
     """
     K = torch.nn.functional.softmax(-D[index], 0)
     epsilon2 = epsilon / K.numel()
@@ -96,7 +96,7 @@ def cluster_neighbours(
         include_self (bool, optional): include the item in its' neighbourhood. Defaults to True.
 
     Returns:
-        torch.LongTensor: Vector of indices for the neighbours.
+        (torch.LongTensor): Vector of indices for the neighbours.
     """
     if include_self:
         return torch.where(clusters == clusters[index])[0]
@@ -123,7 +123,7 @@ def radius_neighbours(
         include_self (bool, optional): include the item in its' neighbourhood. Defaults to True.
 
     Returns:
-        torch.LongTensor: Vector of indices for the neighbours.
+        (torch.LongTensor): Vector of indices for the neighbours.
     """
     if radius is None:
         radius = torch.quantile(D, quantile)
@@ -135,7 +135,7 @@ def radius_neighbours(
         return torch.where(mask)[0]
 
 
-def _get_neighbours(
+def get_neighbours(
     sm: Union[Slisemap, torch.Tensor],
     neighbours: Union[
         None,
@@ -158,10 +158,11 @@ def _get_neighbours(
         sm (Union[Slisemap, torch.Tensor]): Trained Slisemap solution or an embedding vector (like Slisemap.Z).
         neighbours (Union[ None, np.ndarray, torch.LongTensor, Callable[[torch.Tensor, int], torch.LongTensor], ]): Either None (return self), a vector of cluster id:s (take neighbours from the same cluter), or a function that gives neighbours (that takes a distance matrix and an index).
         full_if_none (bool, optional): If `neighbours` is None, return the whole dataset. Defaults to False.
-        **kwargs: Arguments passed on to `neighbours` (if it is a function).
+    Keyword Args:
+        **kwargs (Dict[str, Any]): Arguments passed on to `neighbours` (if it is a function).
 
     Returns:
-        Callable[[int], torch.LongTensor]: Function that takes an index and returns neighbour indices.
+        (Callable[[int], torch.LongTensor]): Function that takes an index and returns neighbour indices.
     """
     if neighbours is None:
         if full_if_none:
@@ -186,7 +187,7 @@ def slisemap_loss(sm: Slisemap) -> float:
         sm (Slisemap): Trained Slisemap solution.
 
     Returns:
-        float: The loss value.
+        (float): The loss value.
     """
     return sm.value()
 
@@ -198,7 +199,7 @@ def slisemap_entropy(sm: Slisemap) -> float:
         sm (Slisemap): Trained Slisemap solution.
 
     Returns:
-        float: The loss value.
+        (float): The loss value.
     """
     return sm.entropy()
 
@@ -219,13 +220,14 @@ def fidelity(
 
     Args:
         sm (Slisemap): Trained Slisemap solution.
-        neighbours (Union[ None, np.ndarray, torch.LongTensor, Callable[[torch.Tensor, int], torch.LongTensor], ]): Either None (only corresponding local model), a vector of cluster id:s, or a function that gives neighbours (see `_get_neighbours`).
-        **kwargs: Arguments passed on to `neighbours` (if it is a function).
+        neighbours (Union[ None, np.ndarray, torch.LongTensor, Callable[[torch.Tensor, int], torch.LongTensor], ]): Either None (only corresponding local model), a vector of cluster id:s, or a function that gives neighbours (see [get_neighbours][slisemap.metrics.get_neighbours]).
+    Keyword Args:
+        **kwargs (Dict[str, Any]): Arguments passed on to `neighbours` (if it is a function).
 
     Returns:
-        float: The mean loss.
+        (float): The mean loss.
     """
-    neighbours = _get_neighbours(sm, neighbours, full_if_none=False, **kwargs)
+    neighbours = get_neighbours(sm, neighbours, full_if_none=False, **kwargs)
     results = np.zeros(sm.n)
     L = sm.get_L(numpy=False)
     for i in range(len(results)):
@@ -255,15 +257,16 @@ def coverage(
     Args:
         sm (Slisemap): Trained Slisemap solution.
         max_loss (float): Maximum tolerable loss.
-        neighbours (Union[ None, np.ndarray, torch.LongTensor, Callable[[torch.Tensor, int], torch.LongTensor], ], optional): Either None (all), a vector of cluster id:s, or a function that gives neighbours (see `_get_neighbours`).
-        **kwargs: Arguments passed on to `neighbours` (if it is a function).
+        neighbours (Union[ None, np.ndarray, torch.LongTensor, Callable[[torch.Tensor, int], torch.LongTensor], ], optional): Either None (all), a vector of cluster id:s, or a function that gives neighbours (see [get_neighbours][slisemap.metrics.get_neighbours]).
+    Keyword Args:
+        **kwargs (Dict[str, Any]): Arguments passed on to `neighbours` (if it is a function).
 
     Returns:
-        float: The mean fraction of items within the error bound.
+        (float): The mean fraction of items within the error bound.
     """
     if torch.all(torch.isnan(sm.B.sum(1))).cpu().item():
         return np.nan
-    neighbours = _get_neighbours(sm, neighbours, full_if_none=True, **kwargs)
+    neighbours = get_neighbours(sm, neighbours, full_if_none=True, **kwargs)
     results = np.zeros(sm.n)
     L = sm.get_L(numpy=False)
     for i in range(len(results)):
@@ -291,13 +294,14 @@ def median_loss(
 
     Args:
         sm (Slisemap): Trained Slisemap solution.
-        neighbours (Union[ None, np.ndarray, torch.LongTensor, Callable[[torch.Tensor, int], torch.LongTensor], ], optional): Either None (all), a vector of cluster id:s, or a function that gives neighbours (see `_get_neighbours`).
-        **kwargs: Arguments passed on to `neighbours` (if it is a function).
+        neighbours (Union[ None, np.ndarray, torch.LongTensor, Callable[[torch.Tensor, int], torch.LongTensor], ], optional): Either None (all), a vector of cluster id:s, or a function that gives neighbours (see [get_neighbours][slisemap.metrics.get_neighbours]).
+    Keyword Args:
+        **kwargs (Dict[str, Any]): Arguments passed on to `neighbours` (if it is a function).
 
     Returns:
-        float: The mean median loss.
+        (float): The mean median loss.
     """
-    neighbours = _get_neighbours(sm, neighbours, full_if_none=True, **kwargs)
+    neighbours = get_neighbours(sm, neighbours, full_if_none=True, **kwargs)
     results = np.zeros(sm.n)
     L = sm.get_L(numpy=False)
     for i in range(len(results)):
@@ -325,13 +329,14 @@ def coherence(
 
     Args:
         sm (Slisemap): Trained Slisemap solution.
-        neighbours (Union[ None, np.ndarray, torch.LongTensor, Callable[[torch.Tensor, int], torch.LongTensor], ], optional): Either None (all), a vector of cluster id:s, or a function that gives neighbours (see `_get_neighbours`).
-        **kwargs: Arguments passed on to `neighbours` (if it is a function).
+        neighbours (Union[ None, np.ndarray, torch.LongTensor, Callable[[torch.Tensor, int], torch.LongTensor], ], optional): Either None (all), a vector of cluster id:s, or a function that gives neighbours (see [get_neighbours][slisemap.metrics.get_neighbours]).
+    Keyword Args:
+        **kwargs (Dict[str, Any]): Arguments passed on to `neighbours` (if it is a function).
 
     Returns:
-        float: The mean coherence.
+        (float): The mean coherence.
     """
-    neighbours = _get_neighbours(
+    neighbours = get_neighbours(
         sm, neighbours, full_if_none=True, include_self=False, **kwargs
     )
     results = np.zeros(sm.n)
@@ -363,13 +368,14 @@ def stability(
 
     Args:
         sm (Slisemap): Trained Slisemap solution.
-        neighbours (Union[ None, np.ndarray, torch.LongTensor, Callable[[torch.Tensor, int], torch.LongTensor], ], optional): Either None (all), a vector of cluster id:s, or a function that gives neighbours (see `_get_neighbours`).
-        **kwargs: Arguments passed on to `neighbours` (if it is a function).
+        neighbours (Union[ None, np.ndarray, torch.LongTensor, Callable[[torch.Tensor, int], torch.LongTensor], ], optional): Either None (all), a vector of cluster id:s, or a function that gives neighbours (see [get_neighbours][slisemap.metrics.get_neighbours]).
+    Keyword Args:
+        **kwargs (Dict[str, Any]): Arguments passed on to `neighbours` (if it is a function).
 
     Returns:
-        float: The mean stability.
+        (float): The mean stability.
     """
-    neighbours = _get_neighbours(
+    neighbours = get_neighbours(
         sm, neighbours, full_if_none=True, include_self=False, **kwargs
     )
     results = np.zeros(sm.n)
@@ -397,7 +403,7 @@ def kmeans_matching(
         clusters (Union[int, Sequence[int]], optional): The number of clusters. Defaults to range(2, 10).
 
     Returns:
-        float: mean cluster matching.
+        (float): mean cluster matching.
     """
     from sklearn.cluster import KMeans
     from scipy.optimize import linear_sum_assignment
@@ -439,7 +445,7 @@ def cluster_purity(
         clusters (Union[np.ndarray, torch.LongTensor]): Cluster ids.
 
     Returns:
-        float: The mean number of items sharing cluster that are neighbours.
+        (float): The mean number of items sharing cluster that are neighbours.
     """
     if isinstance(sm, Slisemap):
         Z = sm.get_Z(numpy=False)
@@ -475,7 +481,7 @@ def kernel_purity(
         losses (bool, optional): Use losses instead of embedding distances. Defaults to False.
 
     Returns:
-        float: The mean number of neighbours that are in the same cluster.
+        (float): The mean number of neighbours that are in the same cluster.
     """
     if isinstance(clusters, np.ndarray):
         clusters = torch.tensor(clusters)
@@ -504,7 +510,7 @@ def recall(sm: Slisemap, epsilon_D: float = 1.0, epsilon_L: float = 1.0) -> floa
         epsilon_L (float, optional): Treshold for being a loss neighbour (`softmax(L) < epsilon/n`). Defaults to 1.0.
 
     Returns:
-        float: The mean recall.
+        (float): The mean recall.
     """
     res = np.zeros(sm.n)
     D = sm.get_D(numpy=False)
@@ -533,7 +539,7 @@ def precision(sm: Slisemap, epsilon_D: float = 1.0, epsilon_L: float = 1.0) -> f
         epsilon_L (float, optional): Treshold for being a loss neighbour (`softmax(L) < epsilon/n`). Defaults to 1.0.
 
     Returns:
-        float: The mean precision.
+        (float): The mean precision.
     """
     res = np.zeros(sm.n)
     D = sm.get_D(numpy=False)
@@ -562,7 +568,7 @@ def relevance(sm: Slisemap, pred_fn: Callable, change: float) -> float:
         change (float): How much should the prediction change?
 
     Returns:
-        float: The mean number of mutated variables required to cause a large enough change in the prediction.
+        (float): The mean number of mutated variables required to cause a large enough change in the prediction.
     """
     rel = np.ones(sm.n) * sm.m
     for i in range(len(rel)):
@@ -597,7 +603,8 @@ def accuracy(
         X (Optional[np.ndarray], optional): New data matrix (uses the training data if None). Defaults to None.
         Y (Optional[np.ndarray], optional): New target matrix (uses the training data if None). Defaults to None.
         fidelity (bool, optional): Return the mean fidelity instead of mean loss. Defaults to False.
-        **kwargs: Optional keyword arguments to Slisemap.fit_new.
+    Keyword Args:
+        **kwargs (Dict[str, Any]): Optional keyword arguments to [Slisemap.fit_new][slisemap.slisemap.Slisemap.fit_new].
 
     Returns:
         float: Mean loss for the new points.
