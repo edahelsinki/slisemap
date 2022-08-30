@@ -43,6 +43,6 @@ sm = Slisemap(X, y, radius=3.5, lasso=0.01)
 sm.optimise()
 sm.plot(clusters=5, bars=5)
 ```
-![Example plot of the results from using SLISEMAP on the *Auto MPG* dataset](examples/autompg.webp)
+![Example plot of the results from using SLISEMAP on the *Auto MPG* dataset](docs/autompg.webp)
 
 See the [examples](https://github.com/edahelsinki/slisemap/tree/main/examples) for more detailed examples, and the [documentation](https://edahelsinki.github.io/slisemap/slisemap.html) for more detailed instructions.

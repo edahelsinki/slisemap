@@ -1,0 +1,60 @@
+site_name: SLISEMAP
+site_url: https://edahelsinki.github.io/slisemap
+repo_url: https://github.com/edahelsinki/slisemap
+edit_uri: ""
+
+theme:
+  name: material
+  icon:
+    logo: material/book-open
+  favicon: ""
+  font: false
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: deep orange
+      toggle:
+        icon: material/lightbulb 
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep orange
+      accent: deep purple
+      toggle:
+        icon: material/lightbulb-outline
+        name: Switch to light mode
+  features:
+    - navigation.tracking
+    - navigation.sections
+    - navigation.indexes
+
+nav:
+  - Home: 'index.md'
+  - Documentation:
+    - slisemap: slisemap.md
+    - slisemap.slisemap: slisemap.slisemap.md
+    - slisemap.local_models: slisemap.local_models.md
+    - slisemap.loss: slisemap.loss.md
+    - slisemap.escape: slisemap.escape.md
+    - slisemap.utils: slisemap.utils.md
+    - slisemap.metrics: slisemap.metrics.md
+    - slisemap.diagnostics: slisemap.diagnostics.md
+  - Links:
+    - GitHub: https://github.com/edahelsinki/slisemap
+    - PyPI: https://pypi.org/project/slisemap/
+    - Paper: https://arxiv.org/abs/2201.04455
+    - Demo Paper: https://github.com/edahelsinki/slisemap/blob/main/examples/demo_paper.pdf
+    - Examples: https://github.com/edahelsinki/slisemap/tree/main/examples
+
+plugins:
+  # - offline 
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+              members_order: source
+              group_by_category: False
+              show_root_heading: True
+  - include-markdown
