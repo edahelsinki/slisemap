@@ -137,6 +137,9 @@ class Slisemap:
             device (Optional[torch.device], optional): Torch device (see `cuda` if None). Defaults to None.
             cuda (Optional[bool], optional): Use cuda if available. Defaults to True, if the data is large enough.
         """
+        for s in Slisemap.__slots__:
+            # Initialise all attributes (to avoid attribute errors)
+            setattr(self, s, None)
         if lasso is None and ridge is None:
             _warn(
                 "Consider using regularisation!\n"
