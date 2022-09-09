@@ -44,9 +44,9 @@ def test_convergence():
 
 def test_global_model():
     sm, _ = get_slisemap2(40, 5)
-    global_model(sm.X, sm.Y, sm.local_model, sm.local_loss, sm.coefficients, 0.01, 0.01)
+    global_model(sm._X, sm._Y, sm.local_model, sm.local_loss, sm.q, 0.01, 0.01)
     sm, _ = get_slisemap2(40, 5, classes=True)
-    global_model(sm.X, sm.Y, sm.local_model, sm.local_loss, sm.coefficients, 0.01, 0.01)
+    global_model(sm._X, sm._Y, sm.local_model, sm.local_loss, sm.q, 0.01, 0.01)
 
 
 def test_PCA():

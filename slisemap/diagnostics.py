@@ -50,21 +50,21 @@ def global_model_losses(
         (torch.Tensor): Vector of individual losses for a global model.
     """
     if indices is None:
-        X = sm.X
-        Y = sm.Y
+        X = sm._X
+        Y = sm._Y
     else:
-        X = sm.X[indices]
-        Y = sm.Y[indices]
+        X = sm._X[indices]
+        Y = sm._Y[indices]
     B = global_model(
         X=X,
         Y=Y,
         local_model=sm.local_model,
         local_loss=sm.local_loss,
-        coefficients=sm.coefficients,
+        coefficients=sm.q,
         lasso=sm.lasso,
         ridge=sm.ridge,
     )
-    return sm.local_loss(sm.local_model(sm.X, B), sm.Y).detach()
+    return sm.local_loss(sm.local_model(sm._X, B), sm._Y).detach()
 
 
 def print_diagnostics(diagnostics: Dict[str, np.ndarray], summary: bool = False):

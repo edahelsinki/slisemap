@@ -28,6 +28,7 @@ from slisemap.utils import (
     global_model,
     tonp,
     _expand_variable_names,
+    _deprecated,
 )
 
 
@@ -187,7 +188,7 @@ class Slisemap:
             coefficients = coefficients(self._X, self._Y)
         if B0 is None:
             if coefficients is None:
-                coefficients = m * self.p
+                coefficients = m * self.o
             B0 = global_model(
                 X=self._X,
                 Y=self._Y,
@@ -218,12 +219,6 @@ class Slisemap:
             )
         self._B = self._B0.detach().clone()
 
-    def restore(self):
-        """Reset B and Z (and random_state) to their initial values B0 and Z0 (and _rs0)."""
-        self._Z = self._Z0.clone().detach()
-        self._B = self._B0.clone().detach()
-        self.random_state = self._rs0
-
     @property
     def n(self) -> int:
         # The number of data items
@@ -236,6 +231,12 @@ class Slisemap:
 
     @property
     def p(self) -> int:
+        # The number of target variables (i.e. the number of classes)
+        _deprecated(Slisemap.p, Slisemap.o)
+        return self._Y.shape[-1]
+
+    @property
+    def o(self) -> int:
         # The number of target variables (i.e. the number of classes)
         return self._Y.shape[-1]
 
@@ -259,9 +260,15 @@ class Slisemap:
                 self._Z = torch.concat(zn, 1)
 
     @property
-    def coefficients(self) -> int:
+    def q(self) -> int:
         # The number of local model coefficients
         return self._B.shape[1]
+
+    @property
+    def coefficients(self) -> int:
+        # The number of local model coefficients
+        _deprecated(Slisemap.coefficients, Slisemap.q)
+        return self.q
 
     @property
     def intercept(self) -> bool:
@@ -275,9 +282,10 @@ class Slisemap:
 
     @radius.setter
     def radius(self, value: float):
-        _assert(value >= 0, "radius must not be negative", Slisemap.radius)
-        self._radius = value
-        self._loss = None  # invalidate cached loss function
+        if self._radius != value:
+            _assert(value >= 0, "radius must not be negative", Slisemap.radius)
+            self._radius = value
+            self._loss = None  # invalidate cached loss function
 
     @property
     def lasso(self) -> float:
@@ -286,9 +294,10 @@ class Slisemap:
 
     @lasso.setter
     def lasso(self, value: float):
-        _assert(value >= 0, "lasso must not be negative", Slisemap.lasso)
-        self._lasso = value
-        self._loss = None  # invalidate cached loss function
+        if self._lasso != value:
+            _assert(value >= 0, "lasso must not be negative", Slisemap.lasso)
+            self._lasso = value
+            self._loss = None  # invalidate cached loss function
 
     @property
     def ridge(self) -> float:
@@ -297,9 +306,10 @@ class Slisemap:
 
     @ridge.setter
     def ridge(self, value: float):
-        _assert(value >= 0, "ridge must not be negative", Slisemap.ridge)
-        self._ridge = value
-        self._loss = None  # invalidate cached loss function
+        if self._ridge != value:
+            _assert(value >= 0, "ridge must not be negative", Slisemap.ridge)
+            self._ridge = value
+            self._loss = None  # invalidate cached loss function
 
     @property
     def z_norm(self) -> float:
@@ -308,35 +318,40 @@ class Slisemap:
 
     @z_norm.setter
     def z_norm(self, value: float):
-        _assert(value >= 0, "z_norm must not be negative", Slisemap.z_norm)
-        self._z_norm = value
-        self._loss = None  # invalidate cached loss function
+        if self._z_norm != value:
+            _assert(value >= 0, "z_norm must not be negative", Slisemap.z_norm)
+            self._z_norm = value
+            self._loss = None  # invalidate cached loss function
 
     @property
     def local_model(self) -> Callable[[torch.Tensor, torch.Tensor], torch.Tensor]:
-        # Local model prediction function. Takes in X[n, m] and B[n, coefficients], and returns Ytilde[n, n, p]
+        # Local model prediction function. Takes in X[n, m] and B[n, q], and returns Ytilde[n, n, o]
         return self._local_model
 
     @local_model.setter
     def local_model(self, value: Callable[[torch.Tensor, torch.Tensor], torch.Tensor]):
-        _assert(callable(value), "local_model must be callable", Slisemap.local_model)
-        self._local_model = value
-        self._loss = None  # invalidate cached loss function
+        if self._local_model != value:
+            _assert(
+                callable(value), "local_model must be callable", Slisemap.local_model
+            )
+            self._local_model = value
+            self._loss = None  # invalidate cached loss function
 
     @property
     def local_loss(
         self,
     ) -> Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor]:
-        # Local model loss function. Takes in Ytilde[n, n, p], Y[n, p], and B[n, coefficients], and returns L[n, n]
+        # Local model loss function. Takes in Ytilde[n, n, o], Y[n, o], and B[n, q], and returns L[n, n]
         return self._local_loss
 
     @local_loss.setter
     def local_loss(
         self, value: Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor]
     ):
-        _assert(callable(value), "local_loss must be callable", Slisemap.local_loss)
-        self._local_loss = value
-        self._loss = None  # invalidate cached loss function
+        if self._local_loss != value:
+            _assert(callable(value), "local_loss must be callable", Slisemap.local_loss)
+            self._local_loss = value
+            self._loss = None  # invalidate cached loss function
 
     @property
     def distance(self) -> Callable[[torch.Tensor, torch.Tensor], torch.Tensor]:
@@ -345,9 +360,10 @@ class Slisemap:
 
     @distance.setter
     def distance(self, value: Callable[[torch.Tensor, torch.Tensor], torch.Tensor]):
-        _assert(callable(value), "distance must be callable", Slisemap.distance)
-        self._distance = value
-        self._loss = None  # invalidate cached loss function
+        if self._distance != value:
+            _assert(callable(value), "distance must be callable", Slisemap.distance)
+            self._distance = value
+            self._loss = None  # invalidate cached loss function
 
     @property
     def kernel(self) -> Callable[[torch.Tensor], torch.Tensor]:
@@ -356,9 +372,10 @@ class Slisemap:
 
     @kernel.setter
     def kernel(self, value: Callable[[torch.Tensor], torch.Tensor]):
-        _assert(callable(value), "kernel must be callable", Slisemap.kernel)
-        self._kernel = value
-        self._loss = None  # invalidate cached loss function
+        if self._kernel != value:
+            _assert(callable(value), "kernel must be callable", Slisemap.kernel)
+            self._kernel = value
+            self._loss = None  # invalidate cached loss function
 
     @property
     def jit(self) -> bool:
@@ -367,18 +384,19 @@ class Slisemap:
 
     @jit.setter
     def jit(self, value: bool):
-        self._jit = value
-        self._loss = None  # invalidate cached loss function
+        if self._jit != value:
+            self._jit = value
+            self._loss = None  # invalidate cached loss function
 
     def random_state(self, value: Optional[int]):
         # Set the seed for the random number generator specific for this object (None reverts to the global `torch` PRNG)
         if value is None:
             self._random_state = None
         else:
-            if self.X.device.type == "cpu":
+            if self._X.device.type == "cpu":
                 self._random_state = torch.random.manual_seed(value)
-            elif self.X.device.type == "cuda":
-                gen = torch.cuda.default_generators[self.X.device.index]
+            elif self._X.device.type == "cuda":
+                gen = torch.cuda.default_generators[self._X.device.index]
                 self._random_state = gen.manual_seed(value)
             else:
                 _warn(
@@ -393,25 +411,29 @@ class Slisemap:
     @property
     def X(self) -> torch.Tensor:
         # Get the data matrix as a `torch.Tensor`
-        # Deprecated, use get_X() instead!
+        # Deprecated, use `get_X(numpy=False)` instead!
+        _deprecated(Slisemap.X, Slisemap.get_X)
         return self._X
 
     @property
     def Y(self) -> torch.Tensor:
         # Target matrix as a `torch.Tensor`.
-        # Deprecated, use get_Y() instead!
+        # Deprecated, use `get_Y(numpy=False)` instead!
+        _deprecated(Slisemap._Y, Slisemap.get_Y)
         return self._Y
 
     @property
     def Z(self) -> torch.Tensor:
         # Normalised embedding matrix as a `torch.Tensor`.
-        # Deprecated, use get_Z() instead!
+        # Deprecated, use `get_Z(numpy=False)` instead!
+        _deprecated(Slisemap._Z, Slisemap.get_Z)
         return self._Z
 
     @property
     def B(self) -> torch.Tensor:
         # Coefficient matrix for the local models as a `torch.Tensor`.
-        # Deprecated, use get_B() instead!
+        # Deprecated, use `get_B(numpy=False)` instead!
+        _deprecated(Slisemap._B, Slisemap.get_B)
         return self._B
 
     @property
@@ -494,8 +516,25 @@ class Slisemap:
                 )
         return self._loss
 
-    # Add a deprecation warning sometime in the future
-    get_loss_fn = _get_loss_fn
+    def get_loss_fn(
+        self, individual: bool = False
+    ) -> Callable[
+        [torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor
+    ]:
+        """Returns the Slisemap loss function.
+        This function JITs and caches the loss function for efficiency.
+
+        Args:
+            individual (bool, optional): Make a loss function for individual losses. Defaults to False.
+
+        Returns:
+            (Callable[[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor]): Loss function: `f(X, Y, B, Z) -> loss`.
+
+        Deprecated:
+            1.2: Use `_gets_loss_fn` instead!
+        """
+        _deprecated(Slisemap.get_loss_fn, Slisemap._get_loss_fn)
+        return self._get_loss_fn(individual)
 
     def _as_new_X(
         self, X: Union[None, np.ndarray, torch.Tensor] = None
@@ -522,12 +561,12 @@ class Slisemap:
             return self._Y
         Y = torch.as_tensor(Y, **self.tensorargs)
         if len(Y.shape) < 2:
-            Y = torch.reshape(Y, (-1, self.p))
+            Y = torch.reshape(Y, (-1, self.o))
         if n is None:
             n = Y.shape[0]
         _assert(
-            Y.shape == (n, self.p),
-            f"Y has the wrong shape {Y.shape} != {(n, self.p)}",
+            Y.shape == (n, self.o),
+            f"Y has the wrong shape {Y.shape} != {(n, self.o)}",
             Slisemap._as_new_Y,
         )
         return Y
@@ -751,9 +790,9 @@ class Slisemap:
             jit=self.jit,
         )
         if noise > 0.0:
-            rank = torch.linalg.matrix_rank(self.Z - torch.mean(self.Z, 0, True))
-            if rank.item() < min(*self.Z.shape):
-                self._Z = torch.normal(self.Z, noise, generator=self._random_state)
+            rank = torch.linalg.matrix_rank(self._Z - torch.mean(self._Z, 0, True))
+            if rank.item() < min(*self._Z.shape):
+                self._Z = torch.normal(self._Z, noise, generator=self._random_state)
         self._normalise()
 
     def _normalise(self):
@@ -857,16 +896,16 @@ class Slisemap:
         Bnew, Znew = escape_fn(
             X=Xnew,
             Y=ynew,
-            B=self.B,
-            Z=self.Z,
+            B=self._B,
+            Z=self._Z,
             local_model=self.local_model,
             local_loss=self.local_loss,
             distance=self.distance,
             kernel=self.kernel,
             radius=self.radius,
             force_move=False,
-            Xold=self.X,
-            Yold=self.Y,
+            Xold=self._X,
+            Yold=self._Y,
             jit=self.jit,
         )
         if verbose:
@@ -877,10 +916,10 @@ class Slisemap:
             if verbose:
                 print("Optimising the new data")
             lf, set_new = make_marginal_loss(
-                X=self.X,
-                Y=self.Y,
-                B=self.B,
-                Z=self.Z,
+                X=self._X,
+                Y=self._Y,
+                B=self._B,
+                Z=self._Z,
                 Xnew=Xnew if between else Xnew[:1],
                 Ynew=ynew if between else ynew[:1],
                 local_model=self.local_model,
@@ -923,10 +962,10 @@ class Slisemap:
             lf = self._get_loss_fn(individual=True)
             if between:
                 loss = lf(
-                    X=torch.cat((self.X, Xnew), 0),
-                    Y=torch.cat((self.Y, ynew), 0),
-                    B=torch.cat((self.B, Bnew), 0),
-                    Z=torch.cat((self.Z, Znew), 0),
+                    X=torch.cat((self._X, Xnew), 0),
+                    Y=torch.cat((self._Y, ynew), 0),
+                    B=torch.cat((self._B, Bnew), 0),
+                    Z=torch.cat((self._Z, Znew), 0),
                 )[self.n :]
                 loss = tonp(loss)
             else:
@@ -935,10 +974,10 @@ class Slisemap:
                 loss = np.zeros(n)
                 for j in range(n):
                     l = lf(
-                        X=torch.cat((self.X, Xnew[None, j]), 0),
-                        Y=torch.cat((self.Y, ynew[None, j]), 0),
-                        B=torch.cat((self.B, Bnew[None, j]), 0),
-                        Z=torch.cat((self.Z, Znew[None, j]), 0),
+                        X=torch.cat((self._X, Xnew[None, j]), 0),
+                        Y=torch.cat((self._Y, ynew[None, j]), 0),
+                        B=torch.cat((self._B, Bnew[None, j]), 0),
+                        Z=torch.cat((self._Z, Znew[None, j]), 0),
                     )[-1]
                     loss[j] = l.detach().cpu().item()
             if verbose:
@@ -1005,6 +1044,12 @@ class Slisemap:
         other._B = other._B.clone().detach()
         other._Z = other._Z.clone().detach()
         return other
+
+    def restore(self):
+        """Reset B and Z (and random_state) to their initial values B0 and Z0 (and _rs0)."""
+        self._Z = self._Z0.clone().detach()
+        self._B = self._B0.clone().detach()
+        self.random_state = self._rs0
 
     def save(
         self, f: Union[str, PathLike, BinaryIO], any_extension: bool = False, **kwargs
@@ -1145,7 +1190,7 @@ class Slisemap:
         fig, (ax1, ax2) = plt.subplots(1, 2, **kwargs)
         if variables is not None:
             variables = _expand_variable_names(
-                variables, self.intercept, self.m, targets, self.coefficients
+                variables, self.intercept, self.m, targets, self.q
             )
         if isinstance(clusters, int):
             clusters, centers = self.get_model_clusters(clusters, B)
@@ -1178,7 +1223,7 @@ class Slisemap:
                 Slisemap.plot,
             )
         if clusters is None:
-            if Z.shape[0] == self.Z.shape[0]:
+            if Z.shape[0] == self._Z.shape[0]:
                 L = tonp(torch.diagonal(self.get_L(numpy=False))).ravel()
                 sns.scatterplot(x=Z[:, 0], y=Z[:, 1], hue=L, palette="crest", ax=ax1)
                 ax1.legend(title="Fidelity")
@@ -1383,7 +1428,7 @@ class Slisemap:
             variables = [f"Variable {i}" for i in range(self.m - self._intercept)]
         if targets is None:
             targets = (
-                [f"Target {i}" for i in range(self.p)] if self.p > 1 else ["Target"]
+                [f"Target {i}" for i in range(self.o)] if self.o > 1 else ["Target"]
             )
         elif isinstance(targets, str):
             targets = [targets]

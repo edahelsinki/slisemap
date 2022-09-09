@@ -37,7 +37,7 @@ def get_slisemap(
         y = npr.normal(size=n)
         sm = Slisemap(X, y, lasso=lasso, **kwargs)
     if randomB:
-        sm._B = torch.normal(0, 1, sm.B.shape, **sm.tensorargs)
+        sm._B = torch.normal(0, 1, sm._B.shape, **sm.tensorargs)
     return sm
 
 
@@ -68,7 +68,7 @@ def get_slisemap2(
         sm = Slisemap(X, y, lasso=lasso, random_state=seed, **kwargs)
     if randomB:
         sm._B = torch.normal(
-            0, 1, sm.B.shape, **sm.tensorargs, generator=sm._random_state
+            0, 1, sm._B.shape, **sm.tensorargs, generator=sm._random_state
         )
     if cheat:
         angles = 2 * np.pi * cl / 3  # Assume k=3, d=2

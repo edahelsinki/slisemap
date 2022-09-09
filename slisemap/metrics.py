@@ -264,7 +264,7 @@ def coverage(
     Returns:
         (float): The mean fraction of items within the error bound.
     """
-    if torch.all(torch.isnan(sm.B.sum(1))).cpu().item():
+    if torch.all(torch.isnan(sm._B.sum(1))).cpu().item():
         return np.nan
     neighbours = get_neighbours(sm, neighbours, full_if_none=True, **kwargs)
     results = np.zeros(sm.n)
@@ -340,14 +340,14 @@ def coherence(
         sm, neighbours, full_if_none=True, include_self=False, **kwargs
     )
     results = np.zeros(sm.n)
-    P = sm.local_model(sm.X, sm.B)
+    P = sm.local_model(sm._X, sm._B)
     for i in range(len(results)):
         ni = neighbours(i)
         if ni.numel() == 0:
             results[i] = np.nan
         else:
             dP = torch.sum((P[None, i, i] - P[ni, i] - P[i, ni] + P[ni, ni]) ** 2, 1)
-            dX = torch.sum((sm.X[None, i, :] - sm.X[ni, :]) ** 2, 1) + 1e-8
+            dX = torch.sum((sm._X[None, i, :] - sm._X[ni, :]) ** 2, 1) + 1e-8
             results[i] = torch.sqrt(torch.max(dP / dX))
     return nanmean(results)
 
@@ -384,8 +384,8 @@ def stability(
         if ni.numel() == 0:
             results[i] = np.nan
         else:
-            dB = torch.sum((sm.B[None, i, :] - sm.B[ni, :]) ** 2, 1)
-            dX = torch.sum((sm.X[None, i, :] - sm.X[ni, :]) ** 2, 1) + 1e-8
+            dB = torch.sum((sm._B[None, i, :] - sm._B[ni, :]) ** 2, 1)
+            dX = torch.sum((sm._X[None, i, :] - sm._X[ni, :]) ** 2, 1) + 1e-8
             results[i] = torch.sqrt(torch.max(dB / dX))
     return nanmean(results)
 
@@ -572,11 +572,11 @@ def relevance(sm: Slisemap, pred_fn: Callable, change: float) -> float:
     """
     rel = np.ones(sm.n) * sm.m
     for i in range(len(rel)):
-        b = sm.B[i, :]
-        x = sm.X[i, :]
-        y = sm.Y[i, 0]
-        xmax = torch.max(sm.X, 0)[0]
-        xmin = torch.min(sm.X, 0)[0]
+        b = sm._B[i, :]
+        x = sm._X[i, :]
+        y = sm._Y[i, 0]
+        xmax = torch.max(sm._X, 0)[0]
+        xmin = torch.min(sm._X, 0)[0]
         xinc = torch.where(b > 0, xmax, xmin)
         xdec = torch.where(b < 0, xmax, xmin)
         babs = torch.abs(b)

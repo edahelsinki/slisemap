@@ -78,8 +78,8 @@ def test_fit_new():
     l2b_ = lf(
         X=sm._as_new_X(np.concatenate((X, x2), 0)),
         Y=sm._as_new_Y(np.concatenate((y, y2), 0)),
-        B=torch.cat((sm.B, torch.as_tensor(B2, **sm.tensorargs)), 0),
-        Z=torch.cat((sm.Z, torch.as_tensor(Z2 / sm.radius, **sm.tensorargs)), 0),
+        B=torch.cat((sm._B, torch.as_tensor(B2, **sm.tensorargs)), 0),
+        Z=torch.cat((sm._Z, torch.as_tensor(Z2 / sm.radius, **sm.tensorargs)), 0),
     )[sm.n :]
     assert np.sum(np.abs(tonp(l2b_) - l2b)) < 0.01
 
@@ -95,7 +95,7 @@ def test_loss():
         local_model=linear_regression,
         local_loss=linear_regression_loss,
     )
-    assert sm.coefficients == linear_regression_coefficients(sm.X, sm.Y)
+    assert sm.q == linear_regression_coefficients(sm._X, sm._Y)
     assert all_finite(sm.value())
     sm = Slisemap(
         np.random.normal(size=(10, 3)),
@@ -104,7 +104,7 @@ def test_loss():
         local_model=multiple_linear_regression,
         local_loss=linear_regression_loss,
     )
-    assert sm.coefficients == linear_regression_coefficients(sm.X, sm.Y)
+    assert sm.q == linear_regression_coefficients(sm._X, sm._Y)
     assert all_finite(sm.value())
     sm = Slisemap(
         np.random.normal(size=(10, 3)),
@@ -114,7 +114,7 @@ def test_loss():
         local_model=logistic_regression,
         local_loss=logistic_regression_loss,
     )
-    assert sm.coefficients == logistic_regression_coefficients(sm.X, sm.Y)
+    assert sm.q == logistic_regression_coefficients(sm._X, sm._Y)
     assert all_finite(sm.value())
     sm = Slisemap(
         np.random.normal(size=(10, 3)),
@@ -124,7 +124,7 @@ def test_loss():
         local_model=logistic_regression,
         local_loss=logistic_regression_loss,
     )
-    assert sm.coefficients == logistic_regression_coefficients(sm.X, sm.Y)
+    assert sm.q == logistic_regression_coefficients(sm._X, sm._Y)
     assert all_finite(sm.value())
 
 
@@ -139,8 +139,8 @@ def test_predict():
 
 def test_get():
     sm = get_slisemap(40, 5, intercept=True, lasso=0, ridge=0, z_norm=0)
-    assert torch.allclose(sm.Z, sm.get_Z(False, False, False))
-    assert torch.allclose(torch.sqrt(torch.sum(sm.Z**2) / sm.n), torch.ones(1))
+    assert torch.allclose(sm._Z, sm.get_Z(False, False, False))
+    assert torch.allclose(torch.sqrt(torch.sum(sm._Z**2) / sm.n), torch.ones(1))
     Z = sm.get_Z(numpy=False)
     assert torch.allclose(
         torch.sqrt(torch.sum(Z**2) / sm.n) / sm.radius, torch.ones(1)

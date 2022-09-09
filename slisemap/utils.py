@@ -36,6 +36,19 @@ def _assert_no_trace(
         _assert(condition(), message, method)
 
 
+def _deprecated(old: Callable, new: Optional[Callable] = None):
+    if new is None:
+        warnings.warn(
+            f"{old.__qualname__} is deprecated and may be removed in a future version",
+            DeprecationWarning,
+        )
+    else:
+        warnings.warn(
+            f"{old.__qualname__} is deprecated in favour of {new.__qualname__} and may be removed in a future version",
+            DeprecationWarning,
+        )
+
+
 def _warn(warning: str, method: Optional[Callable] = None):
     if method is None:
         warnings.warn(warning, SlisemapWarning, 2)
