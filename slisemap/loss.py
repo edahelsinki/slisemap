@@ -6,7 +6,7 @@ from typing import Callable, Tuple
 
 import torch
 
-from slisemap.utils import _warn
+from slisemap.utils import _warn, _deprecated
 
 
 def softmax_row_kernel(D: torch.Tensor) -> torch.Tensor:
@@ -33,14 +33,16 @@ def softmax_column_kernel(D: torch.Tensor) -> torch.Tensor:
     return torch.softmax(-D, 0)
 
 
-softmax_kernel = softmax_row_kernel
+def softmax_kernel(D: torch.Tensor) -> torch.Tensor:
+    _deprecated(softmax_kernel, softmax_row_kernel)
+    return softmax_row_kernel(D)
 
 
 def make_loss(
     local_model: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
     local_loss: Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor],
     distance: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] = torch.cdist,
-    kernel: Callable[[torch.Tensor], torch.Tensor] = softmax_kernel,
+    kernel: Callable[[torch.Tensor], torch.Tensor] = softmax_row_kernel,
     radius: float = 3.5,
     lasso: float = 0.0,
     ridge: float = 0.0,
@@ -114,7 +116,7 @@ def make_marginal_loss(
     local_model: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
     local_loss: Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor],
     distance: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] = torch.cdist,
-    kernel: Callable[[torch.Tensor], torch.Tensor] = softmax_kernel,
+    kernel: Callable[[torch.Tensor], torch.Tensor] = softmax_row_kernel,
     radius: float = 3.5,
     lasso: float = 0.0,
     ridge: float = 0.0,
