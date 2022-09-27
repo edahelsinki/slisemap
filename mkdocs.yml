@@ -15,7 +15,7 @@ theme:
       primary: deep purple
       accent: deep orange
       toggle:
-        icon: material/lightbulb 
+        icon: material/lightbulb
         name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
@@ -45,10 +45,11 @@ nav:
     - PyPI: https://pypi.org/project/slisemap/
     - Paper: https://arxiv.org/abs/2201.04455
     - Demo Paper: https://github.com/edahelsinki/slisemap/blob/main/examples/demo_paper.pdf
+    - Presentation: https://github.com/edahelsinki/slisemap/blob/main/examples/demo_presentation.pdf
     - Examples: https://github.com/edahelsinki/slisemap/tree/main/examples
 
 plugins:
-  # - offline 
+  # - offline
   - search
   - mkdocstrings:
       handlers:
