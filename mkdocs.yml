@@ -43,7 +43,9 @@ nav:
   - Links:
     - GitHub: https://github.com/edahelsinki/slisemap
     - PyPI: https://pypi.org/project/slisemap/
-    - Paper: https://arxiv.org/abs/2201.04455
+    - Paper: https://doi.org/10.1007/s10994-022-06261-1
+    - arXiv: https://arxiv.org/abs/2201.04455
+    - Demo Video: https://youtu.be/zvcFYItwRlQ
     - Demo Paper: https://github.com/edahelsinki/slisemap/blob/main/examples/demo_paper.pdf
     - Presentation: https://github.com/edahelsinki/slisemap/blob/main/examples/demo_presentation.pdf
     - Examples: https://github.com/edahelsinki/slisemap/tree/main/examples
