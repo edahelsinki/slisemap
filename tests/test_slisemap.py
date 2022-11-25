@@ -36,6 +36,24 @@ def test_lbfgs():
     assert l1 >= l2
 
 
+def test_only_B():
+    set_seed(653274)
+    sm = get_slisemap(30, 4)
+    sm.optimise(1, 3)
+    sm2 = Slisemap(
+        X=sm.get_X(intercept=False, numpy=False),
+        y=sm.get_Y(numpy=False),
+        radius=sm.radius,
+        lasso=sm.lasso,
+        intercept=sm.intercept,
+        Z0=sm.get_Z(numpy=False),
+    )
+    sm2.optimise(1, 3, only_B=True)
+    assert_allclose(sm.get_Z(), sm2.get_Z())
+    assert_approx_ge(sm.value(), sm2.value())
+    sm.lbfgs(only_B=True)
+
+
 def test_fit_new():
     sm, _ = get_slisemap2(60, 5, cheat=True, seed=239177)
     sm.lbfgs()
