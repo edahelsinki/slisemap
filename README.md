@@ -1,4 +1,4 @@
-[![PyPI](https://img.shields.io/pypi/v/slise)](https://pypi.org/project/slisemap/)
+[![PyPI](https://img.shields.io/pypi/v/slisemap)](https://pypi.org/project/slisemap/)
 [![Documentation](https://github.com/edahelsinki/slisemap/actions/workflows/python-docs.yml/badge.svg)](https://edahelsinki.github.io/slisemap/slisemap/)
 [![Tests](https://github.com/edahelsinki/slisemap/actions/workflows/python-pytest.yml/badge.svg)](https://github.com/edahelsinki/slisemap/actions/workflows/python-pytest.yml)
 [![Licence: MIT](https://img.shields.io/github/license/edahelsinki/slisemap)](https://github.com/edahelsinki/slisemap/blob/master/LICENSE)
