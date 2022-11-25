@@ -9,15 +9,16 @@ SLISEMAP then simultaneously finds local explanations for all data items and bui
 items with similar local explanations are projected nearby. The explanations consists of
 "white box" models that locally approximate the "black box" model.
 
-SLISEMAP uses *PyTorch* for efficient optimisation, and optional GPU-acceleration. For
-more information see the the [repository](https://github.com/edahelsinki/slisemap) or
-the [paper](https://arxiv.org/abs/2201.04455).
+SLISEMAP uses *PyTorch* for efficient optimisation, and optional GPU-acceleration.
+For more information see the the [repository](https://github.com/edahelsinki/slisemap),
+the [documentation](https://edahelsinki.github.io/slisemap/slisemap), or the
+[paper](https://doi.org/10.1007/s10994-022-06261-1).
 
 Citation
 --------
 > Björklund, A., Mäkelä, J. & Puolamäki, K. (2022).  
 > SLISEMAP: Supervised dimensionality reduction through local explanations.  
-> arXiv:2201.04455 [cs], https://arxiv.org/abs/2201.04455.  
+> Machine Learning, DOI 10.1007/s10994-022-06261-1.  
 
 
 Example Usage
