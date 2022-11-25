@@ -82,7 +82,9 @@ def get_slisemap2(
 
 
 def assert_allclose(x, y, label="", *args, **kwargs):
-    assert np.allclose(x, y, *args, **kwargs), f"{label}: {x} != {y}"
+    assert np.allclose(
+        x, y, *args, **kwargs
+    ), f"{label}: {x} != {y}\nmax abs diff: {np.max(np.abs(x-y))}"
 
 
 def all_finite(x: Union[float, np.ndarray], *args: Union[float, np.ndarray]) -> bool:
