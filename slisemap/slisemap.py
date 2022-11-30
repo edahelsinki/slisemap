@@ -1119,6 +1119,7 @@ class Slisemap:
         cls,
         f: Union[str, PathLike, BinaryIO],
         device: Union[None, str, torch.device] = None,
+        map_location: Optional[Any] = None,
         **kwargs,
     ) -> "Slisemap":
         """Load a Slisemap object from a file.
@@ -1130,14 +1131,17 @@ class Slisemap:
         Note that this is a classmethod, use it with: `Slisemap.load(...)`.
 
         Args:
-            f (Union[str, PathLike, BinaryIO]): Either a Path-like object or a (readable) File-like object.
-            device (Union[None, str, torch.device], optional): Device to load the tensors to (or the original if None). Defaults to None.
+            f: Either a Path-like object or a (readable) File-like object.
+            device: Device to load the tensors to (or the original if None). Defaults to None.
+            map_location: The same as `device` (this is the name used by `torch.load`). Defaults to None.
         Keyword Args:
-            **kwargs (Dict[str, Any]): Parameters forwarded to `torch.load`.
+            **kwargs: Parameters forwarded to `torch.load`.
 
         Returns:
-            (Slisemap): The loaded Slisemap object.
+            The loaded Slisemap object.
         """
+        if device is None:
+            device = map_location
         sm = torch.load(f, map_location=device, **kwargs)
         sm.random_state = sm._rs0
         return sm
