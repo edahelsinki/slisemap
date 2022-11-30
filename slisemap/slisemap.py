@@ -4,7 +4,18 @@ This module contains the `Slisemap` class.
 
 from copy import copy
 from os import PathLike
-from typing import Any, BinaryIO, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    BinaryIO,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -745,14 +756,22 @@ class Slisemap:
         else:
             return tonp(entropy) if numpy else entropy
 
-    def lbfgs(self, max_iter: int = 500, *, only_B: bool = False, **kwargs) -> float:
+    def lbfgs(
+        self,
+        max_iter: int = 500,
+        verbose: bool = False,
+        *,
+        only_B: bool = False,
+        **kwargs,
+    ) -> float:
 
         """Optimise Slisemap using LBFGS.
 
         Args:
             max_iter: Maximum number of LBFGS iterations. Defaults to 500.
-            only_B: Only optimise B. Defaults to False.
+            verbose: Print status messages. Defaults to False.
         Keyword Args:
+            only_B: Only optimise B. Defaults to False.
             **kwargs: Optional keyword arguments to LBFGS.
 
         Returns:
@@ -764,7 +783,13 @@ class Slisemap:
         loss_ = self._get_loss_fn()
         loss_fn = lambda: loss_(self._X, self._Y, B, Z)
         pre_loss = loss_fn().cpu().detach().item()
-        LBFGS(loss_fn, [B] if only_B else [Z, B], max_iter=max_iter, **kwargs)
+        LBFGS(
+            loss_fn,
+            [B] if only_B else [Z, B],
+            max_iter=max_iter,
+            verbose=verbose,
+            **kwargs,
+        )
         post_loss = loss_fn().cpu().detach().item()
 
         if np.isnan(post_loss):
@@ -776,18 +801,23 @@ class Slisemap:
             # Just running LBFGS for one iteration seems to avoid those issues.
             Z = self._Z.detach().requires_grad_(True)
             B = self._B.detach().requires_grad_(True)
-            LBFGS(loss_fn, [B] if only_B else [Z, B], max_iter=1, **kwargs)
+            LBFGS(
+                loss_fn,
+                [B] if only_B else [Z, B],
+                max_iter=1,
+                verbose=verbose,
+                **kwargs,
+            )
             post_loss = loss_fn().cpu().detach().item()
-        elif pre_loss <= post_loss:
-            Z = self._Z
-            B = self._B
-            post_loss = pre_loss
-
-        self._Z = Z.detach()
-        self._B = B.detach()
-        self._normalise()
-
-        return post_loss
+        if post_loss < pre_loss:
+            self._Z = Z.detach()
+            self._B = B.detach()
+            self._normalise()
+            return post_loss
+        else:
+            if verbose:
+                print("Slisemap.lbfgs: No improvement found")
+            return pre_loss
 
     def escape(
         self,
@@ -835,7 +865,7 @@ class Slisemap:
         max_escapes: int = 100,
         max_iter: int = 500,
         escape_fn: Callable = escape_neighbourhood,
-        verbose: bool = False,
+        verbose: Literal[0, 1, 2] = 0,
         noise: float = 1e-4,
         only_B: bool = False,
         **kwargs,
@@ -847,7 +877,7 @@ class Slisemap:
             max_escapes: Maximum number of escapes. Defaults to 100.
             max_iter: Maximum number of LBFGS iterations per round. Defaults to 500.
             escape_fn: Escape function (see [slisemap.escape][]). Defaults to [escape_neighbourhood][slisemap.escape.escape_neighbourhood].
-            verbose: Print status messages. Defaults to False.
+            verbose: Print status messages (0: no, 1: some, 2: all). Defaults to 0.
             noise: Scale of the noise added to the embedding matrix if it looses rank after an escape. Defaults to 1e-4.
             only_B: Only optimise the local models, not the embedding. Defaults to False.
         Keyword Args:
@@ -857,27 +887,43 @@ class Slisemap:
             The loss value.
         """
         loss = np.repeat(np.inf, 2)
-        loss[0] = self.lbfgs(max_iter=max_iter, only_B=True, **kwargs)
+        loss[0] = self.lbfgs(
+            max_iter=max_iter,
+            only_B=True,
+            increase_tolerance=not only_B,
+            verbose=verbose > 1,
+            **kwargs,
+        )
         if verbose:
             i = 0
-            print(f"LBFGS  {i:2d}: {loss[0]:.2f}")
+            print(f"Slisemap.optimise LBFGS  {i:2d}: {loss[0]:.2f}")
         if only_B:
             return loss[0]
         cc = CheckConvergence(patience, max_escapes)
-        while not cc.has_converged(loss, self.copy):
+        while not cc.has_converged(loss, self.copy, verbose=verbose > 1):
             self.escape(escape_fn=escape_fn, noise=noise)
             loss[1] = self.value()
             if verbose:
-                print(f"Escape {i:2d}: {loss[1]:.2f}")
-            loss[0] = self.lbfgs(max_iter=max_iter, **kwargs)
+                print(f"Slisemap.optimise Escape {i:2d}: {loss[1]:.2f}")
+            loss[0] = self.lbfgs(
+                max_iter=max_iter,
+                increase_tolerance=True,
+                verbose=verbose > 1,
+                **kwargs,
+            )
             if verbose:
                 i += 1
-                print(f"LBFGS  {i:2d}: {loss[0]:.2f}")
+                print(f"Slisemap.optimise LBFGS  {i:2d}: {loss[0]:.2f}")
         self._Z = cc.optimal._Z
         self._B = cc.optimal._B
-        loss = self.lbfgs(max_iter=max_iter * 2, **kwargs)
+        loss = self.lbfgs(
+            max_iter=max_iter * 2,
+            increase_tolerance=False,
+            verbose=verbose > 1,
+            **kwargs,
+        )
         if verbose:
-            print(f"Final    : {loss:.2f}")
+            print(f"Slisemap.optimise Final    : {loss:.2f}")
         return loss
 
     optimize = optimise

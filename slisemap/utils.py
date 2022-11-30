@@ -93,7 +93,7 @@ class CheckConvergence:
     def __init__(self, patience: float = 3, max_iter=1 << 20):
         self.current = np.inf
         self.best = np.asarray(np.inf)
-        self.counter = 0
+        self.counter = 0.0
         self.patience = patience
         self.optimal = None
         self.max_iter = max_iter
@@ -103,6 +103,7 @@ class CheckConvergence:
         self,
         loss: Union[float, Sequence[float]],
         store: Optional[Callable[[], Any]] = None,
+        verbose: bool = False,
     ) -> bool:
         """Check if the optimisation has converged.
 
@@ -112,6 +113,7 @@ class CheckConvergence:
         Args:
             loss: The latest loss value(s).
             store: Function that returns the current state for storing in `self.optimal_state`. Defaults to None.
+            verbose: Pring debug messages. Defaults to False.
 
         Returns:
             True if the optimisation has converged.
@@ -122,7 +124,7 @@ class CheckConvergence:
             _warn("Loss is `nan`", CheckConvergence.has_converged)
             return True
         if np.any(loss < self.best):
-            self.counter = 0  # Reset the counter if a new best
+            self.counter = 0.0  # Reset the counter if a new best
             if store is not None and loss.item(0) < self.best.item(0):
                 self.optimal = store()
             self.best = np.minimum(loss, self.best)
@@ -130,6 +132,10 @@ class CheckConvergence:
             # Increase the counter if no improvement
             self.counter += np.mean(self.current <= loss)
         self.current = loss
+        if verbose:
+            print(
+                f"CheckConvergence: patience={self.patience-self.counter:g}/{self.patience:g}   iter={self.iter}/{self.max_iter}"
+            )
         return self.counter >= self.patience or self.iter >= self.max_iter
 
 
@@ -140,6 +146,8 @@ def LBFGS(
     max_eval: Optional[int] = None,
     line_search_fn: Optional[str] = "strong_wolfe",
     time_limit: Optional[float] = None,
+    increase_tolerance: bool = False,
+    verbose: bool = False,
     **kwargs,
 ) -> torch.optim.LBFGS:
     """Optimise a function using LBFGS.
@@ -151,11 +159,16 @@ def LBFGS(
         max_eval: Maximum number of function evaluations. Defaults to `1.25 * max_iter`.
         line_search_fn: Line search method (None or "strong_wolfe"). Defaults to "strong_wolfe".
         time_limit: Optional time limit for the optimisation (in seconds). Defaults to None.
+        increase_tolerance: Increase the tolerances for convergence checking. Defaults to False.
+        verbose: Print status messages. Defaults to False.
         **kwargs: Argumemts passed to `torch.optim.LBFGS`.
 
     Returns:
         The LBFGS optimiser.
     """
+    if increase_tolerance:
+        kwargs["tolerance_grad"] = 100 * kwargs.get("tolerance_grad", 1e-7)
+        kwargs["tolerance_change"] = 100 * kwargs.get("tolerance_change", 1e-9)
     optimiser = torch.optim.LBFGS(
         variables,
         max_iter=max_iter if time_limit is None else 20,
@@ -171,14 +184,18 @@ def LBFGS(
         return loss
 
     if time_limit is None:
-        optimiser.step(closure)
+        loss = optimiser.step(closure)
     else:
         start = timer()
         prev_evals = 0
         for _ in range((max_iter - 1) // 20 + 1):
-            optimiser.step(closure)
+            loss = optimiser.step(closure)
+            if not torch.all(torch.isfinite(loss)).cpu().detach().item():
+                break
             if timer() - start > time_limit:
-                break  # Time limit exceeded
+                if verbose:
+                    print("LBFGS: Time limit exceeded!")
+                break
             tot_evals = optimiser.state_dict()["state"][0]["func_evals"]
             if prev_evals + 1 == tot_evals:
                 break  # LBFGS has converged if it returns after one evaluation
@@ -188,6 +205,19 @@ def LBFGS(
                     break  # Number of evaluations exceeded max_eval
                 optimiser.param_groups[0]["max_eval"] -= tot_evals
             # The number of steps is limited by ceiling(max_iter/20) with 20 iterations per step
+
+    if verbose:
+        iters = optimiser.state_dict()["state"][0]["n_iter"]
+        evals = optimiser.state_dict()["state"][0]["func_evals"]
+        loss = loss.mean().cpu().detach().item()
+        if not np.isfinite(loss):
+            print("LBFGS: Loss is not finite {}!")
+        elif iters >= max_iter:
+            print("LBFGS: Maximum number of iterations exceeded!")
+        elif max_eval is not None and evals >= max_eval:
+            print("LBFGS: Maximum number of evaluations exceeded!")
+        else:
+            print(f"LBFGS: Converged in {iters} iterations")
 
     return optimiser
 
