@@ -116,26 +116,26 @@ class Slisemap:
         """Create a Slisemap object.
 
         Args:
-            X (Union[np.ndarray, torch.Tensor]): Data matrix.
-            y (Union[np.ndarray, torch.Tensor]): Target vector or matrix.
-            radius (float, optional): The radius of the embedding Z. Defaults to 3.5.
-            d (int, optional): The number of embedding dimensions. Defaults to 2.
-            lasso (Optional[float], optional): Lasso regularisation coefficient. Defaults to 0.0.
-            ridge (Optional[float], optional): Ridge regularisation coefficient. Defaults to 0.0.
-            z_norm (float, optional): Z normalisation regularisation coefficient. Defaults to 0.01.
-            intercept (bool, optional): Should an intercept term be added to `X`. Defaults to True.
-            local_model (Callable[[torch.Tensor, torch.Tensor], torch.Tensor], optional): Local model prediction function (see [slisemap.local_models][]). Defaults to [linear_regression][slisemap.local_models.linear_regression].
-            local_loss (Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor], optional): Local model loss function (see [slisemap.local_models][]). Defaults to [linear_regression_loss][slisemap.local_models.linear_regression_loss].
-            coefficients (Union[None, int, Callable[[torch.Tensor, torch.Tensor], int]], optional): The number of local model coefficients or a function: `f(X,Y)->coefficients`. Defaults to `X.shape[1] * Y.shape[1]`.
-            distance (Callable[[torch.Tensor, torch.Tensor], torch.Tensor], optional): Distance function. Defaults to `torch.cdist` (Euclidean distance).
-            kernel (Callable[[torch.Tensor], torch.Tensor], optional): Kernel function. Defaults to [softmax_row_kernel][slisemap.loss.softmax_row_kernel].
-            B0 (Union[None, np.ndarray, torch.Tensor], optional): Initial value for B (random if None). Defaults to None.
-            Z0 (Union[None, np.ndarray, torch.Tensor], optional): Initial value for Z (PCA if None). Defaults to None.
-            jit (bool, optional): Just-In-Time compile the loss function for increased performance (see `torch.jit.trace` for caveats). Defaults to True.
-            random_state (Optional[int], optional): Set an explicit seed for the random number generator (i.e. `torch.manual_seed`). Defaults to None.
-            dtype (torch.dtype, optional): Floating type. Defaults to `torch.float32`.
-            device (Optional[torch.device], optional): Torch device (see `cuda` if None). Defaults to None.
-            cuda (Optional[bool], optional): Use cuda if available. Defaults to True, if the data is large enough.
+            X: Data matrix.
+            y: Target vector or matrix.
+            radius: The radius of the embedding Z. Defaults to 3.5.
+            d: The number of embedding dimensions. Defaults to 2.
+            lasso: Lasso regularisation coefficient. Defaults to 0.0.
+            ridge: Ridge regularisation coefficient. Defaults to 0.0.
+            z_norm: Z normalisation regularisation coefficient. Defaults to 0.01.
+            intercept: Should an intercept term be added to `X`. Defaults to True.
+            local_model: Local model prediction function (see [slisemap.local_models][]). Defaults to [linear_regression][slisemap.local_models.linear_regression].
+            local_loss: Local model loss function (see [slisemap.local_models][]). Defaults to [linear_regression_loss][slisemap.local_models.linear_regression_loss].
+            coefficients: The number of local model coefficients or a function: `f(X,Y)->coefficients`. Defaults to `X.shape[1] * Y.shape[1]`.
+            distance: Distance function. Defaults to `torch.cdist` (Euclidean distance).
+            kernel: Kernel function. Defaults to [softmax_row_kernel][slisemap.loss.softmax_row_kernel].
+            B0: Initial value for B (random if None). Defaults to None.
+            Z0: Initial value for Z (PCA if None). Defaults to None.
+            jit: Just-In-Time compile the loss function for increased performance (see `torch.jit.trace` for caveats). Defaults to True.
+            random_state: Set an explicit seed for the random number generator (i.e. `torch.manual_seed`). Defaults to None.
+            dtype: Floating type. Defaults to `torch.float32`.
+            device: Torch device (see `cuda` if None). Defaults to None.
+            cuda: Use cuda if available. Defaults to True, if the data is large enough.
         """
         for s in Slisemap.__slots__:
             # Initialise all attributes (to avoid attribute errors)
@@ -473,7 +473,7 @@ class Slisemap:
         Note that this resets the random state.
 
         Keyword Args:
-            **kwargs (Dict[str, Any]): Optional arguments to `torch.Tensor.cuda`
+            **kwargs: Optional arguments to `torch.Tensor.cuda`
         """
         X = self._X.cuda(**kwargs)
         self._X = X
@@ -488,7 +488,7 @@ class Slisemap:
         Note that this resets the random state.
 
         Keyword Args:
-            **kwargs (Dict[str, Any]): Optional arguments to `torch.Tensor.cpu`
+            **kwargs: Optional arguments to `torch.Tensor.cpu`
         """
         X = self._X.cpu(**kwargs)
         self._X = X
@@ -507,10 +507,10 @@ class Slisemap:
         This function JITs and caches the loss function for efficiency.
 
         Args:
-            individual (bool, optional): Make a loss function for individual losses. Defaults to False.
+            individual: Make a loss function for individual losses. Defaults to False.
 
         Returns:
-            (Callable[[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor]): Loss function: `f(X, Y, B, Z) -> loss`.
+            Loss function: `f(X, Y, B, Z) -> loss`.
         """
         if individual:
             return make_loss(
@@ -552,10 +552,10 @@ class Slisemap:
         This function JITs and caches the loss function for efficiency.
 
         Args:
-            individual (bool, optional): Make a loss function for individual losses. Defaults to False.
+            individual: Make a loss function for individual losses. Defaults to False.
 
         Returns:
-            (Callable[[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor]): Loss function: `f(X, Y, B, Z) -> loss`.
+            Loss function: `f(X, Y, B, Z) -> loss`.
 
         Deprecated:
             1.2: Use `_gets_loss_fn` instead!
@@ -604,12 +604,12 @@ class Slisemap:
         """Get the Z matrix
 
         Args:
-            scale (bool, optional): Scale the returned `Z` to match self.radius. Defaults to True.
-            rotate (bool, optional): Rotate the returned `Z` so that the first dimension is the major axis. Defaults to False.
-            numpy (bool, optional): Return the matrix as a numpy (True) or pytorch (False) matrix. Defaults to True.
+            scale: Scale the returned `Z` to match self.radius. Defaults to True.
+            rotate: Rotate the returned `Z` so that the first dimension is the major axis. Defaults to False.
+            numpy: Return the matrix as a numpy (True) or pytorch (False) matrix. Defaults to True.
 
         Returns:
-            (Union[np.ndarray, torch.Tensor]): The `Z` matrix.
+           : The `Z` matrix.
         """
         self._normalise()
         if scale and self.radius > 0:
@@ -624,10 +624,10 @@ class Slisemap:
         """Get the B matrix
 
         Args:
-            numpy (bool, optional): Return the matrix as a numpy (True) or pytorch (False) matrix. Defaults to True.
+            numpy: Return the matrix as a numpy (True) or pytorch (False) matrix. Defaults to True.
 
         Returns:
-            (Union[np.ndarray, torch.Tensor]): The `B` matrix.
+           : The `B` matrix.
         """
         return tonp(self._B) if numpy else self._B
 
@@ -635,10 +635,10 @@ class Slisemap:
         """Get the embedding distance matrix
 
         Args:
-            numpy (bool, optional): Return the matrix as a numpy (True) or pytorch (False) matrix. Defaults to True.
+            numpy: Return the matrix as a numpy (True) or pytorch (False) matrix. Defaults to True.
 
         Returns:
-            (Union[np.ndarray, torch.Tensor]): The `D` matrix.
+           : The `D` matrix.
         """
         Z = self.get_Z(rotate=False, scale=True, numpy=False)
         D = self._distance(Z, Z)
@@ -653,12 +653,12 @@ class Slisemap:
         """Get the loss matrix: [B.shape[0], X.shape[0]].
 
         Args:
-            X (Union[None, np.ndarray, torch.Tensor], optional): Optional replacement for the training X. Defaults to None.
-            Y (Union[None, float, np.ndarray, torch.Tensor], optional): Optional replacement for the training Y. Defaults to None.
-            numpy (bool, optional): Return the matrix as a numpy (True) or pytorch (False) matrix. Defaults to True.
+            X: Optional replacement for the training X. Defaults to None.
+            Y: Optional replacement for the training Y. Defaults to None.
+            numpy: Return the matrix as a numpy (True) or pytorch (False) matrix. Defaults to True.
 
         Returns:
-            (Union[np.ndarray, torch.Tensor]): The `L` matrix.
+           : The `L` matrix.
         """
         X = self._as_new_X(X)
         Y = self._as_new_Y(Y, X.shape[0])
@@ -669,10 +669,10 @@ class Slisemap:
         """Get the weight matrix.
 
         Args:
-            numpy (bool, optional): Return the matrix as a numpy.ndarray instead of a torch.Tensor. Defaults to True.
+            numpy: Return the matrix as a numpy.ndarray instead of a torch.Tensor. Defaults to True.
 
         Returns:
-            (Union[np.ndarray, torch.Tensor]): The `W` matrix.
+           : The `W` matrix.
         """
         W = self.kernel(self.get_D(numpy=False))
         return tonp(W) if numpy else W
@@ -683,11 +683,11 @@ class Slisemap:
         """Get the data matrix.
 
         Args:
-            numpy (bool, optional): Return the matrix as a numpy.ndarray instead of a torch.Tensor. Defaults to True.
-            intercept (bool, optional): Include the intercept column (if `self.intercept == True`). Defaults to True.
+            numpy: Return the matrix as a numpy.ndarray instead of a torch.Tensor. Defaults to True.
+            intercept: Include the intercept column (if `self.intercept == True`). Defaults to True.
 
         Returns:
-            (Union[np.ndarray, torch.Tensor]): The `X` matrix.
+           : The `X` matrix.
         """
         X = self._X if intercept or not self._intercept else self._X[:, :-1]
         return tonp(X) if numpy else X
@@ -698,11 +698,11 @@ class Slisemap:
         """Get the target matrix.
 
         Args:
-            numpy (bool, optional): Return the matrix as a numpy.ndarray instead of a torch.Tensor. Defaults to True.
-            ravel (bool, optional): Remove the second dimension if it is singular (i.e. turn it into a vector). Defaults to False.
+            numpy: Return the matrix as a numpy.ndarray instead of a torch.Tensor. Defaults to True.
+            ravel: Remove the second dimension if it is singular (i.e. turn it into a vector). Defaults to False.
 
         Returns:
-            (Union[np.ndarray, torch.Tensor]): The `Y` matrix.
+           : The `Y` matrix.
         """
         Y = self._Y.ravel() if ravel else self._Y
         return tonp(Y) if numpy else Y
@@ -713,10 +713,10 @@ class Slisemap:
         """Calculate the loss value.
 
         Args:
-            individual (bool, optional): Give loss individual loss values for the data points. Defaults to False.
+            individual: Give loss individual loss values for the data points. Defaults to False.
 
         Returns:
-            (Union[float, np.ndarray, torch.Tensor]): loss value(s).
+            The loss value(s).
         """
         loss = self._get_loss_fn(individual)
         loss = loss(X=self._X, Y=self._Y, B=self._B, Z=self._Z)
@@ -731,11 +731,11 @@ class Slisemap:
         """Compute row-wise entropy of the `W` matrix induced by `Z`.
 
         Args:
-            aggregate (bool, optional): Aggregate the row-wise entropies into one scalar. Defaults to True.
-            numpy (bool, optional): return as a numpy.ndarray or float instead of torch.Tensor. Defaults to True.
+            aggregate: Aggregate the row-wise entropies into one scalar. Defaults to True.
+            numpy: Return a `numpy.ndarray` or `float` instead of a `torch.Tensor`. Defaults to True.
 
         Returns:
-            (Union[float, np.ndarray, torch.Tensor]): entropy
+            The entropy.
         """
         W = self.get_W(False)
         entropy = -(W * W.log()).sum(dim=1)
@@ -750,13 +750,13 @@ class Slisemap:
         """Optimise Slisemap using LBFGS.
 
         Args:
-            max_iter (int, optional): Maximum number of LBFGS iterations. Defaults to 500.
-            only_B (bool, optional): Only optimise B. Defaults to False.
+            max_iter: Maximum number of LBFGS iterations. Defaults to 500.
+            only_B: Only optimise B. Defaults to False.
         Keyword Args:
-            **kwargs (Dict[str, Any]): Optional keyword arguments to LBFGS.
+            **kwargs: Optional keyword arguments to LBFGS.
 
         Returns:
-            (float): The loss value.
+            The loss value.
         """
         Z = self._Z.detach().clone().requires_grad_(True)
         B = self._B.detach().clone().requires_grad_(True)
@@ -799,9 +799,9 @@ class Slisemap:
         This is done by finding another item (in the optimal neighbourhood) and copying its values for Z and B.
 
         Args:
-            force_move (bool, optional): Do not allow the items to pair with themselves. Defaults to True.
-            escape_fn (Callable, optional): Escape function (see [slisemap.escape][]). Defaults to [escape_neighbourhood][slisemap.escape.escape_neighbourhood].
-            noise (float, optional): Scale of the noise added to the embedding matrix if it looses rank after an escape (recommended for gradient based optimisers). Defaults to 0.0.
+            force_move: Do not allow the items to pair with themselves. Defaults to True.
+            escape_fn: Escape function (see [slisemap.escape][]). Defaults to [escape_neighbourhood][slisemap.escape.escape_neighbourhood].
+            noise: Scale of the noise added to the embedding matrix if it looses rank after an escape (recommended for gradient based optimisers). Defaults to 0.0.
         """
         self._B, self._Z = escape_fn(
             X=self._X,
@@ -843,18 +843,18 @@ class Slisemap:
         """Optimise Slisemap by alternating between [self.lbfgs()][slisemap.slisemap.Slisemap.lbfgs] and [self.escape()][slisemap.slisemap.Slisemap.escape] until convergence.
 
         Args:
-            patience (int, optional): Number of escapes without improvement before stopping. Defaults to 2.
-            max_escapes (int, optional): Maximum number of escapes. Defaults to 100.
-            max_iter (int, optional): Maximum number of LBFGS iterations per round. Defaults to 500.
-            escape_fn (Callable, optional): Escape function (see [slisemap.escape][]). Defaults to [escape_neighbourhood][slisemap.escape.escape_neighbourhood].
-            verbose (bool, optional): Print status messages. Defaults to False.
-            noise (float, optional): Scale of the noise added to the embedding matrix if it looses rank after an escape. Defaults to 1e-4.
-            only_B (bool, optional): Only optimise the local models, not the embedding. Defaults to False.
+            patience: Number of escapes without improvement before stopping. Defaults to 2.
+            max_escapes: Maximum number of escapes. Defaults to 100.
+            max_iter: Maximum number of LBFGS iterations per round. Defaults to 500.
+            escape_fn: Escape function (see [slisemap.escape][]). Defaults to [escape_neighbourhood][slisemap.escape.escape_neighbourhood].
+            verbose: Print status messages. Defaults to False.
+            noise: Scale of the noise added to the embedding matrix if it looses rank after an escape. Defaults to 1e-4.
+            only_B: Only optimise the local models, not the embedding. Defaults to False.
         Keyword Args:
-            **kwargs (Dict[str, Any]): Optional keyword arguments to Slisemap.lbfgs.
+            **kwargs: Optional keyword arguments to Slisemap.lbfgs.
 
         Returns:
-            (float): The loss value.
+            The loss value.
         """
         loss = np.repeat(np.inf, 2)
         loss[0] = self.lbfgs(max_iter=max_iter, only_B=True, **kwargs)
@@ -900,20 +900,20 @@ class Slisemap:
             2. Optionally finetune the embedding(s) and model(s) using LBFG.
 
         Args:
-            Xnew (Union[np.ndarray, torch.Tensor]): New data point(s).
-            ynew (Union[float, np.ndarray, torch.Tensor]): New target(s).
-            optimise (bool, optional): Should the embedding and model be optimised (after finding the neighbourhood). Defaults to True.
-            between (bool, optional): If `optimise=True`, should the new points affect each other? Defaults to True.
-            escape_fn (Callable, optional): Escape function (see [slisemap.escape][]). Defaults to [escape_neighbourhood][slisemap.escape.escape_neighbourhood].
-            loss (bool, optional): Return a vector of individual losses for the new items. Defaults to False.
-            verbose (bool, optional): Print status messages. Defaults to False.
+            Xnew: New data point(s).
+            ynew: New target(s).
+            optimise: Should the embedding and model be optimised (after finding the neighbourhood). Defaults to True.
+            between: If `optimise=True`, should the new points affect each other? Defaults to True.
+            escape_fn: Escape function (see [slisemap.escape][]). Defaults to [escape_neighbourhood][slisemap.escape.escape_neighbourhood].
+            loss: Return a vector of individual losses for the new items. Defaults to False.
+            verbose: Print status messages. Defaults to False.
         Keyword Args:
-            **kwargs (Dict[str, Any]): Optional keyword arguments to LBFGS.
+            **kwargs: Optional keyword arguments to LBFGS.
 
         Returns:
-            Bnew (np.ndarray): Local model coefficients for the new data.
-            Znew (np.ndarray): Embedding(s) for the new data.
-            loss (Optional[np.ndarray]): Individual losses if `loss=True`.
+            Bnew: Local model coefficients for the new data.
+            Znew: Embedding(s) for the new data.
+            loss: Individual losses if `loss=True`.
         """
         Xnew = self._as_new_X(Xnew)
         n = Xnew.shape[0]
@@ -1022,13 +1022,13 @@ class Slisemap:
         """Predict new outcomes when the data and embedding is known.
 
         Args:
-            Xnew (Union[np.ndarray, torch.Tensor]): Data matrix.
-            Znew (Union[np.ndarray, torch.Tensor]): Embedding matrix.
+            Xnew: Data matrix.
+            Znew: Embedding matrix.
         Keyword Args:
-            **kwargs (Dict[str, Any]): Optional keyword arguments to LBFGS.
+            **kwargs: Optional keyword arguments to LBFGS.
 
         Returns:
-            (np.ndarray): Prediction matrix.
+            Prediction matrix.
         """
         Xnew = torch.as_tensor(Xnew, **self.tensorargs)
         Xnew = torch.atleast_2d(Xnew)
@@ -1064,7 +1064,7 @@ class Slisemap:
         """Make a copy of this Slisemap that references as much of the same torch-data as possible.
 
         Returns:
-            (Slisemap): An almost shallow copy of this Slisemap object.
+            An almost shallow copy of this Slisemap object.
         """
         other = copy(self)  # Shallow copy!
         # Deep copy these:
@@ -1091,10 +1091,10 @@ class Slisemap:
         The default file extension is ".sm".
 
         Args:
-            f (Union[str, PathLike, BinaryIO]): Either a Path-like object or a (writable) File-like object.
-            any_extension (bool, optional): Do not check the file extension. Defaults to False.
+            f: Either a Path-like object or a (writable) File-like object.
+            any_extension: Do not check the file extension. Defaults to False.
         Keyword Args:
-            **kwargs (Dict[str, Any]): Parameters forwarded to `torch.save`.
+            **kwargs: Parameters forwarded to `torch.save`.
         """
         if not any_extension and isinstance(f, (str, PathLike)):
             if not str(f).endswith(".sm"):
@@ -1153,13 +1153,13 @@ class Slisemap:
         This method (with a fixed random seed) is used for plotting Slisemap solutions.
 
         Args:
-            clusters (int): Number of clusters.
-            B (Optional[np.ndarray], optional): B matrix. Defaults to self.get_B().
-            random_state (int, optional): random_state for the KMeans clustering. Defaults to 42.
+            clusters: Number of clusters.
+            B: B matrix. Defaults to self.get_B().
+            random_state: random_state for the KMeans clustering. Defaults to 42.
 
         Returns:
-            labels (np.ndarray): Vector of cluster labels.
-            centres (np.ndarray): Matrix of cluster centres.
+            labels: Vector of cluster labels.
+            centres: Matrix of cluster centres.
         """
         B = B if B is not None else self.get_B()
         km = KMeans(clusters, random_state=random_state).fit(B)
@@ -1189,20 +1189,20 @@ class Slisemap:
         """Plot the Slisemap solution using seaborn.
 
         Args:
-            title (str, optional): Title of the plot. Defaults to "".
-            variables (Optional[Sequence[str]], optional): List of variable names. Defaults to None.
-            targets (Union[None, str, Sequence[str]], optional): Target name(s). Defaults to None.
-            clusters (Union[None, int, np.ndarray], optional): Can be None (plot individual losses), an int (plot k-means clusters of B), or an array of known cluster id:s. Defaults to None.
-            bars (Union[bool, int], optional): If the clusters are from k-means, plot the local models in a bar plot. If `bar` is an int then only plot the most influential variables. Defaults to False.
-            jitter (Union[float, np.ndarray], optional): Add random (normal) noise to the embedding, or a matrix with pre-generated noise matching Z. Defaults to 0.0.
-            B (Optional[np.ndarray], optional): Override self.get_B() in the plot. Defaults to None.
-            Z (Optional[np.ndarray], optional): Override self.get_Z() in the plot. Defaults to None.
-            show (bool, optional): Show the plot. Defaults to True.
+            title: Title of the plot. Defaults to "".
+            variables: List of variable names. Defaults to None.
+            targets: Target name(s). Defaults to None.
+            clusters: Can be None (plot individual losses), an int (plot k-means clusters of B), or an array of known cluster id:s. Defaults to None.
+            bars: If the clusters are from k-means, plot the local models in a bar plot. If `bar` is an int then only plot the most influential variables. Defaults to False.
+            jitter: Add random (normal) noise to the embedding, or a matrix with pre-generated noise matching Z. Defaults to 0.0.
+            B: Override self.get_B() in the plot. Defaults to None.
+            Z: Override self.get_Z() in the plot. Defaults to None.
+            show: Show the plot. Defaults to True.
         Keyword Args:
-            **kwargs (Dict[str, Any]): Additional arguments to `plt.subplots`.
+            **kwargs: Additional arguments to `plt.subplots`.
 
         Returns:
-            (Optional[Figure]): Matplotlib figure if `show=False`.
+            `matplotlib.figure.Figure` if `show=False`.
         """
         Z = self.get_Z(rotate=True) if Z is None else Z
         B = self.get_B() if B is None else B
@@ -1311,21 +1311,21 @@ class Slisemap:
         Indicate the selected item(s) either via `X` and `Y` or via `index`.
 
         Args:
-            X (Union[None, np.ndarray, torch.Tensor], optional): Data matrix for the selected data item(s). Defaults to None.
-            Y (Union[None, float, np.ndarray, torch.Tensor], optional): Response matrix for the selected data item(s). Defaults to None.
-            index (Union[None, int, Sequence[int]], optional): Index/indices of the selected data item(s). Defaults to None.
-            title (str, optional): Title of the plot. Defaults to "".
-            jitter (Union[float, np.ndarray], optional): Add random (normal) noise to the embedding, or a matrix with pre-generated noise matching Z. Defaults to 0.0.
-            col_wrap (int, optional): Maximum number of columns. Defaults to 4.
-            selection (bool, optional): Mark the selected data item(s), if index is given. Defaults to True.
-            legend_inside (bool, optional): Move the legend inside the grid (if there is an empty cell). Defaults to True.
-            Z (Optional[np.ndarray], optional): Override `self.get_Z()` in the plot. Defaults to None.
-            show (bool, optional): Show the plot. Defaults to True.
+            X: Data matrix for the selected data item(s). Defaults to None.
+            Y: Response matrix for the selected data item(s). Defaults to None.
+            index: Index/indices of the selected data item(s). Defaults to None.
+            title: Title of the plot. Defaults to "".
+            jitter: Add random (normal) noise to the embedding, or a matrix with pre-generated noise matching Z. Defaults to 0.0.
+            col_wrap: Maximum number of columns. Defaults to 4.
+            selection: Mark the selected data item(s), if index is given. Defaults to True.
+            legend_inside: Move the legend inside the grid (if there is an empty cell). Defaults to True.
+            Z: Override `self.get_Z()` in the plot. Defaults to None.
+            show: Show the plot. Defaults to True.
         Keyword Args:
-            **kwargs (Dict[str, Any]): Additional arguments to seaborn.relplot.
+            **kwargs: Additional arguments to seaborn.relplot.
 
         Returns:
-            (Optional[sns.FacetGrid]): Seaborn FacetGrid if `show=False`.
+            `seaborn.FacetGrid` if `show=False`.
         """
         Z = Z if Z is not None else self.get_Z(rotate=True)
         if Z.shape[1] == 1:
@@ -1434,23 +1434,23 @@ class Slisemap:
         """Plot the distribution of the variables, either as density plots (with clusters) or as scatterplots.
 
         Args:
-            title (str, optional): Title of the plot. Defaults to "".
-            X (Optional[np.ndarray], optional): Replacement data matrix (e.g. without normalisation). Defaults to None.
-            Y (Optional[np.ndarray], optional): Replacement target matrix (e.g. without normalisation). Defaults to None.
-            variables (Optional[List[str]], optional): List of variable names. Defaults to None.
-            targets (Union[None, str, Sequence[str]], optional): Target name(s). Defaults to None.
-            clusters (Union[None, int, np.ndarray], optional): Number of cluster or vector of cluster labels. Defaults to None.
-            scatter (bool, optional): Use scatterplots instead of density plots (clusters are ignored). Defaults to False.
-            jitter (float, optional): Add jitter to the scatterplots. Defaults to 0.0.
-            col_wrap (int, optional): Maximum number of columns. Defaults to 4.
-            legend_inside (bool, optional): Move the legend inside the grid (if there is an empty cell). Defaults to True.
-            B (Optional[np.ndarray], optional): Override self.get_B() when finding the clusters (only used if clusters is an int). Defaults to None.
-            show (bool, optional): Show the plot. Defaults to True.
+            title: Title of the plot. Defaults to "".
+            X: Replacement data matrix (e.g. without normalisation). Defaults to None.
+            Y: Replacement target matrix (e.g. without normalisation). Defaults to None.
+            variables: List of variable names. Defaults to None.
+            targets: Target name(s). Defaults to None.
+            clusters: Number of cluster or vector of cluster labels. Defaults to None.
+            scatter: Use scatterplots instead of density plots (clusters are ignored). Defaults to False.
+            jitter: Add jitter to the scatterplots. Defaults to 0.0.
+            col_wrap: Maximum number of columns. Defaults to 4.
+            legend_inside: Move the legend inside the grid (if there is an empty cell). Defaults to True.
+            B: Override self.get_B() when finding the clusters (only used if clusters is an int). Defaults to None.
+            show: Show the plot. Defaults to True.
         Keyword Args:
-            **kwargs (Dict[str, Any]): Additional arguments to seaborn.relplot.
+            **kwargs: Additional arguments to seaborn.relplot.
 
         Returns:
-            (Optional[sns.FacetGrid]): Seaborn FacetGrid if `show=False`.
+            `seaborn.FacetGrid` if `show=False`.
         """
         if X is None:
             X = self.get_X(intercept=False)

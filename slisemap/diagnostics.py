@@ -41,13 +41,13 @@ def global_model_losses(
     """Train a global model
 
     Args:
-        sm (Slisemap): Slisemap object.
-        indices (Optional[np.ndarray], optional): Optional subsampling indices. Defaults to None.
+        sm: Slisemap object.
+        indices: Optional subsampling indices. Defaults to None.
     Keyword Args:
-        **kwargs (Dict[str, Any]): Optional keyword arguments to LBFGS.
+        **kwargs: Optional keyword arguments to LBFGS.
 
     Returns:
-        (torch.Tensor): Vector of individual losses for a global model.
+        Vector of individual losses for a global model.
     """
     if indices is None:
         X = sm._X
@@ -71,8 +71,8 @@ def print_diagnostics(diagnostics: Dict[str, np.ndarray], summary: bool = False)
     """Print diagnostic results.
 
     Args:
-        diagnostics (Dict[str, np.ndarray]): Dictionary of diagnostic results.
-        summary (bool, optional): Print only one summary for all the diagnostics. Defaults to False.
+        diagnostics: Dictionary of diagnostic results.
+        summary: Print only one summary for all the diagnostics. Defaults to False.
     """
     if summary:
         issues = reduce(lambda a, b: a + b.astype(int), diagnostics.values())
@@ -104,16 +104,16 @@ def plot_diagnostics(
     """Plot diagnostic results.
 
     Args:
-        Z (Union[Slisemap, np.ndarray]): The Slisemap object, or embedding matrix.
-        diagnostics (Dict[str, np.ndarray]): Dictionary of diagnostic results.
-        summary (bool, optional): Combine multiple diagnostics into one plot. Defaults to False.
-        title (str, optional): Title of the plot. Defaults to "Slisemap Diagnostics".
-        show (bool, optional): Show the plot. Defaults to True.
+        Z: The Slisemap object, or embedding matrix.
+        diagnostics: Dictionary of diagnostic results.
+        summary: Combine multiple diagnostics into one plot. Defaults to False.
+        title: Title of the plot. Defaults to "Slisemap Diagnostics".
+        show: Show the plot. Defaults to True.
     Keyword Args:
-        **kwargs (Dict[str, Any]): Additional parameters to `seaborn.relplot`.
+        **kwargs: Additional parameters to `seaborn.relplot`.
 
     Returns:
-        (Optional[sns.FacetGrid]): Seaborn FacetGrid if show=False.
+        `seaborn.FacetGrid` if `show=False`.
     """
     if isinstance(Z, Slisemap):
         Z = Z.get_Z(rotate=True)
@@ -175,11 +175,11 @@ def distant_diagnostic(sm: Slisemap, max_distance: float = 10.0) -> np.ndarray:
     """Check if any data item in the embedding is too far way.
 
     Args:
-        sm (Slisemap): Trained Slisemap solution.
-        max_distance (float, optional): Maximum distance from origo in the embedding. Defaults to 10.0.
+        sm: Trained Slisemap solution.
+        max_distance: Maximum distance from origo in the embedding. Defaults to 10.0.
 
     Returns:
-        (np.ndarray): Boolean mask of problematic data items.
+        Boolean mask of problematic data items.
     """
     return np.sum(sm.get_Z() ** 2, 1) > max_distance**2
 
@@ -190,11 +190,11 @@ def heavyweight_diagnostic(
     """Check if any data item has a self-weight that is too large.
 
     Args:
-        sm (Slisemap): Trained Slisemap solution.
-        min_size (Union[float, int], optional): Miniumum neighbourhood/cluster size (as a fraction or absolute number). Defaults to 0.1.
+        sm: Trained Slisemap solution.
+        min_size: Miniumum neighbourhood/cluster size (as a fraction or absolute number). Defaults to 0.1.
 
     Returns:
-        (np.ndarray): Boolean mask of problematic data items.
+        Boolean mask of problematic data items.
     """
     return tonp(sm.get_W(numpy=False).diag() > _frac(sm.n, min_size))
 
@@ -205,11 +205,11 @@ def lightweight_diagnostic(
     """Check if any data item has a self-weight that is too small
 
     Args:
-        sm (Slisemap): Trained Slisemap solution.
-        max_size (Union[float, int], optional): Maximum neighbourhood/cluster size (as a fraction or absolute number). Defaults to 0.5.
+        sm: Trained Slisemap solution.
+        max_size: Maximum neighbourhood/cluster size (as a fraction or absolute number). Defaults to 0.5.
 
     Returns:
-        (np.ndarray): Boolean mask of problematic data items.
+        Boolean mask of problematic data items.
     """
     return tonp(sm.get_W(numpy=False).diag() < (1 / _size(sm.n, max_size)))
 
@@ -220,12 +220,12 @@ def weight_neighbourhood_diagnostic(
     """Check if any data item has a neighbourhood that is too small/large by counting the number of non-lightweight neighbours.
 
     Args:
-        sm (Slisemap): Trained Slisemap solution.
-        min_size (Union[float, int], optional): Miniumum neighbourhood/cluster size (as a fraction or absolute number). Defaults to 0.1.
-        max_size (Union[float, int], optional): Maximum neighbourhood/cluster size (as a fraction or absolute number). Defaults to 0.5.
+        sm: Trained Slisemap solution.
+        min_size: Miniumum neighbourhood/cluster size (as a fraction or absolute number). Defaults to 0.1.
+        max_size: Maximum neighbourhood/cluster size (as a fraction or absolute number). Defaults to 0.5.
 
     Returns:
-        (np.ndarray): Boolean mask of problematic data items.
+        Boolean mask of problematic data items.
     """
     min_size = _size(sm.n, min_size)
     max_size = _size(sm.n, max_size)
@@ -241,13 +241,13 @@ def loss_neighbourhood_diagnostic(
     """Check if any data item has a neighbourhood that is too small/large by comparing local losses to global losses.
 
     Args:
-        sm (Slisemap): Trained Slisemap solution.
-        min_size (Union[float, int], optional): Miniumum neighbourhood/cluster size (as a fraction or absolute number). Defaults to 0.1.
-        smoothing (bool, optional): Smooth the sorted losses to avoid sensitivity to outliers. Defaults to True.
-        median (bool, optional): Compare against the median global loss instead of the mean global loss. Defaults to False.
+        sm: Trained Slisemap solution.
+        min_size: Miniumum neighbourhood/cluster size (as a fraction or absolute number). Defaults to 0.1.
+        smoothing: Smooth the sorted losses to avoid sensitivity to outliers. Defaults to True.
+        median: Compare against the median global loss instead of the mean global loss. Defaults to False.
 
     Returns:
-        (np.ndarray): Boolean mask of problematic data items.
+        Boolean mask of problematic data items.
     """
     min_size = _size(sm.n, min_size)
     if median:
@@ -277,12 +277,12 @@ def global_loss_diagnostic(
     """Check if any local model is actually a global model.
 
     Args:
-        sm (Slisemap): Trained Slisemap solution.
-        bootstrap (int, optional): Number of (bootstrap) global models to train. Defaults to 10.
-        sd (float, optional): Number of standard deviations from the mean (of global models losses) to consider a local model global. Defaults to 1.0.
+        sm: Trained Slisemap solution.
+        bootstrap: Number of (bootstrap) global models to train. Defaults to 10.
+        sd: Number of standard deviations from the mean (of global models losses) to consider a local model global. Defaults to 1.0.
 
     Returns:
-        (np.ndarray): Boolean mask of problematic data items.
+        Boolean mask of problematic data items.
     """
     glosses = [
         global_model_losses(sm, np.random.randint(sm.n, size=sm.n)).sum().cpu().item()
@@ -297,11 +297,11 @@ def quantile_loss_diagnostic(sm: Slisemap, quantile: float = 0.4) -> np.ndarray:
     """Check if any fidelity is worse than a quantile of all losses.
 
     Args:
-        sm (Slisemap): Trained Slisemap solution.
-        quantile (float, optional): The quantile percentage. Defaults to 0.4.
+        sm: Trained Slisemap solution.
+        quantile: The quantile percentage. Defaults to 0.4.
 
     Returns:
-        (np.ndarray): Boolean mask of problematic data items.
+        Boolean mask of problematic data items.
     """
     L = sm.get_L(numpy=False)
     treshold = torch.quantile(L.ravel(), _frac(sm.n, quantile))
@@ -314,11 +314,11 @@ def optics_diagnostic(
     """Use a clustering method to check for problematic data items in the embedding.
 
     Args:
-        sm (Slisemap): Trained Slisemap solution.
-        min_size (Union[float, int], optional): Miniumum neighbourhood/cluster size (as a fraction or absolute number). Defaults to 0.1.
+        sm: Trained Slisemap solution.
+        min_size: Miniumum neighbourhood/cluster size (as a fraction or absolute number). Defaults to 0.1.
 
     Returns:
-        (np.ndarray): Boolean mask of problematic data items.
+        Boolean mask of problematic data items.
     """
     from sklearn.cluster import OPTICS
 
@@ -336,14 +336,14 @@ def diagnose(
     """Run multiple diagnostics.
 
     Args:
-        sm (Slisemap): Trained Slisemap solution.
-        min_size (Union[float, int], optional): Miniumum neighbourhood/cluster size (as a fraction or absolute number). Defaults to 0.1.
-        max_size (Union[float, int], optional): Maximum neighbourhood/cluster size (as a fraction or absolute number). Defaults to 0.5.
-        max_distance (float, optional): Maximum distance from origo in the embedding. Defaults to 10.0.
-        conservative (bool, optional): Only run the most conservative diagnostics. Defaults to False.
+        sm: Trained Slisemap solution.
+        min_size: Miniumum neighbourhood/cluster size (as a fraction or absolute number). Defaults to 0.1.
+        max_size: Maximum neighbourhood/cluster size (as a fraction or absolute number). Defaults to 0.5.
+        max_distance: Maximum distance from origo in the embedding. Defaults to 10.0.
+        conservative: Only run the most conservative diagnostics. Defaults to False.
 
     Returns:
-        (Dict[str, np.ndarray]): Dictionary of the the diagnostics results.
+        Dictionary of the the diagnostics results.
     """
     if conservative:
         return {

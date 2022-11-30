@@ -16,11 +16,11 @@ def linear_regression(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
     """Prediction function for linear regression.
 
     Args:
-        X (torch.Tensor): Data matrix [n_x, m].
-        B (torch.Tensor): Coefficient Matrix [n_b, m].
+        X: Data matrix [n_x, m].
+        B: Coefficient Matrix [n_b, m].
 
     Returns:
-        (torch.Tensor): Prediction tensor [n_b, n_x, 1]
+        Prediction tensor [n_b, n_x, 1]
     """
     _assert_no_trace(
         lambda: X.shape[1] == B.shape[1],
@@ -34,11 +34,11 @@ def multiple_linear_regression(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor
     """Prediction function for multiple linear regression.
 
     Args:
-        X (torch.Tensor): Data matrix [n_x, m].
-        B (torch.Tensor): Coefficient Matrix [n_b, m*p].
+        X: Data matrix [n_x, m].
+        B: Coefficient Matrix [n_b, m*p].
 
     Returns:
-        (torch.Tensor): Prediction tensor [n_b, n_x, p]
+        Prediction tensor [n_b, n_x, p]
     """
     n_x, m = X.shape
     n_b, o = B.shape
@@ -55,12 +55,12 @@ def linear_regression_loss(
     """Least squares loss function for (multiple) linear regresson.
 
     Args:
-        Ytilde (torch.Tensor): Predicted values [n_b, n_x, p].
-        Y (torch.Tensor): Ground truth values [n_x, p].
-        B (Optional[torch.Tensor], optional): Coefficient matrix (not used, the regularisation is part of Slisemap). Defaults to None.
+        Ytilde: Predicted values [n_b, n_x, p].
+        Y: Ground truth values [n_x, p].
+        B: Coefficient matrix (not used, the regularisation is part of Slisemap). Defaults to None.
 
     Returns:
-        (torch.Tensor): Loss values [n_b, n_x].
+        Loss values [n_b, n_x].
     """
     return ((Ytilde - Y.expand(Ytilde.shape)) ** 2).sum(dim=-1)
 
@@ -73,12 +73,12 @@ def linear_regression_coefficients(
     """Get the number of coefficients for a (multiple) linear regression.
 
     Args:
-        X (Union[torch.Tensor, np.ndarray]): Data matrix.
-        Y (Union[torch.Tensor, np.ndarray]): Target matrix.
-        intercept (bool, optional): Add an (additional) intercept to X. Defaults to False.
+        X: Data matrix.
+        Y: Target matrix.
+        intercept: Add an (additional) intercept to X. Defaults to False.
 
     Returns:
-        (int): Number of coefficients (columns of B).
+        Number of coefficients (columns of B).
     """
     return (X.shape[1] + intercept) * (1 if len(Y.shape) < 2 else Y.shape[1])
 
@@ -88,11 +88,11 @@ def logistic_regression(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
     Note that the number of coefficients is `m * (p-1)` due to the normalisation of softmax.
 
     Args:
-        X (torch.Tensor): Data matrix [n_x, m].
-        B (torch.Tensor): Coefficient Matrix [n_b, m*(p-1)].
+        X: Data matrix [n_x, m].
+        B: Coefficient Matrix [n_b, m*(p-1)].
 
     Returns:
-        (torch.Tensor): Prediction tensor [n_b, n_x, p]
+        Prediction tensor [n_b, n_x, p]
     """
     n_x, m = X.shape
     n_b, o = B.shape
@@ -109,12 +109,12 @@ def logistic_regression_loss(
     """Squared Hellinger distance function for (multinomial) logistic regression.
 
     Args:
-        Ytilde (torch.Tensor): Predicted values [n_b, n_x, p].
-        Y (torch.Tensor): Ground truth values [n_x, p].
-        B (Optional[torch.Tensor], optional): Coefficient matrix (not used, the regularisation is part of Slisemap). Defaults to None.
+        Ytilde: Predicted values [n_b, n_x, p].
+        Y: Ground truth values [n_x, p].
+        B: Coefficient matrix (not used, the regularisation is part of Slisemap). Defaults to None.
 
     Returns:
-        (torch.Tensor): Loss values [n_b, n_x].
+        Loss values [n_b, n_x].
     """
     return ((Ytilde.sqrt() - Y.sqrt().expand(Ytilde.shape)) ** 2).sum(dim=-1) * 0.5
 
@@ -127,12 +127,12 @@ def logistic_regression_coefficients(
     """Get the number of coefficients for a (multinomial) logistic regression.
 
     Args:
-        X (Union[torch.Tensor, np.ndarray]): Data matrix.
-        Y (Union[torch.Tensor, np.ndarray]): Target matrix.
-        intercept (bool, optional): Add an (additional) intercept to X. Defaults to False.
+        X: Data matrix.
+        Y: Target matrix.
+        intercept: Add an (additional) intercept to X. Defaults to False.
 
     Returns:
-        (int): Number of coefficients (columns of B).
+        Number of coefficients (columns of B).
     """
     _assert(
         len(Y.shape) > 1 and Y.shape[1] > 1,
@@ -147,11 +147,11 @@ def logistic_regression_log(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
     Note that the number of coefficients is `m * (p-1)` due to the normalisation of softmax.
 
     Args:
-        X (torch.Tensor): Data matrix [n_x, m].
-        B (torch.Tensor): Coefficient Matrix [n_b, m*(p-1)].
+        X: Data matrix [n_x, m].
+        B: Coefficient Matrix [n_b, m*(p-1)].
 
     Returns:
-        (torch.Tensor): Prediction tensor [n_b, n_x, p]
+        Prediction tensor [n_b, n_x, p]
     """
     n_x, m = X.shape
     n_b, o = B.shape
@@ -169,11 +169,11 @@ def logistic_regression_log_loss(
     Note that this loss function expects `Ytilde` to be the **log of the predicted probabilities**.
 
     Args:
-        Ytilde (torch.Tensor): Predicted logits [n_b, n_x, p].
-        Y (torch.Tensor): Ground truth values [n_x, p].
-        B (Optional[torch.Tensor], optional): Coefficient matrix (not used, the regularisation is part of Slisemap). Defaults to None.
+        Ytilde: Predicted logits [n_b, n_x, p].
+        Y: Ground truth values [n_x, p].
+        B: Coefficient matrix (not used, the regularisation is part of Slisemap). Defaults to None.
 
     Returns:
-        (torch.Tensor): Loss values [n_b, n_x].
+        Loss values [n_b, n_x].
     """
     return torch.sum(-Y * Ytilde - (1 - Y) * torch.log1p(-torch.exp(Ytilde)), -1)

@@ -60,10 +60,10 @@ def tonp(x: torch.Tensor) -> np.ndarray:
     """Convert a torch.Tensor to a numpy.ndarray.
 
     Args:
-        x (torch.Tensor): Input torch.Tensor.
+        x: Input torch.Tensor.
 
     Returns:
-        (np.ndarray): Output numpy.ndarray.
+        Output numpy.ndarray.
     """
     return x.cpu().detach().numpy()
 
@@ -76,8 +76,8 @@ class CheckConvergence:
     Use it for, e.g., escape+optimisation cycles in Slisemap.
 
     Args:
-        patience (float, optional): How long should the optimisation continue without improvement. Defaults to 3.
-        max_iter (int, optional): The maximum number of iterations. Defaults to `2**20`.
+        patience: How long should the optimisation continue without improvement. Defaults to 3.
+        max_iter: The maximum number of iterations. Defaults to `2**20`.
     """
 
     __slots__ = {
@@ -110,11 +110,11 @@ class CheckConvergence:
         The other losses are only used for checking convergence.
 
         Args:
-            loss (Union[float, Sequence[float]]): The latest loss value(s).
-            store (Optional[Callable[[], Any]], optional): Function that returns the current state for storing in `self.optimal_state`. Defaults to None.
+            loss: The latest loss value(s).
+            store: Function that returns the current state for storing in `self.optimal_state`. Defaults to None.
 
         Returns:
-            (bool): True if the optimisation has converged.
+            True if the optimisation has converged.
         """
         self.iter += 1
         loss = np.asarray(loss)
@@ -145,16 +145,16 @@ def LBFGS(
     """Optimise a function using LBFGS.
 
     Args:
-        loss_fn (Callable[[], torch.Tensor]): Function that returns a value to be minimised.
-        variables (List[torch.Tensor]): List of variables to optimise (must have `requires_grad=True`).
-        max_iter (int, optional): Maximum number of LBFGS iterations. Defaults to 500.
-        max_eval (Optional[int], optional): Maximum number of function evaluations. Defaults to `1.25 * max_iter`.
-        line_search_fn (Optional[str], optional): Line search method (None or "strong_wolfe"). Defaults to "strong_wolfe".
-        time_limit (Optional[float], optional): Optional time limit for the optimisation (in seconds). Defaults to None.
-        **kwargs (optional): Argumemts passed to `torch.optim.LBFGS`.
+        loss_fn: Function that returns a value to be minimised.
+        variables: List of variables to optimise (must have `requires_grad=True`).
+        max_iter: Maximum number of LBFGS iterations. Defaults to 500.
+        max_eval: Maximum number of function evaluations. Defaults to `1.25 * max_iter`.
+        line_search_fn: Line search method (None or "strong_wolfe"). Defaults to "strong_wolfe".
+        time_limit: Optional time limit for the optimisation (in seconds). Defaults to None.
+        **kwargs: Argumemts passed to `torch.optim.LBFGS`.
 
     Returns:
-        (torch.optim.LBFGS): The LBFGS optimiser.
+        The LBFGS optimiser.
     """
     optimiser = torch.optim.LBFGS(
         variables,
@@ -200,13 +200,13 @@ def PCA_rotation(
     If the PCA fails (e.g. if original matrix is not full rank) then this shows a warning instead of throwing an error (returns a dummy rotation).
 
     Args:
-        X (torch.Tensor): The original matrix.
-        components (int, optional): The maximum number of components in the embedding. Defaults to `min(*X.shape)`.
-        full (bool, optional): Use a full SVD for the PCA (slower). Defaults to True.
-        niter (int, optional): The number of iterations when a randomised approach is used. Defaults to 10.
+        X: The original matrix.
+        components: The maximum number of components in the embedding. Defaults to `min(*X.shape)`.
+        full: Use a full SVD for the PCA (slower). Defaults to True.
+        niter: The number of iterations when a randomised approach is used. Defaults to 10.
 
     Returns:
-        (torch.Tensor): Rotation matrix that turns the original matrix into the embedded space.
+        Rotation matrix that turns the original matrix into the embedded space.
     """
     try:
         components = min(*X.shape, components) if components > 0 else min(*X.shape)
@@ -233,16 +233,16 @@ def global_model(
     """Find coefficients for a global model.
 
     Args:
-        X (torch.Tensor): Data matrix.
-        Y (torch.Tensor): Target matrix.
-        local_model (Callable[[torch.Tensor, torch.Tensor], torch.Tensor]): Prediction function for the model.
-        local_loss (Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor]): Loss function for the model.
-        coefficients (Optional[int], optional): Number of coefficients. Defaults to X.shape[1].
-        lasso (float, optional): Lasso-regularisation coefficient for B ($\\lambda_{lasso} * ||B||_1$). Defaults to 0.0.
-        ridge (float, optional): Ridge-regularisation coefficient for B ($\\lambda_{ridge} * ||B||_2$). Defaults to 0.0.
+        X: Data matrix.
+        Y: Target matrix.
+        local_model: Prediction function for the model.
+        local_loss: Loss function for the model.
+        coefficients: Number of coefficients. Defaults to X.shape[1].
+        lasso: Lasso-regularisation coefficient for B ($\\lambda_{lasso} * ||B||_1$). Defaults to 0.0.
+        ridge: Ridge-regularisation coefficient for B ($\\lambda_{ridge} * ||B||_2$). Defaults to 0.0.
 
     Returns:
-        (torch.Tensor): Global model coefficients.
+        Global model coefficients.
     """
     shape = (1, X.shape[1] * Y.shape[1] if coefficients is None else coefficients)
     B = torch.zeros(shape, dtype=X.dtype, device=X.device).requires_grad_(True)
@@ -263,10 +263,10 @@ def dict_array(dict: Dict[str, Any]) -> Dict[str, np.ndarray]:
     """Turn a dictionary of various values to a dictionary of numpy arrays with equal length inplace.
 
     Args:
-        dict (Dict[str, Any]): Dictionary.
+        dict: Dictionary.
 
     Returns:
-        (Dict[str, np.ndarray]): The same dictionary where the values are numpy arrays with equal length.
+        The same dictionary where the values are numpy arrays with equal length.
     """
     n = 1
     for k, v in dict.items():
@@ -285,11 +285,11 @@ def dict_append(df: Dict[str, np.ndarray], d: Dict[str, Any]) -> Dict[str, np.nd
     """Append a dictionary of values to a dictionary of numpy arrays (see `dict_array`) inplace.
 
     Args:
-        df (Dict[str, np.ndarray]): Dictionary of numpy arrays.
-        d (Dict[str, Any]): Dictionary to append.
+        df: Dictionary of numpy arrays.
+        d: Dictionary to append.
 
     Returns:
-        (Dict[str, np.ndarray]): The same dictionary as `df` with the values from `d` appended.
+        The same dictionary as `df` with the values from `d` appended.
     """
     d = dict_array(d)
     for k in df.keys():
@@ -304,10 +304,10 @@ def dict_concat(
     Calls `dict_array` to pre-process the dictionaries.
 
     Args:
-        dicts (Union[Sequence[Dict[str, Any]], Iterator[Dict[str, Any]]]): Sequence or Generator with dictionaries (all must have the same keys).
+        dicts: Sequence or Generator with dictionaries (all must have the same keys).
 
     Returns:
-        (Dict[str, np.ndarray]): Combined dictionary.
+        Combined dictionary.
     """
     if isinstance(dicts, Sequence):
         dicts = (d for d in dicts)
