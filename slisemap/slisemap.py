@@ -1303,7 +1303,7 @@ class Slisemap:
             if Z.shape[0] == self._Z.shape[0]:
                 L = tonp(torch.diagonal(self.get_L(numpy=False))).ravel()
                 sns.scatterplot(x=Z[:, 0], y=Z[:, 1], hue=L, palette="crest", ax=ax1)
-                ax1.legend(title="Fidelity")
+                ax1.legend(title="Local Loss")
             else:
                 sns.scatterplot(x=Z[:, 0], y=Z[:, 1], palette="crest", ax=ax1)
             sns.heatmap(B, ax=ax2, center=0, cmap="RdBu", robust=True)
@@ -1397,7 +1397,7 @@ class Slisemap:
                 index = [index]
             L = self.get_L()[:, index]
         df = dict_concat(
-            {"SLISEMAP 1": Z[:, 0], "SLISEMAP 2": Z[:, 1], "Fidelity": loss, "i": i}
+            {"SLISEMAP 1": Z[:, 0], "SLISEMAP 2": Z[:, 1], "Local Loss": loss, "i": i}
             for i, loss in enumerate(L.T)
         )
         kwargs.setdefault("palette", "crest")
@@ -1406,8 +1406,8 @@ class Slisemap:
             data=df,
             x="SLISEMAP 1",
             y="SLISEMAP 2",
-            hue="Fidelity",
-            hue_norm=tuple(np.quantile(df["Fidelity"], (0.0, 0.9))),
+            hue="Local Loss",
+            hue_norm=tuple(np.quantile(df["Local Loss"], (0.0, 0.9))),
             col="i",
             col_wrap=min(col_wrap, L.shape[1]),
             legend=False,
@@ -1417,7 +1417,7 @@ class Slisemap:
         legend = {
             f"{l:.{2}f}": Patch(color=cmap(n))
             for l, n in zip(
-                np.linspace(*np.quantile(df["Fidelity"], (0.0, 0.9)), 6).round(2),
+                np.linspace(*np.quantile(df["Local Loss"], (0.0, 0.9)), 6).round(2),
                 np.linspace(0.0, 1.0, 6),
             )
         }
@@ -1430,7 +1430,7 @@ class Slisemap:
                 ax.scatter(Z[i, 0], Z[i, 1], size, "#fd8431", "X")
             g.add_legend(
                 legend,
-                "Fidelity",
+                "Local Loss",
                 loc="lower center" if inside else "upper right",
                 bbox_to_anchor=(1 - w, h * 0.35, w * 0.9, h * 0.6) if inside else None,
             )
@@ -1446,7 +1446,7 @@ class Slisemap:
         else:
             g.add_legend(
                 legend,
-                "Fidelity",
+                "Local Loss",
                 loc="center" if inside else "center right",
                 bbox_to_anchor=(1 - w, 0.05, w * 0.9, h * 0.9) if inside else None,
             )
