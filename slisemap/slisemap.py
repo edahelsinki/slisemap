@@ -23,7 +23,6 @@ import seaborn as sns
 import torch
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
-from matplotlib.patches import Patch
 from sklearn.cluster import KMeans
 
 from slisemap.escape import escape_neighbourhood
@@ -34,6 +33,7 @@ from slisemap.utils import (
     CheckConvergence,
     PCA_rotation,
     _assert,
+    _create_legend,
     _warn,
     dict_concat,
     global_model,
@@ -628,7 +628,7 @@ class Slisemap:
         else:
             Z = self._Z
         if rotate:
-            Z = Z @ PCA_rotation(Z)
+            Z = Z @ PCA_rotation(Z, center=False)
         return tonp(Z) if numpy else Z
 
     def get_B(self, numpy: bool = True) -> Union[np.ndarray, torch.Tensor]:
@@ -1302,8 +1302,20 @@ class Slisemap:
         if clusters is None:
             if Z.shape[0] == self._Z.shape[0]:
                 L = tonp(torch.diagonal(self.get_L(numpy=False))).ravel()
-                sns.scatterplot(x=Z[:, 0], y=Z[:, 1], hue=L, palette="crest", ax=ax1)
-                ax1.legend(title="Local Loss")
+                hue_norm = tuple(np.quantile(L, (0.0, 0.95)))
+                sns.scatterplot(
+                    x=Z[:, 0],
+                    y=Z[:, 1],
+                    hue=L,
+                    hue_norm=hue_norm,
+                    palette="crest",
+                    ax=ax1,
+                    legend=False,
+                )
+                ax1.legend(
+                    *_create_legend(hue_norm, plt.get_cmap("crest"), 5),
+                    title="Local Loss",
+                )
             else:
                 sns.scatterplot(x=Z[:, 0], y=Z[:, 1], palette="crest", ax=ax1)
             sns.heatmap(B, ax=ax2, center=0, cmap="RdBu", robust=True)
@@ -1402,25 +1414,20 @@ class Slisemap:
         )
         kwargs.setdefault("palette", "crest")
         kwargs.setdefault("kind", "scatter")
+        hue_norm = tuple(np.quantile(L, (0.0, 0.95)))
         g: sns.FacetGrid = sns.relplot(
             data=df,
             x="SLISEMAP 1",
             y="SLISEMAP 2",
             hue="Local Loss",
-            hue_norm=tuple(np.quantile(df["Local Loss"], (0.0, 0.9))),
+            hue_norm=hue_norm,
             col="i",
             col_wrap=min(col_wrap, L.shape[1]),
             legend=False,
             **kwargs,
         )
-        cmap = plt.get_cmap(kwargs["palette"])
-        legend = {
-            f"{l:.{2}f}": Patch(color=cmap(n))
-            for l, n in zip(
-                np.linspace(*np.quantile(df["Local Loss"], (0.0, 0.9)), 6).round(2),
-                np.linspace(0.0, 1.0, 6),
-            )
-        }
+        handles, labels = _create_legend(hue_norm, plt.get_cmap(kwargs["palette"]), 6)
+        legend = {l: h for h, l in zip(handles, labels)}
         inside = legend_inside and col_wrap < L.shape[1] and L.shape[1] % col_wrap != 0
         w = 1 / col_wrap
         h = 1 / ((L.shape[1] - 1) // col_wrap + 1)

@@ -4,10 +4,12 @@ This module contains various useful functions.
 
 import warnings
 from timeit import default_timer as timer
-from typing import Any, Callable, Dict, Iterator, List, Optional, Sequence, Union
+from typing import Any, Callable, Dict, Iterator, List, Optional, Sequence, Union, Tuple
 
 import numpy as np
 import torch
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 
 
 class SlisemapException(Exception):
@@ -223,7 +225,11 @@ def LBFGS(
 
 
 def PCA_rotation(
-    X: torch.Tensor, components: int = -1, full: bool = True, niter: int = 10
+    X: torch.Tensor,
+    components: int = -1,
+    center: bool = True,
+    full: bool = True,
+    niter: int = 10,
 ) -> torch.Tensor:
     """Calculate the rotation matrix from PCA.
 
@@ -232,6 +238,7 @@ def PCA_rotation(
     Args:
         X: The original matrix.
         components: The maximum number of components in the embedding. Defaults to `min(*X.shape)`.
+        center: Center the matrix before calculating the PCA.
         full: Use a full SVD for the PCA (slower). Defaults to True.
         niter: The number of iterations when a randomised approach is used. Defaults to 10.
 
@@ -241,9 +248,11 @@ def PCA_rotation(
     try:
         components = min(*X.shape, components) if components > 0 else min(*X.shape)
         if full:
+            if center:
+                X = X - X.mean(dim=(-2,), keepdim=True)
             return torch.linalg.svd(X, full_matrices=False)[2].T[:, :components]
         else:
-            return torch.pca_lowrank(X, components, center=False, niter=niter)[2]
+            return torch.pca_lowrank(X, components, center=center, niter=niter)[2]
     except:
         _warn("Could not perform PCA", PCA_rotation)
         z = torch.zeros((X.shape[1], components), dtype=X.dtype, device=X.device)
@@ -366,3 +375,22 @@ def _expand_variable_names(
         _expand_variable_names,
     )
     return variables
+
+
+def _create_legend(
+    hue_norm: Tuple[float, float], cmap: Any, markers: int = 5
+) -> Tuple[List[Line2D], List[str]]:
+    handles = [
+        Line2D([], [], 0, color=cmap(n), marker="o")
+        for n in np.linspace(0.0, 1.0, markers)
+    ]
+    digits = int(np.floor(np.log(np.max(np.abs(hue_norm))) / np.log(10)))
+    if digits > 0:
+        decimals = max(1 - digits, 0)
+    else:
+        digits = 0
+        decimals = -digits + 1
+    labels = [
+        f"{l:{digits + decimals}.{decimals}f}" for l in np.linspace(*hue_norm, markers)
+    ]
+    return handles, labels

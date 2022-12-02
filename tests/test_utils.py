@@ -73,10 +73,15 @@ def test_PCA():
 def test_PCA_for_rotation():
     for i in range(1, 6):
         X = torch.normal(0, 1, size=(10 + i * 5, i))
-        XR = X @ PCA_rotation(X)
+        XR = X @ PCA_rotation(X, center=False)
         assert X.shape == XR.shape
-        # print(i, torch.abs(torch.cdist(X, X) - torch.cdist(XR, XR)).max())
         assert torch.allclose(torch.cdist(X, X), torch.cdist(XR, XR), atol=2e-3)
+        Xvar = torch.sqrt(torch.sum(X**2) / X.shape[0])
+        XRvar = torch.sqrt(torch.sum(XR**2) / X.shape[0])
+        assert torch.allclose(Xvar, XRvar, atol=1e-6)
+        Xmd = torch.sqrt(torch.sum(torch.mean(X, 0)**2))
+        XRmd = torch.sqrt(torch.sum(torch.mean(XR, 0)**2))
+        assert torch.allclose(Xmd, XRmd, atol=1e-6)
 
 
 def test_dict():
