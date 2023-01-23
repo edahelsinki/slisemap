@@ -40,6 +40,8 @@ from slisemap.utils import (
     tonp,
     _expand_variable_names,
     _deprecated,
+    to_tensor,
+    Metadata,
 )
 
 
@@ -68,6 +70,7 @@ class Slisemap:
         coefficients: The number of local model coefficients.
         distance: Distance function.
         kernel: Kernel function.
+        metadata: Dictionary of arbitrary metadata such as variable names.
         jit: Just-In-Time compile the loss function for increased performance (see `torch.jit.trace` for caveats).
         random_state: Set an explicit seed for the random number generator (i.e. `torch.manual_seed`).
     """
@@ -93,12 +96,13 @@ class Slisemap:
         "_jit",
         "_random_state",
         "_rs0",
+        "metadata",
     )
 
     def __init__(
         self,
-        X: Union[np.ndarray, torch.Tensor],
-        y: Union[np.ndarray, torch.Tensor],
+        X: Union[np.ndarray, torch.Tensor, Sequence[Any]],
+        y: Union[np.ndarray, torch.Tensor, Sequence[Any]],
         radius: float = 3.5,
         d: int = 2,
         lasso: Optional[float] = None,
@@ -116,8 +120,8 @@ class Slisemap:
         ] = None,
         distance: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] = torch.cdist,
         kernel: Callable[[torch.Tensor], torch.Tensor] = softmax_row_kernel,
-        B0: Union[None, np.ndarray, torch.Tensor] = None,
-        Z0: Union[None, np.ndarray, torch.Tensor] = None,
+        B0: Union[None, np.ndarray, torch.Tensor, Sequence[Any]] = None,
+        Z0: Union[None, np.ndarray, torch.Tensor, Sequence[Any]] = None,
         jit: bool = True,
         random_state: Optional[int] = None,
         dtype: torch.dtype = torch.float32,
@@ -170,26 +174,23 @@ class Slisemap:
         self._intercept = intercept
         self._jit = jit
         self._rs0 = random_state
+        self.metadata = Metadata(self)
 
         if device is None:
             if cuda is None and isinstance(X, torch.Tensor):
                 device = X.device
-            else:
-                if cuda is None:
-                    scale = X.shape[0] ** 2 * X.shape[1]
-                    scale *= 1 if len(y.shape) < 2 else y.shape[1]
-                    cuda = scale > 1_000_000 and torch.cuda.is_available()
-                device = torch.device("cuda" if cuda else "cpu")
+            elif cuda == True:
+                device = torch.device("cuda")
         tensorargs = {"device": device, "dtype": dtype}
 
-        self._X = torch.as_tensor(X, **tensorargs)
+        self._X, X_rows, X_columns = to_tensor(X, **tensorargs)
         if intercept:
             self._X = torch.cat((self._X, torch.ones_like(self._X[:, :1])), 1)
         n, m = self._X.shape
+        self.metadata.set_variables(X_columns, intercept)
 
-        self.random_state = random_state
-
-        self._Y = torch.as_tensor(y, **tensorargs)
+        self._Y, Y_rows, Y_columns = to_tensor(y, **tensorargs)
+        self.metadata.set_targets(Y_columns)
         _assert(
             self._Y.shape[0] == n,
             f"The length of y must match X: {self._Y.shape[0]} != {n}",
@@ -197,6 +198,14 @@ class Slisemap:
         )
         if len(self._Y.shape) == 1:
             self._Y = self._Y[:, None]
+
+        if device is None and cuda is None:
+            if self.n**2 * self.m * self.o > 1_000_000 and torch.cuda.is_available():
+                tensorargs["device"] = torch.device("cuda")
+                self._X = self._X.cuda()
+                self._Y = self._Y.cuda()
+
+        self.random_state = random_state
 
         if Z0 is None:
             self._Z0 = self._X @ PCA_rotation(self._X, d)
@@ -207,8 +216,10 @@ class Slisemap:
                 )
                 Z0fill = torch.zeros(size=[n, d - self._Z0.shape[1]], **tensorargs)
                 self._Z0 = torch.cat((self._Z0, Z0fill), 1)
+            Z_rows = None
         else:
-            self._Z0 = torch.as_tensor(Z0, **tensorargs)
+            self._Z0, Z_rows, Z_columns = to_tensor(Z0, **tensorargs)
+            self.metadata.set_dimensions(Z_columns)
             _assert(
                 self._Z0.shape == (n, d),
                 f"Z0 has the wrong shape: {self._Z0.shape} != ({n}, {d})",
@@ -240,8 +251,10 @@ class Slisemap:
                 )
                 B0 = torch.zeros_like(B0)
             self._B0 = B0.expand((n, coefficients))
+            B_rows = None
         else:
-            self._B0 = torch.as_tensor(B0, **tensorargs)
+            self._B0, B_rows, B_columns = to_tensor(B0, **tensorargs)
+            self.metadata.set_coefficients(B_columns)
             if coefficients is None:
                 _assert(
                     len(B0.shape) > 1, "B0 must have more than one dimension", Slisemap
@@ -253,6 +266,8 @@ class Slisemap:
                 Slisemap,
             )
         self._B = self._B0.detach().clone()
+
+        self.metadata.set_rows(X_rows, Y_rows, B_rows, Z_rows)
 
     @property
     def n(self) -> int:
@@ -457,21 +472,21 @@ class Slisemap:
     def Y(self) -> torch.Tensor:
         # Target matrix as a `torch.Tensor`.
         # Deprecated, use `get_Y(numpy=False)` instead!
-        _deprecated(Slisemap._Y, Slisemap.get_Y)
+        _deprecated(Slisemap.Y, Slisemap.get_Y)
         return self._Y
 
     @property
     def Z(self) -> torch.Tensor:
         # Normalised embedding matrix as a `torch.Tensor`.
         # Deprecated, use `get_Z(numpy=False)` instead!
-        _deprecated(Slisemap._Z, Slisemap.get_Z)
+        _deprecated(Slisemap.Z, Slisemap.get_Z)
         return self._Z
 
     @property
     def B(self) -> torch.Tensor:
         # Coefficient matrix for the local models as a `torch.Tensor`.
         # Deprecated, use `get_B(numpy=False)` instead!
-        _deprecated(Slisemap._B, Slisemap.get_B)
+        _deprecated(Slisemap.B, Slisemap.get_B)
         return self._B
 
     @property
@@ -580,7 +595,7 @@ class Slisemap:
         if X is None:
             return self._X
         tensorargs = self.tensorargs
-        X = torch.atleast_2d(torch.as_tensor(X, **tensorargs))
+        X = torch.atleast_2d(to_tensor(X, **tensorargs)[0])
         if self._intercept and X.shape[1] == self.m - 1:
             X = torch.cat([X, torch.ones((X.shape[0], 1), **tensorargs)], 1)
         _assert(
@@ -597,7 +612,7 @@ class Slisemap:
     ) -> torch.Tensor:
         if Y is None:
             return self._Y
-        Y = torch.as_tensor(Y, **self.tensorargs)
+        Y = to_tensor(Y, **self.tensorargs)[0]
         if len(Y.shape) < 2:
             Y = torch.reshape(Y, (-1, self.o))
         if n is None:
@@ -1076,7 +1091,7 @@ class Slisemap:
         Returns:
             Prediction matrix.
         """
-        Xnew = torch.as_tensor(Xnew, **self.tensorargs)
+        Xnew = to_tensor(Xnew, **self.tensorargs)[0]
         Xnew = torch.atleast_2d(Xnew)
         N = Xnew.shape[0]
         if self._intercept:
@@ -1086,7 +1101,7 @@ class Slisemap:
             f"Xnew has the wrong shape {Xnew.shape} != {(N, self.m)}",
             Slisemap.predict,
         )
-        Znew = torch.as_tensor(Znew, **self.tensorargs)
+        Znew = to_tensor(Znew, **self.tensorargs)[0]
         Znew = torch.atleast_2d(Znew)
         _assert(
             Znew.shape == (N, self.d),
@@ -1151,12 +1166,14 @@ class Slisemap:
         loss = self._loss
         prng = self._random_state
         try:
+            self.metadata.root = None
             self._B = self._B.detach()
             self._Z = self._Z.detach()
             self._loss = None
             self._random_state = None
             torch.save(self, f, **kwargs)
         finally:
+            self.metadata.root = self
             self._loss = loss
             self._random_state = prng
 
@@ -1190,6 +1207,7 @@ class Slisemap:
             device = map_location
         sm = torch.load(f, map_location=device, **kwargs)
         sm.random_state = sm._rs0
+        sm.metadata.root = sm
         return sm
 
     def get_model_clusters(
@@ -1266,21 +1284,31 @@ class Slisemap:
         kwargs.setdefault("figsize", (12, 6))
         fig, (ax1, ax2) = plt.subplots(1, 2, **kwargs)
         if variables is not None:
-            variables = _expand_variable_names(
+            _deprecated(
+                "Parameter 'variables' in 'Slisemap.plot'",
+                "'Slisemap.metadata.set_variables'",
+            )
+            coefficients = _expand_variable_names(
                 variables, self.intercept, self.m, targets, self.q
+            )
+        else:
+            coefficients = self.metadata.get_coefficients()
+        if targets is not None:
+            _deprecated(
+                "Parameter 'targets' in 'Slisemap.plot'",
+                "'Slisemap.metadata.set_targets'",
             )
         if isinstance(clusters, int):
             clusters, centers = self.get_model_clusters(clusters, B)
             if bars:
-                y = np.arange(B.shape[1]) if variables is None else variables
                 if not isinstance(bars, bool):
                     influence = np.abs(centers)
                     influence = influence.max(0) + influence.mean(0)
                     mask = np.argsort(-influence)[:bars]
-                    y = np.asarray(y)[mask]
+                    coefficients = np.asarray(coefficients)[mask]
                     B = B[:, mask]
                 g = sns.barplot(
-                    y=np.tile(y, B.shape[0]),
+                    y=np.tile(coefficients, B.shape[0]),
                     x=B.ravel(),
                     hue=np.repeat(clusters, B.shape[1]),
                     ax=ax2,
@@ -1318,10 +1346,9 @@ class Slisemap:
                 )
             else:
                 sns.scatterplot(x=Z[:, 0], y=Z[:, 1], palette="crest", ax=ax1)
-            sns.heatmap(B, ax=ax2, center=0, cmap="RdBu", robust=True)
-            if variables is not None:
-                ax2.set_xticks(np.arange(len(variables)) + 0.5)
-                ax2.set_xticklabels(variables, rotation=30)
+            sns.heatmap(B.T, ax=ax2, center=0, cmap="RdBu", robust=True)
+            ax2.set_yticks(np.arange(len(coefficients)) + 0.5)
+            ax2.set_yticklabels(coefficients)
         else:
             sns.scatterplot(
                 x=Z[:, 0],
@@ -1333,14 +1360,13 @@ class Slisemap:
             )
             ax1.legend(title="Cluster")
             if not bars:
-                sns.heatmap(B, ax=ax2, center=0, cmap="RdBu", robust=True)
-                if variables is not None:
-                    ax2.set_xticks(np.arange(len(variables)) + 0.5)
-                    ax2.set_xticklabels(variables, rotation=30)
+                sns.heatmap(B.T, ax=ax2, center=0, cmap="RdBu", robust=True)
+                ax2.set_yticks(np.arange(len(coefficients)) + 0.5)
+                ax2.set_yticklabels(coefficients)
         ax1.set_xlabel("SLISEMAP 1")
         ax1.set_ylabel("SLISEMAP 2")
         ax1.axis("equal")
-        ax2.set_xlabel("Coefficients")
+        ax2.set_ylabel("Coefficients")
         ax1.set_title("Embedding")
         ax2.set_title("Local Models")
         sns.despine(fig)
@@ -1488,8 +1514,8 @@ class Slisemap:
 
         Args:
             title: Title of the plot. Defaults to "".
-            X: Replacement data matrix (e.g. without normalisation). Defaults to None.
-            Y: Replacement target matrix (e.g. without normalisation). Defaults to None.
+            X: Override self.get_X(). Defaults to None.
+            Y: Override self.get_Y(). Defaults to None.
             variables: List of variable names. Defaults to None.
             targets: Target name(s). Defaults to None.
             clusters: Number of cluster or vector of cluster labels. Defaults to None.
@@ -1512,13 +1538,21 @@ class Slisemap:
         else:
             Y = np.reshape(Y, (X.shape[0], -1))
         if variables is None:
-            variables = [f"Variable {i}" for i in range(self.m - self._intercept)]
-        if targets is None:
-            targets = (
-                [f"Target {i}" for i in range(self.o)] if self.o > 1 else ["Target"]
+            variables = self.metadata.get_variables(intercept=False)
+        else:
+            _deprecated(
+                "Parameter 'variables' in 'Slisemap.plot_dist'",
+                "'Slisemap.metadata.set_variables'",
             )
-        elif isinstance(targets, str):
-            targets = [targets]
+        if targets is not None:
+            _deprecated(
+                "Parameter 'targets' in 'Slisemap.plot_dist'",
+                "'Slisemap.metadata.set_targets'",
+            )
+            if isinstance(targets, str):
+                targets = [targets]
+        else:
+            targets = self.metadata.get_targets()
 
         if not scatter:
             if isinstance(clusters, int):

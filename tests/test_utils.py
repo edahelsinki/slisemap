@@ -59,14 +59,16 @@ def test_PCA():
         assert PCA_rotation(x * np.nan, 5, full=True).shape == (3, 3)
     with pytest.warns(SlisemapWarning, match="PCA"):
         assert PCA_rotation(x * np.nan, 5, full=False).shape == (3, 3)
-    assert np.allclose(
-        np.abs(PCA_rotation(x, 3).numpy()), np.abs(np.linalg.svd(x.numpy())[2].T)
+    assert_allclose(
+        np.abs(PCA_rotation(x, 3, center=False).numpy()),
+        np.abs(np.linalg.svd(x.numpy())[2].T),
     )
     x = torch.normal(0, 1, (3, 5))
     assert PCA_rotation(x, 2, full=False).shape == (5, 2)
     assert PCA_rotation(x, 2, full=True).shape == (5, 2)
     assert np.allclose(
-        np.abs(PCA_rotation(x, 2).numpy()), np.abs(np.linalg.svd(x.numpy())[2][:2].T)
+        np.abs(PCA_rotation(x, 2, center=False).numpy()),
+        np.abs(np.linalg.svd(x.numpy())[2][:2].T),
     )
 
 
@@ -92,3 +94,31 @@ def test_dict():
         dict(a=2, b="asd", c=list(range(i)), d=np.arange(i), e=0.2, f=None)
         for i in range(2, 3)
     )
+
+
+def test_to_tensor():
+    X = np.random.normal(0, 1, (5, 5))
+    X2 = torch.as_tensor(X)
+    X3 = [c for c in X]
+    X4 = {k: v for k, v in enumerate(X.T)}
+
+    def test(X):
+        Xn, r, c = to_tensor(X)
+        assert torch.allclose(X2, Xn)
+        assert r is None or X2.shape[0] == len(r)
+        assert c is None or X2.shape[1] == len(c)
+
+    test(X)
+    test(X2)
+    test(X3)
+    test(X4)
+
+    try:
+        import pandas
+
+        test(pandas.DataFrame(X))
+        test(pandas.DataFrame(X4))
+    except ImportError:
+        pass
+
+    Slisemap(X=X4, y=X3[1])

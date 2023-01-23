@@ -38,15 +38,26 @@ def _assert_no_trace(
         _assert(condition(), message, method)
 
 
-def _deprecated(old: Callable, new: Optional[Callable] = None):
+def _deprecated(
+    old: Union[Callable, str],
+    new: Union[None, Callable, str] = None,
+):
+    try:
+        old = f"'{old.__qualname__}'"
+    except AttributeError:
+        old = str(old)
     if new is None:
         warnings.warn(
-            f"{old.__qualname__} is deprecated and may be removed in a future version",
+            f"{old} is deprecated and may be removed in a future version",
             DeprecationWarning,
         )
     else:
+        try:
+            new = f"'{new.__qualname__}'"
+        except AttributeError:
+            new = str(new)
         warnings.warn(
-            f"{old.__qualname__} is deprecated in favour of {new.__qualname__} and may be removed in a future version",
+            f"{old} is deprecated in favour of {new} and may be removed in a future version",
             DeprecationWarning,
         )
 
@@ -58,16 +69,20 @@ def _warn(warning: str, method: Optional[Callable] = None):
         warnings.warn(f"{method.__qualname__}: {warning}", SlisemapWarning, 2)
 
 
-def tonp(x: torch.Tensor) -> np.ndarray:
-    """Convert a torch.Tensor to a numpy.ndarray.
+def tonp(x: Union[torch.Tensor, Any]) -> np.ndarray:
+    """Convert a `torch.Tensor` to a `numpy.ndarray`.
+    If `x` is not a `torch.Tensor` then `np.asarray` is used instead.
 
     Args:
-        x: Input torch.Tensor.
+        x: Input `torch.Tensor`.
 
     Returns:
-        Output numpy.ndarray.
+        Output `numpy.ndarray`.
     """
-    return x.cpu().detach().numpy()
+    if isinstance(x, torch.Tensor):
+        return x.cpu().detach().numpy()
+    else:
+        return np.asarray(x)
 
 
 _tonp = tonp
@@ -356,6 +371,50 @@ def dict_concat(
     return df
 
 
+def to_tensor(
+    input: Union[np.ndarray, torch.Tensor, Dict[str, Any], Sequence[Any], Any],
+    **tensorargs,
+) -> Tuple[torch.Tensor, Optional[Sequence[Any]], Optional[Sequence[Any]]]:
+    """Convert the input into a `torch.Tensor` (via `numpy.ndarray` if necessary).
+    This function wrapps `torch.as_tensor` (and `numpy.asarray`) and tries to extract row and column names.
+    This function can handle arbitrary objects (such as `pandas.DataFrame`) if they implement `.to_numpy()` and, optionally, `.index` and `.columns`.
+
+    Args:
+        data: input data
+        **tensorargs: additional arguments to `torch.as_tensor`
+
+    Returns:
+        output: output tensor
+        rows: row names or `None`
+        columns: column names or `None`
+    """
+    if isinstance(input, dict):
+        output = torch.as_tensor(np.asarray(tuple(input.values())).T, **tensorargs)
+        return output, None, list(input.keys())
+    elif isinstance(input, np.ndarray):
+        return (torch.as_tensor(input, **tensorargs), None, None)
+    elif isinstance(input, torch.Tensor):
+        return (torch.as_tensor(input, **tensorargs), None, None)
+    else:
+        # Check if X is similar to a Pandas DataFrame
+        try:
+            output = torch.as_tensor(input.to_numpy(), **tensorargs)
+        except (AttributeError, TypeError):
+            try:
+                output = torch.as_tensor(input.numpy(), **tensorargs)
+            except (AttributeError, TypeError):
+                output = torch.as_tensor(np.asarray(input), **tensorargs)
+        try:
+            columns = input.columns if len(input.columns) == output.shape[1] else None
+        except (AttributeError, TypeError):
+            columns = None
+        try:
+            rows = input.index if len(input.index) == output.shape[0] else None
+        except (AttributeError, TypeError):
+            rows = None
+        return output, rows, columns
+
+
 def _expand_variable_names(
     variables: Sequence[str],
     intercept: bool,
@@ -375,6 +434,177 @@ def _expand_variable_names(
         _expand_variable_names,
     )
     return variables
+
+
+class Metadata(dict):
+    """Metadata for Slisemap objects.
+    Primarily row names, column names, and scaling information about the matrices.
+    These are mostly used when plotting.
+    """
+
+    def __init__(self, root: "Slisemap"):
+        super().__init__()
+        self.root = root
+
+    def set_rows(self, *rows: Optional[Sequence[Any]]):
+        """Set the row names with checks.
+
+        Args:
+            *rows: row names
+        """
+        for row in rows:
+            if row is not None:
+                _assert(
+                    len(rows) == self.root.n,
+                    f"Wrong number of row names {len(rows)} != {self.root.n}",
+                    Metadata.set_rows,
+                )
+                self["rows"] = rows
+                break
+
+    def set_variables(
+        self, variables: Optional[Sequence[Any]] = None, add_intercept: bool = False
+    ):
+        """Set the variable names with checks.
+
+        Args:
+            variables: variable names
+            add_intercept: add "Intercept" to the variable names. Defaults to False,
+        """
+        if variables is not None:
+            if add_intercept:
+                variables = list(variables) + ["Intercept"]
+            _assert(
+                len(variables) == self.root.m,
+                f"Wrong number of variables {len(variables)} != {self.root.m}",
+                Metadata.set_variables,
+            )
+            self["variables"] = variables
+
+    def set_targets(self, targets: Union[None, str, Sequence[Any]] = None):
+        """Set the target names with checks.
+
+        Args:
+            targets: target names
+        """
+        if targets is not None:
+            if isinstance(targets, str):
+                targets = [targets]
+            _assert(
+                len(targets) == self.root.o,
+                f"Wrong number of targets {len(targets)} != {self.root.o}",
+                Metadata.set_targets,
+            )
+            self["targets"] = targets
+
+    def set_coefficients(self, coefficients: Optional[Sequence[Any]] = None):
+        """Set the coefficient names with checks.
+
+        Args:
+            coefficients: coefficient names
+        """
+        if coefficients is not None:
+            _assert(
+                len(coefficients) == self.root.q,
+                f"Wrong number of targets {len(coefficients)} != {self.root.q}",
+                Metadata.set_coefficients,
+            )
+            self.metadata["coefficients"] = coefficients
+
+    def set_dimensions(self, dimensions: Optional[Sequence[Any]] = None):
+        """Set the dimension names with checks.
+
+        Args:
+            dimensions: dimension names
+        """
+        if dimensions is not None:
+            _assert(
+                len(dimensions) == self.root.d,
+                f"Wrong number of targets {len(dimensions)} != {self.root.d}",
+                Metadata.set_dimensions,
+            )
+            self.metadata["dimensions"] = dimensions
+
+    def set_scaling(
+        self,
+        X_scale: Union[None, torch.Tensor, np.ndarray, Sequence[float]] = None,
+        X_center: Union[None, torch.Tensor, np.ndarray, Sequence[float]] = None,
+        Y_scale: Union[None, torch.Tensor, np.ndarray, Sequence[float]] = None,
+        Y_center: Union[None, torch.Tensor, np.ndarray, Sequence[float]] = None,
+    ):
+        """Set scaling information with checks.
+
+        Args:
+            X_scale: The scaling factor of `X` if `X` has been scaled (`X = (X_pre - center) * scale`)
+            X_center: The constant offset of `X` if `X` has been scaled (`X = (X_pre - center) * scale`)
+            Y_scale: The scaling factor of `Y` if `Y` has been scaled (`Y = (Y_pre - center) * scale`).
+            Y_center: The constant offset of `Y` if `Y` has been scaled (`Y = (Y_pre - center) * scale`)
+        """
+        if X_center is not None:
+            X_center = tonp(X_center).ravel()
+            assert X_center.size == self.root.m - self.root.intercept
+            self["X_center"] = X_center
+        if X_scale is not None:
+            X_scale = tonp(X_scale).ravel()
+            assert X_scale.size == self.root.m - self.root.intercept
+            self["X_scale"] = X_scale
+        if Y_center is not None:
+            Y_center = tonp(Y_center).ravel()
+            assert Y_center.size == self.root.o
+            self["Y_center"] = Y_center
+        if Y_scale is not None:
+            Y_scale = tonp(Y_scale).ravel()
+            assert Y_scale.size == self.root.o
+            self["Y_scale"] = Y_scale
+
+    def get_coefficients(self) -> List[str]:
+        """Get a list of coefficient names (with a fallback if not assigned)
+
+        Returns:
+            list of coefficient names
+        """
+        if "coefficients" in self:
+            return self["coefficients"]
+        if "variables" in self:
+            if self.root.m == self.root.q:
+                return self["variables"]
+            if "targets" in self and self.root.m * self.root.o >= self.root.q:
+                return [
+                    f"{t}: {v}" for t in self["targets"] for v in self["variables"]
+                ][: self.root.q]
+        return [f"B_{i}" for i in range(self.root.q)]
+
+    def get_targets(self) -> List[str]:
+        """Get a list of target names (with a fallback if not assigned)
+
+        Returns:
+            list of target names
+        """
+        if "targets" in self:
+            return self["targets"]
+        else:
+            return [f"Y_{i}" for i in range(self.root.o)] if self.root.o > 1 else ["Y"]
+
+    def get_variables(self, intercept: bool = True) -> List[str]:
+        """Get a list of variable names (with a fallback if not assigned)
+
+        Args:
+            intercept: include the intercept in the list. Defaults to True.
+
+        Returns:
+            list of variable names
+        """
+        if "variables" in self:
+            if self.root.intercept and not intercept:
+                return self["variables"][:-1]
+            else:
+                return self["variables"]
+        if self.root.intercept:
+            if not intercept:
+                return [f"X_{i}" for i in range(self.root.m - 1)]
+            else:
+                return [f"X_{i}" for i in range(self.root.m - 1)] + ["X_Intercept"]
+        return [f"X_{i}" for i in range(self.root.m)]
 
 
 def _create_legend(
