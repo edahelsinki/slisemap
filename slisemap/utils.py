@@ -4,11 +4,10 @@ This module contains various useful functions.
 
 import warnings
 from timeit import default_timer as timer
-from typing import Any, Callable, Dict, Iterator, List, Optional, Sequence, Union, Tuple
+from typing import Any, Callable, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
-from matplotlib.lines import Line2D
 
 
 class SlisemapException(Exception):
@@ -414,27 +413,6 @@ def to_tensor(
         return output, rows, columns
 
 
-def _expand_variable_names(
-    variables: Sequence[str],
-    intercept: bool,
-    columns: int,
-    targets: Union[None, str, Sequence[str]],
-    coefficients: int,
-) -> List[str]:
-    if intercept and len(variables) == columns - 1:
-        variables = list(variables) + ["Intercept"]
-    if targets and not isinstance(targets, str) and len(targets) > 0:
-        if coefficients % len(variables) == 0 and coefficients % len(targets) == 0:
-            variables = [f"{t}: {v}" for t in targets for v in variables]
-            variables = variables[:coefficients]
-    _assert(
-        len(variables) == coefficients,
-        f"The number of variable names ({len(variables)}) must match the number of coefficients ({coefficients})",
-        _expand_variable_names,
-    )
-    return variables
-
-
 class Metadata(dict):
     """Metadata for Slisemap objects.
     Primarily row names, column names, and scaling information about the matrices.
@@ -573,6 +551,22 @@ class Metadata(dict):
                 return [f"X_{i}" for i in range(self.root.m - 1)] + ["X_Intercept"]
         return [f"X_{i}" for i in range(self.root.m)]
 
+    def get_dimensions(self, long: bool = False) -> List[str]:
+        """Get a list of dimension names (with a fallback if not assigned)
+
+        Args:
+            long: Use "SLISEMAP 1",... as fallback instead of "Z_0",...
+
+        Returns:
+            list of dimension names
+        """
+        if "dimensions" in self:
+            return self["dimensions"]
+        elif long:
+            return [f"SLISEMAP {i+1}" for i in range(self.root.d)]
+        else:
+            return [f"Z_{i}" for i in range(self.root.d)]
+
     def set_scale_X(
         self,
         X_center: Union[None, torch.Tensor, np.ndarray, Sequence[float]] = None,
@@ -652,22 +646,3 @@ class Metadata(dict):
         if "Y_center" in self:
             Y = Y + self["Y_center"][None, :]
         return Y
-
-
-def _create_legend(
-    hue_norm: Tuple[float, float], cmap: Any, markers: int = 5
-) -> Tuple[List[Line2D], List[str]]:
-    handles = [
-        Line2D([], [], 0, color=cmap(n), marker="o")
-        for n in np.linspace(0.0, 1.0, markers)
-    ]
-    digits = int(np.floor(np.log(np.max(np.abs(hue_norm))) / np.log(10)))
-    if digits > 0:
-        decimals = max(1 - digits, 0)
-    else:
-        digits = 0
-        decimals = -digits + 1
-    labels = [
-        f"{l:{digits + decimals}.{decimals}f}" for l in np.linspace(*hue_norm, markers)
-    ]
-    return handles, labels

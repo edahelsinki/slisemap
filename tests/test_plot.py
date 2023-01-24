@@ -12,7 +12,6 @@ def test_plot():
         sm.plot(title="ASD", clusters=4, bars=-1, show=False)
         sm.plot(clusters=cl, show=False)
         sm.plot(jitter=1, figsize=(2, 2), show=False)
-        sm.plot(jitter=1, Z=sm.get_Z(), B=sm.get_B(), show=False)
         sm.metadata.set_variables(range(4), add_intercept=True)
         sm.plot(title="ASD", clusters=4, bars=3, show=False)
         sm.plot(jitter=1, show=False)

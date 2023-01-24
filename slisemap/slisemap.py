@@ -28,20 +28,28 @@ from sklearn.cluster import KMeans
 from slisemap.escape import escape_neighbourhood
 from slisemap.local_models import linear_regression, linear_regression_loss
 from slisemap.loss import make_loss, make_marginal_loss, softmax_row_kernel
+from slisemap.plot import (
+    _expand_variable_names,
+    legend_inside_facet,
+    plot_barmodels,
+    plot_density_facet,
+    plot_embedding,
+    plot_embedding_facet,
+    plot_matrix,
+    plot_position_legend,
+)
 from slisemap.utils import (
     LBFGS,
     CheckConvergence,
+    Metadata,
     PCA_rotation,
     _assert,
-    _create_legend,
+    _deprecated,
     _warn,
     dict_concat,
     global_model,
-    tonp,
-    _expand_variable_names,
-    _deprecated,
     to_tensor,
-    Metadata,
+    tonp,
 )
 
 
@@ -1268,21 +1276,15 @@ class Slisemap:
         Returns:
             `matplotlib.figure.Figure` if `show=False`.
         """
-        Z = self.get_Z(rotate=True) if Z is None else Z
-        B = self.get_B() if B is None else B
-        if Z.shape[1] == 1:
-            Z = np.concatenate((Z, np.zeros_like(Z)), 1)
-        elif Z.shape[1] > 2:
-            _warn(
-                "Only the first two dimensions in the embedding are plotted",
-                Slisemap.plot,
-            )
-        if not isinstance(jitter, float):
-            Z = Z + jitter
-        elif jitter > 0:
-            Z = np.random.normal(Z, jitter)
-        kwargs.setdefault("figsize", (12, 6))
-        fig, (ax1, ax2) = plt.subplots(1, 2, **kwargs)
+        if Z is None:
+            Z = self.get_Z(rotate=True)
+        else:
+            _deprecated("Parameter 'Z' in Slisemap.plot")
+        if B is None:
+            B = self.get_B()
+        else:
+            _deprecated("Parameter 'B' in Slisemap.plot")
+        Z_names = self.metadata.get_dimensions(True)
         if variables is not None:
             _deprecated(
                 "Parameter 'variables' in 'Slisemap.plot'",
@@ -1298,77 +1300,39 @@ class Slisemap:
                 "Parameter 'targets' in 'Slisemap.plot'",
                 "'Slisemap.metadata.set_targets'",
             )
-        if isinstance(clusters, int):
-            clusters, centers = self.get_model_clusters(clusters, B)
-            if bars:
-                if not isinstance(bars, bool):
-                    influence = np.abs(centers)
-                    influence = influence.max(0) + influence.mean(0)
-                    mask = np.argsort(-influence)[:bars]
-                    coefficients = np.asarray(coefficients)[mask]
-                    B = B[:, mask]
-                g = sns.barplot(
-                    y=np.tile(coefficients, B.shape[0]),
-                    x=B.ravel(),
-                    hue=np.repeat(clusters, B.shape[1]),
-                    ax=ax2,
-                    palette="bright",
-                    orient="h",
-                )
-                g.legend().remove()
-                lim = np.max(np.abs(g.get_xlim()))
-                g.set(xlabel=None, ylabel=None, xlim=(-lim, lim))
-            else:
-                B = centers
-        else:
-            B = B[np.argsort(Z[:, 0])]
-            _assert(
-                not bars,
-                "`bar!=False` requires that `clusters` is an integer",
-                Slisemap.plot,
-            )
+
+        kwargs.setdefault("figsize", (12, 6))
+        fig, (ax1, ax2) = plt.subplots(1, 2, **kwargs)
         if clusters is None:
+            _assert(not bars, "`bars!=False` requires `clusters`", Slisemap.plot)
             if Z.shape[0] == self._Z.shape[0]:
                 L = tonp(torch.diagonal(self.get_L(numpy=False))).ravel()
-                hue_norm = tuple(np.quantile(L, (0.0, 0.95)))
-                sns.scatterplot(
-                    x=Z[:, 0],
-                    y=Z[:, 1],
-                    hue=L,
-                    hue_norm=hue_norm,
-                    palette="crest",
-                    ax=ax1,
-                    legend=False,
-                )
-                ax1.legend(
-                    *_create_legend(hue_norm, plt.get_cmap("crest"), 5),
-                    title="Local Loss",
-                )
             else:
-                sns.scatterplot(x=Z[:, 0], y=Z[:, 1], palette="crest", ax=ax1)
-            sns.heatmap(B.T, ax=ax2, center=0, cmap="RdBu", robust=True)
-            ax2.set_yticks(np.arange(len(coefficients)) + 0.5)
-            ax2.set_yticklabels(coefficients)
-        else:
-            sns.scatterplot(
-                x=Z[:, 0],
-                y=Z[:, 1],
-                hue=clusters,
-                style=clusters,
-                palette="bright",
+                L = None
+            plot_embedding(
+                Z,
+                Z_names,
+                jitter=jitter,
+                color=L,
+                color_name=None if L is None else "Local loss",
+                color_norm=None if L is None else tuple(np.quantile(L, (0.0, 0.95))),
                 ax=ax1,
             )
-            ax1.legend(title="Cluster")
-            if not bars:
-                sns.heatmap(B.T, ax=ax2, center=0, cmap="RdBu", robust=True)
-                ax2.set_yticks(np.arange(len(coefficients)) + 0.5)
-                ax2.set_yticklabels(coefficients)
-        ax1.set_xlabel("SLISEMAP 1")
-        ax1.set_ylabel("SLISEMAP 2")
-        ax1.axis("equal")
-        ax2.set_ylabel("Coefficients")
-        ax1.set_title("Embedding")
-        ax2.set_title("Local Models")
+            B = B[np.argsort(Z[:, 0])]
+            plot_matrix(B, coefficients, ax=ax2)
+        else:
+            if isinstance(clusters, int):
+                clusters, centers = self.get_model_clusters(clusters, B)
+            else:
+                cl = np.sort(np.unique(clusters))
+                centers = np.zeros((cl.max() + 1, B.shape[1]))
+                for c in cl:
+                    centers[c, :] = np.mean(B[clusters == c, :], 0)
+            plot_embedding(Z, Z_names, jitter=jitter, clusters=clusters, ax=ax1)
+            if bars:
+                plot_barmodels(B, clusters, centers, coefficients, bars=bars, ax=ax2)
+            else:
+                plot_matrix(centers, coefficients, ax=ax2)
         sns.despine(fig)
         plt.suptitle(title)
         plt.tight_layout()
@@ -1411,18 +1375,10 @@ class Slisemap:
         Returns:
             `seaborn.FacetGrid` if `show=False`.
         """
-        Z = Z if Z is not None else self.get_Z(rotate=True)
-        if Z.shape[1] == 1:
-            Z = np.concatenate((Z, np.zeros_like(Z)), 1)
-        elif Z.shape[1] > 2:
-            _warn(
-                "Only the first two dimensions in the embedding are plotted",
-                Slisemap.plot_position,
-            )
-        if not isinstance(jitter, float):
-            Z = Z + jitter
-        elif jitter > 0:
-            Z = np.random.normal(Z, jitter)
+        if Z is not None:
+            _deprecated("Parameter 'Z' in Slisemap.plot_position")
+        else:
+            Z = self.get_Z(rotate=True)
         if index is None:
             _assert(
                 X is not None and Y is not None,
@@ -1434,61 +1390,25 @@ class Slisemap:
             if isinstance(index, int):
                 index = [index]
             L = self.get_L()[:, index]
-        df = dict_concat(
-            {"SLISEMAP 1": Z[:, 0], "SLISEMAP 2": Z[:, 1], "Local Loss": loss, "i": i}
-            for i, loss in enumerate(L.T)
-        )
         kwargs.setdefault("palette", "crest")
-        kwargs.setdefault("kind", "scatter")
         hue_norm = tuple(np.quantile(L, (0.0, 0.95)))
-        g: sns.FacetGrid = sns.relplot(
-            data=df,
-            x="SLISEMAP 1",
-            y="SLISEMAP 2",
-            hue="Local Loss",
+        g = plot_embedding_facet(
+            self.get_Z(rotate=True),
+            self.metadata.get_dimensions(long=True),
+            L,
+            range(L.shape[1]),
+            legend_title="Local loss",
             hue_norm=hue_norm,
-            col="i",
+            jitter=jitter,
             col_wrap=min(col_wrap, L.shape[1]),
             legend=False,
             **kwargs,
         )
-        handles, labels = _create_legend(hue_norm, plt.get_cmap(kwargs["palette"]), 6)
-        legend = {l: h for h, l in zip(handles, labels)}
-        inside = legend_inside and col_wrap < L.shape[1] and L.shape[1] % col_wrap != 0
-        w = 1 / col_wrap
-        h = 1 / ((L.shape[1] - 1) // col_wrap + 1)
-        if selection and index is not None:
-            size = plt.rcParams["lines.markersize"] ** 2 * 3
-            for i, ax in zip(index, g.axes.ravel()):
-                ax.scatter(Z[i, 0], Z[i, 1], size, "#fd8431", "X")
-            g.add_legend(
-                legend,
-                "Local Loss",
-                loc="lower center" if inside else "upper right",
-                bbox_to_anchor=(1 - w, h * 0.35, w * 0.9, h * 0.6) if inside else None,
-            )
-            marker = Line2D(
-                [], [], linestyle="None", color="#fd8431", marker="X", markersize=5
-            )
-            g.add_legend(
-                {"": marker},
-                "Selected",
-                loc="upper center" if inside else "lower right",
-                bbox_to_anchor=(1 - w, h * 0.05, w * 0.9, h * 0.3) if inside else None,
-            )
-        else:
-            g.add_legend(
-                legend,
-                "Local Loss",
-                loc="center" if inside else "center right",
-                bbox_to_anchor=(1 - w, 0.05, w * 0.9, h * 0.9) if inside else None,
-            )
         g.set_titles("")
         plt.suptitle(title)
-        if inside:
-            plt.tight_layout()
-        else:
-            g.tight_layout()
+        plot_position_legend(
+            g, index if selection else None, hue_norm, legend_inside, kwargs["palette"]
+        )
         if show:
             plt.show()
         else:
@@ -1559,76 +1479,31 @@ class Slisemap:
         else:
             targets = self.metadata.get_targets()
 
-        if not scatter:
+        if scatter:
+            g = plot_embedding_facet(
+                self.get_Z(rotate=True),
+                self.metadata.get_dimensions(long=True),
+                np.concatenate((X, Y), 1),
+                self.metadata.get_variables(False) + self.metadata.get_targets(),
+                jitter=jitter,
+                col_wrap=col_wrap,
+                **kwargs,
+            )
+        else:
             if isinstance(clusters, int):
                 clusters, _ = self.get_model_clusters(clusters, B)
             elif clusters is None:
                 legend_inside = False
-            df = dict_concat(
-                {"var": n, "Value": XY[:, i], "Cluster": clusters}
-                for v, XY in [(targets, Y), (variables, X)]
-                for i, n in enumerate(v)
-            )
-            if kwargs.setdefault("kind", "kde") == "kde":
-                kwargs.setdefault("bw_adjust", 0.75)
-                kwargs.setdefault("common_norm", False)
-            kwargs.setdefault("palette", "bright")
-            kwargs.setdefault("facet_kws", dict(sharex=False, sharey=False))
-            g: sns.FacetGrid = sns.displot(
-                data=df,
-                x="Value",
-                hue=None if clusters is None else "Cluster",
-                col="var",
+            g = plot_density_facet(
+                np.concatenate((X, Y), 1),
+                self.metadata.get_variables(False) + self.metadata.get_targets(),
+                clusters=clusters,
                 col_wrap=col_wrap,
                 **kwargs,
             )
-            g.set_titles("{col_name}")
-            g.set_xlabels("")
-        else:
-            Z = self.get_Z(rotate=True)
-            if Z.shape[1] == 1:
-                Z = np.concatenate((Z, np.zeros_like(Z)), 1)
-            elif Z.shape[1] > 2:
-                _warn(
-                    "Only the first two dimensions in the embedding are plotted",
-                    Slisemap.plot_dist,
-                )
-            if jitter > 0:
-                Z = np.random.normal(Z, jitter)
-            df = dict_concat(
-                {
-                    "var": n,
-                    "Value": XY[:, i],
-                    "SLISEMAP 1": Z[:, 0],
-                    "SLISEMAP 2": Z[:, 1],
-                }
-                for v, XY in [(targets, Y), (variables, X)]
-                for i, n in enumerate(v)
-            )
-            kwargs.setdefault("palette", "rocket")
-            kwargs.setdefault("kind", "scatter")
-            g = sns.relplot(
-                data=df,
-                x="SLISEMAP 1",
-                y="SLISEMAP 2",
-                hue="Value",
-                col="var",
-                col_wrap=col_wrap,
-                **kwargs,
-            )
-            g.set_titles("{col_name}")
         plt.suptitle(title)
-        cells = len(targets) + len(variables)
-        if legend_inside and col_wrap < cells and cells % col_wrap != 0:
-            w = 1 / col_wrap
-            h = 1 / ((cells - 1) // col_wrap + 1)
-            sns.move_legend(
-                g,
-                "center",
-                bbox_to_anchor=(1 - w, h * 0.1, w * 0.9, h * 0.9),
-                frameon=False,
-            )
-            plt.tight_layout()
+        if legend_inside:
+            legend_inside_facet(g)
         else:
             g.tight_layout()
         if show:
