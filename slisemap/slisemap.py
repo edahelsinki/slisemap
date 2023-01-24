@@ -46,7 +46,6 @@ from slisemap.utils import (
     _assert,
     _deprecated,
     _warn,
-    dict_concat,
     global_model,
     to_tensor,
     tonp,
@@ -290,6 +289,7 @@ class Slisemap:
     @property
     def p(self) -> int:
         # The number of target variables (i.e. the number of classes)
+        # Deprecated, use `o` instead!
         _deprecated(Slisemap.p, Slisemap.o)
         return self._Y.shape[-1]
 
@@ -325,6 +325,7 @@ class Slisemap:
     @property
     def coefficients(self) -> int:
         # The number of local model coefficients
+        # Deprecated, use `q` instead!
         _deprecated(Slisemap.coefficients, Slisemap.q)
         return self.q
 
@@ -592,7 +593,7 @@ class Slisemap:
             Loss function: `f(X, Y, B, Z) -> loss`.
 
         Deprecated:
-            1.2: Use `_gets_loss_fn` instead!
+            1.2: The functions has been renamed, use `_gets_loss_fn` instead!
         """
         _deprecated(Slisemap.get_loss_fn, Slisemap._get_loss_fn)
         return self._get_loss_fn(individual)
@@ -1265,19 +1266,25 @@ class Slisemap:
 
         Args:
             title: Title of the plot. Defaults to "".
-            variables: List of variable names. Defaults to None.
-            targets: Target name(s). Defaults to None.
+            variables: List of variable names. Defaults to None. **DEPRECATED**
+            targets: Target name(s). Defaults to None. **DEPRECATED**
             clusters: Can be None (plot individual losses), an int (plot k-means clusters of B), or an array of known cluster id:s. Defaults to None.
             bars: If the clusters are from k-means, plot the local models in a bar plot. If `bar` is an int then only plot the most influential variables. Defaults to False.
             jitter: Add random (normal) noise to the embedding, or a matrix with pre-generated noise matching Z. Defaults to 0.0.
-            B: Override self.get_B() in the plot. Defaults to None.
-            Z: Override self.get_Z() in the plot. Defaults to None.
+            B: Override self.get_B() in the plot. Defaults to None. **DEPRECATED**
+            Z: Override self.get_Z() in the plot. Defaults to None. **DEPRECATED**
             show: Show the plot. Defaults to True.
         Keyword Args:
             **kwargs: Additional arguments to `plt.subplots`.
 
         Returns:
             `matplotlib.figure.Figure` if `show=False`.
+
+        Deprecated:
+            1.3: Parameter `variables`, use `metadata.set_variables()` instead!
+            1.3: Parameter `targets`, use `metadata.set_targets()` instead!
+            1.3: Parameter `B`.
+            1.3: Parameter `Z`.
         """
         if Z is None:
             Z = self.get_Z(rotate=True)
@@ -1370,13 +1377,16 @@ class Slisemap:
             col_wrap: Maximum number of columns. Defaults to 4.
             selection: Mark the selected data item(s), if index is given. Defaults to True.
             legend_inside: Move the legend inside the grid (if there is an empty cell). Defaults to True.
-            Z: Override `self.get_Z()` in the plot. Defaults to None.
+            Z: Override `self.get_Z()` in the plot. Defaults to None. **DEPRECATED**
             show: Show the plot. Defaults to True.
         Keyword Args:
             **kwargs: Additional arguments to seaborn.relplot.
 
         Returns:
             `seaborn.FacetGrid` if `show=False`.
+
+        Deprecated:
+            1.3: Parameter `Z`.
         """
         if Z is not None:
             _deprecated("Parameter 'Z' in Slisemap.plot_position")
@@ -1438,29 +1448,39 @@ class Slisemap:
 
         Args:
             title: Title of the plot. Defaults to "".
-            X: Override self.get_X(). Defaults to None.
-            Y: Override self.get_Y(). Defaults to None.
-            variables: List of variable names. Defaults to None.
-            targets: Target name(s). Defaults to None.
+            X: Override self.get_X(). Defaults to None. **DEPRECATED**
+            Y: Override self.get_Y(). Defaults to None. **DEPRECATED**
+            variables: List of variable names. Defaults to None. **DEPRECATED**
+            targets: Target name(s). Defaults to None. **DEPRECATED**
             clusters: Number of cluster or vector of cluster labels. Defaults to None.
             scatter: Use scatterplots instead of density plots (clusters are ignored). Defaults to False.
             unscale: Unscale `X` and `Y` if scaling metadata has been given (see `Slisemap.metadata.set_scale_X`). Defaults to True.
             jitter: Add jitter to the scatterplots. Defaults to 0.0.
             col_wrap: Maximum number of columns. Defaults to 4.
             legend_inside: Move the legend inside the grid (if there is an empty cell). Defaults to True.
-            B: Override self.get_B() when finding the clusters (only used if clusters is an int). Defaults to None.
+            B: Override self.get_B() when finding the clusters (only used if clusters is an int). Defaults to None. **DEPRECATED**
             show: Show the plot. Defaults to True.
         Keyword Args:
             **kwargs: Additional arguments to seaborn.relplot.
 
         Returns:
             `seaborn.FacetGrid` if `show=False`.
+
+        Deprecated:
+            1.3: Parameter `variables`, use `metadata.set_variables()` instead!
+            1.3: Parameter `targets`, use `metadata.set_targets()` instead!
+            1.3: Parameter `X`, use `metadata.set_scale_X()` instead (to automatically unscale)!
+            1.3: Parameter `Y`, use `metadata.set_scale_Y()` instead (to automatically unscale)!
+            1.3: Parameter `B`.
         """
         if X is None:
             X = self.get_X(intercept=False)
+        else:
+            _deprecated("Parameter 'X' in Slisemap.plot_dist")
         if Y is None:
             Y = self.get_Y()
         else:
+            _deprecated("Parameter 'Y' in Slisemap.plot_dist")
             Y = np.reshape(Y, (X.shape[0], -1))
         if unscale:
             X = self.metadata.unscale_X(X)
@@ -1481,13 +1501,21 @@ class Slisemap:
                 targets = [targets]
         else:
             targets = self.metadata.get_targets()
+        if B is not None:
+            _deprecated("Parameter 'B' in Slisemap.plot_dist")
 
+        data = np.concatenate((X, Y), 1)
+        labels = self.metadata.get_variables(False) + self.metadata.get_targets()
+        if X.shape[0] == self.n:
+            L = tonp(torch.diagonal(self.get_L(numpy=False))).ravel()
+            data = np.concatenate((data, L[:, None]), 1)
+            labels.append("Local loss")
         if scatter:
             g = plot_embedding_facet(
                 self.get_Z(rotate=True),
                 self.metadata.get_dimensions(long=True),
-                np.concatenate((X, Y), 1),
-                self.metadata.get_variables(False) + self.metadata.get_targets(),
+                data,
+                labels,
                 jitter=jitter,
                 col_wrap=col_wrap,
                 **kwargs,
@@ -1498,11 +1526,7 @@ class Slisemap:
             elif clusters is None:
                 legend_inside = False
             g = plot_density_facet(
-                np.concatenate((X, Y), 1),
-                self.metadata.get_variables(False) + self.metadata.get_targets(),
-                clusters=clusters,
-                col_wrap=col_wrap,
-                **kwargs,
+                data, labels, clusters=clusters, col_wrap=col_wrap, **kwargs
             )
         plt.suptitle(title)
         if legend_inside:

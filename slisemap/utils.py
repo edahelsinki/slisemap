@@ -48,6 +48,7 @@ def _deprecated(
         warnings.warn(
             f"{old} is deprecated and may be removed in a future version",
             DeprecationWarning,
+            2,
         )
     else:
         try:
@@ -57,6 +58,7 @@ def _deprecated(
         warnings.warn(
             f"{old} is deprecated in favour of {new} and may be removed in a future version",
             DeprecationWarning,
+            2,
         )
 
 
@@ -440,14 +442,18 @@ class Metadata(dict):
                 break
 
     def set_variables(
-        self, variables: Optional[Sequence[Any]] = None, add_intercept: bool = False
+        self,
+        variables: Optional[Sequence[Any]] = None,
+        add_intercept: Optional[bool] = None,
     ):
         """Set the variable names with checks.
 
         Args:
             variables: variable names
-            add_intercept: add "Intercept" to the variable names. Defaults to False,
+            add_intercept: add "Intercept" to the variable names. Defaults to `self.root.intercept`,
         """
+        if add_intercept is None:
+            add_intercept = self.root.intercept
         if variables is not None:
             if add_intercept:
                 variables = list(variables) + ["Intercept"]

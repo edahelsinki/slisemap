@@ -161,8 +161,8 @@ def plot_matrix(
     """
     ax = sns.heatmap(B.T, center=0, cmap=palette, robust=True, **kwargs)
     ax.set_yticks(np.arange(len(coefficients)) + 0.5)
-    ax.set_yticklabels(coefficients)
-    ax.set_ylabel("Coefficients")
+    ax.set_yticklabels(coefficients, rotation=0)
+    # ax.set_ylabel("Coefficients")
     ax.set_title("Local models")
     return ax
 
@@ -206,7 +206,7 @@ def plot_barmodels(
     ax.legend().remove()
     lim = np.max(np.abs(ax.get_xlim()))
     ax.set(xlabel=None, ylabel=None, xlim=(-lim, lim))
-    ax.set_ylabel("Coefficients")
+    # ax.set_ylabel("Coefficients")
     ax.set_title("Local models")
     return ax
 
@@ -287,7 +287,7 @@ def plot_position_legend(
             ax.scatter(g.data[g._x_var][i], g.data[g._y_var][i], size, "#fd8431", "X")
         g.add_legend(
             legend,
-            "Local Loss",
+            "Local loss",
             loc="lower center" if inside else "upper right",
             bbox_to_anchor=(1 - w, h * 0.35, w * 0.9, h * 0.6) if inside else None,
         )
@@ -303,7 +303,7 @@ def plot_position_legend(
     else:
         g.add_legend(
             legend,
-            "Local Loss",
+            "Local loss",
             loc="center" if inside else "center right",
             bbox_to_anchor=(1 - w, 0.05, w * 0.9, h * 0.9) if inside else None,
         )
