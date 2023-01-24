@@ -1215,7 +1215,10 @@ class Slisemap:
             device = map_location
         sm = torch.load(f, map_location=device, **kwargs)
         sm.random_state = sm._rs0
-        sm.metadata.root = sm
+        try:  # Backwards compatibility
+            sm.metadata.root = sm
+        except AttributeError:
+            sm.metadata = Metadata(sm)
         return sm
 
     def get_model_clusters(
