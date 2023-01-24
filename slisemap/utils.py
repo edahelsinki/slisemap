@@ -9,7 +9,6 @@ from typing import Any, Callable, Dict, Iterator, List, Optional, Sequence, Unio
 import numpy as np
 import torch
 from matplotlib.lines import Line2D
-from matplotlib.patches import Patch
 
 
 class SlisemapException(Exception):
@@ -509,7 +508,7 @@ class Metadata(dict):
                 f"Wrong number of targets {len(coefficients)} != {self.root.q}",
                 Metadata.set_coefficients,
             )
-            self.metadata["coefficients"] = coefficients
+            self["coefficients"] = coefficients
 
     def set_dimensions(self, dimensions: Optional[Sequence[Any]] = None):
         """Set the dimension names with checks.
@@ -523,39 +522,7 @@ class Metadata(dict):
                 f"Wrong number of targets {len(dimensions)} != {self.root.d}",
                 Metadata.set_dimensions,
             )
-            self.metadata["dimensions"] = dimensions
-
-    def set_scaling(
-        self,
-        X_scale: Union[None, torch.Tensor, np.ndarray, Sequence[float]] = None,
-        X_center: Union[None, torch.Tensor, np.ndarray, Sequence[float]] = None,
-        Y_scale: Union[None, torch.Tensor, np.ndarray, Sequence[float]] = None,
-        Y_center: Union[None, torch.Tensor, np.ndarray, Sequence[float]] = None,
-    ):
-        """Set scaling information with checks.
-
-        Args:
-            X_scale: The scaling factor of `X` if `X` has been scaled (`X = (X_pre - center) * scale`)
-            X_center: The constant offset of `X` if `X` has been scaled (`X = (X_pre - center) * scale`)
-            Y_scale: The scaling factor of `Y` if `Y` has been scaled (`Y = (Y_pre - center) * scale`).
-            Y_center: The constant offset of `Y` if `Y` has been scaled (`Y = (Y_pre - center) * scale`)
-        """
-        if X_center is not None:
-            X_center = tonp(X_center).ravel()
-            assert X_center.size == self.root.m - self.root.intercept
-            self["X_center"] = X_center
-        if X_scale is not None:
-            X_scale = tonp(X_scale).ravel()
-            assert X_scale.size == self.root.m - self.root.intercept
-            self["X_scale"] = X_scale
-        if Y_center is not None:
-            Y_center = tonp(Y_center).ravel()
-            assert Y_center.size == self.root.o
-            self["Y_center"] = Y_center
-        if Y_scale is not None:
-            Y_scale = tonp(Y_scale).ravel()
-            assert Y_scale.size == self.root.o
-            self["Y_scale"] = Y_scale
+            self["dimensions"] = dimensions
 
     def get_coefficients(self) -> List[str]:
         """Get a list of coefficient names (with a fallback if not assigned)
@@ -605,6 +572,86 @@ class Metadata(dict):
             else:
                 return [f"X_{i}" for i in range(self.root.m - 1)] + ["X_Intercept"]
         return [f"X_{i}" for i in range(self.root.m)]
+
+    def set_scale_X(
+        self,
+        X_center: Union[None, torch.Tensor, np.ndarray, Sequence[float]] = None,
+        X_scale: Union[None, torch.Tensor, np.ndarray, Sequence[float]] = None,
+    ):
+        """Set scaling information with checks.
+        Use if `X` has been scaled before being input to Slisemap.
+        Assuming the scaling can be converted to the form `X = (X_unscaled - X_center) / X_scale`.
+        This allows some plots to (temporarily) revert the scaling (for more intuitive units).
+
+        Args:
+            X_center: The constant offset of `X`. Defaults to None.
+            X_scale: The scaling factor of `X`. Defaults to None.
+        """
+        if X_center is not None:
+            X_center = tonp(X_center).ravel()
+            assert X_center.size == self.root.m - self.root.intercept
+            self["X_center"] = X_center
+        if X_scale is not None:
+            X_scale = tonp(X_scale).ravel()
+            assert X_scale.size == self.root.m - self.root.intercept
+            self["X_scale"] = X_scale
+
+    def set_scale_Y(
+        self,
+        Y_center: Union[None, torch.Tensor, np.ndarray, Sequence[float]] = None,
+        Y_scale: Union[None, torch.Tensor, np.ndarray, Sequence[float]] = None,
+    ):
+        """Set scaling information with checks.
+        Use if `Y` has been scaled before being input to Slisemap.
+        Assuming the scaling can be converted to the form `Y = (Y_unscaled - Y_center) / Y_scale`.
+        This allows some plots to (temporarily) revert the scaling (for more intuitive units).
+
+        Args:
+            Y_center: The constant offset of `Y`. Defaults to None.
+            Y_scale: The scaling factor of `Y`. Defaults to None.
+        """
+        if Y_center is not None:
+            Y_center = tonp(Y_center).ravel()
+            assert Y_center.size == self.root.o
+            self["Y_center"] = Y_center
+        if Y_scale is not None:
+            Y_scale = tonp(Y_scale).ravel()
+            assert Y_scale.size == self.root.o
+            self["Y_scale"] = Y_scale
+
+    def unscale_X(self, X: Optional[np.ndarray] = None) -> np.ndarray:
+        """Unscale X if the scaling information has been given (see `set_scale_X`).
+
+        Args:
+            X: The data matrix X (or `self.root.get_X(intercept=False)` if None).
+
+        Returns:
+            Possibly scaled X.
+        """
+        if X is None:
+            X = self.root.get_X(intercept=False)
+        if "X_scale" in self:
+            X = X * self["X_scale"][None, :]
+        if "X_center" in self:
+            X = X + self["X_center"][None, :]
+        return X
+
+    def unscale_Y(self, Y: Optional[np.ndarray] = None) -> np.ndarray:
+        """Unscale Y if the scaling information has been given (see `set_scale_Y`).
+
+        Args:
+            Y: The response matrix Y (or `self.root.get_Y()` if None).
+
+        Returns:
+            Possibly scaled Y.
+        """
+        if Y is None:
+            Y = self.root.get_Y()
+        if "Y_scale" in self:
+            Y = Y * self["Y_scale"][None, :]
+        if "Y_center" in self:
+            Y = Y + self["Y_center"][None, :]
+        return Y
 
 
 def _create_legend(

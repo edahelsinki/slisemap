@@ -68,6 +68,8 @@ def test_plot_dist():
         sm.plot_dist(scatter=True, legend_inside=False, col_wrap=3, show=False)
         sm.metadata.set_variables(range(4), add_intercept=True)
         sm.metadata.set_targets(["asd"])
+        sm.metadata.set_scale_X(np.zeros(4), np.ones(4))
+        sm.metadata.set_scale_Y(0, 1)
         sm.plot_dist(jitter=1, show=False)
         sm.plot_dist(scatter=True, show=False)
     finally:

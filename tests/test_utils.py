@@ -121,4 +121,30 @@ def test_to_tensor():
     except ImportError:
         pass
 
-    Slisemap(X=X4, y=X3[1])
+    Slisemap(X=X4, y=X3[1], lasso=0.1)
+
+
+def test_metadata():
+    sm, _ = get_slisemap2(40, 5)
+    assert len(sm.metadata.get_coefficients()) == 6
+    assert len(sm.metadata.get_variables(False)) == 5
+    assert len(sm.metadata.get_variables(True)) == 6
+    sm.metadata.set_variables(range(6))
+    sm.metadata.set_variables(range(5), add_intercept=True)
+    assert len(sm.metadata.get_variables(False)) == 5
+    assert len(sm.metadata.get_variables(True)) == 6
+    assert len(sm.metadata.get_coefficients()) == 6
+    assert len(sm.metadata.get_targets()) == 1
+    sm.metadata.set_targets("asd")
+    assert len(sm.metadata.get_targets()) == 1
+    sm.metadata.set_targets(["asd"])
+    assert len(sm.metadata.get_targets()) == 1
+    assert len(sm.metadata.get_coefficients()) == 6
+    sm.metadata.set_coefficients(range(6))
+    assert len(sm.metadata.get_coefficients()) == 6
+    assert_allclose(sm.metadata.unscale_X(), sm.get_X(intercept=False))
+    assert_allclose(sm.metadata.unscale_Y(), sm.get_Y())
+    sm.metadata.set_scale_X(np.zeros(5), np.ones(5))
+    sm.metadata.set_scale_Y(0, 1)
+    assert_allclose(sm.metadata.unscale_X(), sm.get_X(intercept=False))
+    assert_allclose(sm.metadata.unscale_Y(), sm.get_Y())

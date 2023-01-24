@@ -1502,6 +1502,7 @@ class Slisemap:
         variables: Optional[List[str]] = None,
         targets: Union[None, str, Sequence[str]] = None,
         clusters: Union[None, int, np.ndarray] = None,
+        unscale: bool = True,
         scatter: bool = False,
         jitter: float = 0.0,
         col_wrap: int = 4,
@@ -1520,6 +1521,7 @@ class Slisemap:
             targets: Target name(s). Defaults to None.
             clusters: Number of cluster or vector of cluster labels. Defaults to None.
             scatter: Use scatterplots instead of density plots (clusters are ignored). Defaults to False.
+            unscale: Unscale `X` and `Y` if scaling metadata has been given (see `Slisemap.metadata.set_scale_X`). Defaults to True.
             jitter: Add jitter to the scatterplots. Defaults to 0.0.
             col_wrap: Maximum number of columns. Defaults to 4.
             legend_inside: Move the legend inside the grid (if there is an empty cell). Defaults to True.
@@ -1537,6 +1539,9 @@ class Slisemap:
             Y = self.get_Y()
         else:
             Y = np.reshape(Y, (X.shape[0], -1))
+        if unscale:
+            X = self.metadata.unscale_X(X)
+            Y = self.metadata.unscale_Y(Y)
         if variables is None:
             variables = self.metadata.get_variables(intercept=False)
         else:
