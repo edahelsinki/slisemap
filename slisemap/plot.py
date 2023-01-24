@@ -34,21 +34,24 @@ def _expand_variable_names(
 
 
 def _create_legend(
-    hue_norm: Tuple[float, float], cmap: Any, markers: int = 5
+    hue_norm: Tuple[float, float],
+    cmap: Any,
+    markers: int = 5,
+    min_length: int = 3,
+    max_digits: int = 6,
 ) -> Tuple[List[Line2D], List[str]]:
     handles = [
         Line2D([], [], 0, color=cmap(n), marker="o")
         for n in np.linspace(0.0, 1.0, markers)
     ]
-    digits = int(np.floor(np.log(np.max(np.abs(hue_norm))) / np.log(10)))
-    if digits > 0:
-        decimals = max(1 - digits, 0)
-    else:
-        digits = 0
-        decimals = -digits + 1
-    labels = [
-        f"{l:{digits + decimals}.{decimals}f}" for l in np.linspace(*hue_norm, markers)
-    ]
+    for i in range(max_digits):
+        labels = [f"{l:.{i}f}" for l in np.linspace(*hue_norm, markers)]
+        length = max(len(l) for l in labels)
+        if length < min_length:
+            continue
+        if len(np.unique(labels)) == markers:
+            break
+    labels = [f"{l:{length}.{i}f}" for l in np.linspace(*hue_norm, markers)]
     return handles, labels
 
 
