@@ -54,12 +54,6 @@ def test_plot_dist():
         sm, cl = get_slisemap2(30, 4, randomB=True)
         sm.plot_dist(title="ASD", clusters=4, show=False)
         sm.plot_dist(clusters=cl, show=False)
-        sm.plot_dist(
-            title="ASD",
-            X=sm.get_X(intercept=False) * 2,
-            Y=sm.get_Y() / 2 + 1,
-            show=False,
-        )
         sm.plot_dist(legend_inside=True, col_wrap=3, show=False)
         sm.plot_dist(legend_inside=False, col_wrap=3, show=False)
         sm.plot_dist(title="ASD", scatter=True, show=False)

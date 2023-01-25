@@ -43,7 +43,7 @@ def _create_legend(
 ) -> Tuple[List[Line2D], List[str]]:
     cmap = plt.get_cmap(cmap)
     handles = [
-        Line2D([], [], 0, color=cmap(n), marker="o")
+        Line2D([], [], linewidth=0, color=cmap(n), marker="o")
         for n in np.linspace(0.0, 1.0, markers)
     ]
     values = np.linspace(*hue_norm, markers)
@@ -343,7 +343,8 @@ def plot_density_facet(
     if kwargs.setdefault("kind", "kde") == "kde":
         kwargs.setdefault("bw_adjust", 0.75)
         kwargs.setdefault("common_norm", False)
-    kwargs.setdefault("palette", "bright")
+    if clusters is not None:
+        kwargs.setdefault("palette", "bright")
     kwargs.setdefault("facet_kws", dict(sharex=False, sharey=False))
     g = sns.displot(
         data=df,
