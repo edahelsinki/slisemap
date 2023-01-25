@@ -1,8 +1,7 @@
 # Installation: `pip install -r requirements.txt`
 numpy
-pandas
-matplotlib
+torch # This is the CPU version, check https://pytorch.org/get-started/locally/ for GPU acceleration
 scipy
 scikit-learn
+matplotlib
 seaborn
-torch # This is the CPU version, check https://pytorch.org/get-started/locally/ for GPU acceleration
