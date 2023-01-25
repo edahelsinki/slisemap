@@ -50,9 +50,10 @@ def get_slisemap2(
     randomB=False,
     cheat=False,
     lasso=1e-4,
+    k=3,
     **kwargs,
 ) -> Tuple[Slisemap, np.ndarray]:
-    cl, X, y, B = get_rsynth(n, m, s=s, seed=seed)
+    cl, X, y, B = get_rsynth(n, m, s=s, k=k, seed=seed)
     if classes:
         y = 1 / (1 + np.exp(-y))
         sm = Slisemap(
@@ -82,9 +83,13 @@ def get_slisemap2(
 
 
 def assert_allclose(x, y, label="", *args, **kwargs):
-    assert np.allclose(
-        x, y, *args, **kwargs
-    ), f"{label}: {x} != {y}\nmax abs diff: {np.max(np.abs(x-y))}"
+    if isinstance(x, torch.Tensor):
+        allclose = torch.allclose(x, y, *args, **kwargs)
+        maxdiff = torch.max(torch.abs(x - y)).cpu().detach().item()
+    else:
+        allclose = np.allclose(x, y, *args, **kwargs)
+        maxdiff = np.max(np.abs(x - y))
+    assert allclose, f"{label}: {x} != {y}\nmax abs diff: {maxdiff}"
 
 
 def all_finite(x: Union[float, np.ndarray], *args: Union[float, np.ndarray]) -> bool:

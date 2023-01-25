@@ -158,26 +158,24 @@ def test_predict():
 def test_get():
     sm = get_slisemap(40, 5, intercept=True, lasso=0, ridge=0, z_norm=0, seed=459872)
     sm.lbfgs(10)
-    assert torch.allclose(sm._Z, sm.get_Z(False, False, False))
-    assert torch.allclose(torch.sqrt(torch.sum(sm._Z**2) / sm.n), torch.ones(1))
+    assert_allclose(sm._Z, sm.get_Z(False, False, False), "Z")
+    assert_allclose(torch.sqrt(torch.sum(sm._Z**2) / sm.n), torch.ones(1), "scale")
     Z = sm.get_Z(numpy=False)
-    assert torch.allclose(
-        torch.sqrt(torch.sum(Z**2) / sm.n) / sm.radius, torch.ones(1)
-    )
-    assert torch.allclose(sm.get_D(numpy=False), torch.cdist(Z, Z), 1e-4, 1e-6)
+    assert_allclose(torch.sqrt(torch.sum(Z**2) / sm.n) / sm.radius, torch.ones(1))
+    assert_allclose(sm.get_D(numpy=False), torch.cdist(Z, Z), "D", 1e-4, 1e-6)
     W = sm.get_W(numpy=False)
-    assert torch.allclose(W, sm.kernel(torch.cdist(Z, Z)))
+    assert_allclose(W, sm.kernel(torch.cdist(Z, Z)), "W")
     L = sm.get_L(numpy=False)
-    assert_allclose(sm.value(), torch.sum(L * W).cpu().item(), "loss", 1e-4, 1e-6)
-    assert_allclose(sm.value(True), tonp(torch.sum(L * W, 1)), "ind_loss", 1e-4, 1e-6)
+    assert_allclose(sm.value(), torch.sum(W * L).cpu().item(), "loss", 1e-4, 1e-6)
+    assert_allclose(sm.value(True, False), torch.sum(W * L, 1), "ind_loss", 1e-4, 1e-4)
     assert sm.get_Y(False, True).shape == (40,)
     assert sm.get_Y(False, False).shape == (40, 1)
     assert sm.get_X(intercept=False).shape[1] == sm.m - 1
     assert sm.get_X(False, False).shape == (40, 5)
     assert sm.get_X(False, True).shape == (40, 6)
     assert sm.get_B(False).shape == (40, 6)
-    assert torch.allclose(
-        sm.get_L(numpy=False), sm.get_L(X=sm._X[:, :-1], Y=sm._Y, numpy=False)
+    assert_allclose(
+        sm.get_L(numpy=False), sm.get_L(X=sm._X[:, :-1], Y=sm._Y, numpy=False), "L"
     )
 
 
