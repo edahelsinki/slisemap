@@ -4,10 +4,11 @@
     This float should either be minimised or maximised for best results (see individual functions).
 """
 
-from typing import Callable, Optional, Sequence, Tuple, Union
+from typing import Callable, Optional, Sequence, Union
 
 import numpy as np
 import torch
+from sklearn.cluster import KMeans
 
 from slisemap.slisemap import Slisemap
 from slisemap.utils import tonp
@@ -391,7 +392,7 @@ def stability(
 
 
 def kmeans_matching(
-    sm: Slisemap, clusters: Union[int, Sequence[int]] = range(2, 10)
+    sm: Slisemap, clusters: Union[int, Sequence[int]] = range(2, 10), **kwargs
 ) -> float:
     """Evaluate SLISE by measuring how well clusters in Z and B overlap (using kmeans to find the clusters).
     The overlap is measured by finding the best matching clusters and dividing the size of intersect by the size of the union of each cluster pair.
@@ -401,11 +402,12 @@ def kmeans_matching(
     Args:
         sm: Trained Slisemap solution.
         clusters: The number of clusters. Defaults to range(2, 10).
+    Keyword Args:
+        **kwargs: Additional arguments to `sklearn.KMeans`.
 
     Returns:
         The mean cluster matching.
     """
-    from sklearn.cluster import KMeans
     from scipy.optimize import linear_sum_assignment
 
     Z = sm.get_Z()
@@ -418,8 +420,8 @@ def kmeans_matching(
         clusters = range(clusters, clusters + 1)
     results = []
     for k in clusters:
-        cl_B = KMeans(n_clusters=k, init="k-means++").fit(B)
-        cl_Z = KMeans(n_clusters=k, init="k-means++").fit(Z)
+        cl_B = KMeans(n_clusters=k, **kwargs).fit(B)
+        cl_Z = KMeans(n_clusters=k, **kwargs).fit(Z)
         sets_B = [set(np.where(cl_B.labels_ == i)[0]) for i in range(k)]
         sets_Z = [set(np.where(cl_Z.labels_ == i)[0]) for i in range(k)]
         mat = np.zeros((k, k))

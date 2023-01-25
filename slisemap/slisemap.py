@@ -22,7 +22,6 @@ import numpy as np
 import seaborn as sns
 import torch
 from matplotlib.figure import Figure
-from matplotlib.lines import Line2D
 from sklearn.cluster import KMeans
 
 from slisemap.escape import escape_neighbourhood
