@@ -79,6 +79,7 @@ class Slisemap:
         metadata: Dictionary of arbitrary metadata such as variable names.
         jit: Just-In-Time compile the loss function for increased performance (see `torch.jit.trace` for caveats).
         random_state: Set an explicit seed for the random number generator (i.e. `torch.manual_seed`).
+        metadata: A dictionary for storing variable names and other metadata (see [slisemap.utils.Metadata][]).
     """
 
     # Make Python faster and safer by not creating a Slisemap.__dict__

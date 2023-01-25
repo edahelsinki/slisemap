@@ -417,8 +417,8 @@ def to_tensor(
 
 class Metadata(dict):
     """Metadata for Slisemap objects.
-    Primarily row names, column names, and scaling information about the matrices.
-    These are mostly used when plotting.
+    Primarily row names, column names, and scaling information about the matrices (these are used when plotting).
+    But other arbitrary information can also be stored in this dictionary (The main Slisemap class has predefined "slots").
     """
 
     def __init__(self, root: "Slisemap"):
