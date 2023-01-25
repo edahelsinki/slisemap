@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "slisemap"
-version = "1.3.0"
+version = "1.3.1"
 authors = [
     { name = "Anton Björklund", email = "anton.bjorklund@helsinki.fi" },
     { name = "Jarmo Mäkelä", email = "jarmo.makela@helsinki.fi" },
@@ -41,4 +41,4 @@ documentation = "https://edahelsinki.github.io/slisemap"
 repository = "https://github.com/edahelsinki/slisemap.git"
 
 [tool.setuptools]
-py-modules = ["slisemap"]
+packages = ["slisemap"]
