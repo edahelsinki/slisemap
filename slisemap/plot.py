@@ -2,12 +2,13 @@
 Utility functions for plotting
 """
 
-from typing import Any, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import seaborn as sns
 from matplotlib import pyplot as plt
 from matplotlib.lines import Line2D
+from matplotlib.colors import Colormap
 
 from slisemap.utils import _assert, _warn, dict_concat
 
@@ -35,23 +36,31 @@ def _expand_variable_names(
 
 def _create_legend(
     hue_norm: Tuple[float, float],
-    cmap: Any,
+    cmap: Union[str, Colormap] = "crest",
     markers: int = 5,
-    min_length: int = 3,
+    min_digits: int = 3,
     max_digits: int = 6,
 ) -> Tuple[List[Line2D], List[str]]:
+    cmap = plt.get_cmap(cmap)
     handles = [
         Line2D([], [], 0, color=cmap(n), marker="o")
         for n in np.linspace(0.0, 1.0, markers)
     ]
+    values = np.linspace(*hue_norm, markers)
+    if max(abs(i) for i in hue_norm) < 10:
+        min_digits += 1
     for i in range(max_digits):
-        labels = [f"{l:.{i}f}" for l in np.linspace(*hue_norm, markers)]
+        labels = [f"{l:.{i}f}" for l in values]
         length = max(len(l) for l in labels)
-        if length < min_length:
+        if length < min_digits:
             continue
         if len(np.unique(labels)) == markers:
+            if length == min_digits:
+                # Do not count '-' for short labels
+                if not any(len(l) == length and v >= 0 for v, l in zip(values, labels)):
+                    i += 1
             break
-    labels = [f"{l:{length}.{i}f}" for l in np.linspace(*hue_norm, markers)]
+    labels = [f"{l:{length}.{i}f}" for l in values]
     return handles, labels
 
 
@@ -136,10 +145,7 @@ def plot_embedding(
         )
         color_name = "Cluster"
     if color_norm is not None:
-        ax.legend(
-            *_create_legend(color_norm, plt.get_cmap(kwargs["palette"]), 5),
-            title=color_name,
-        )
+        ax.legend(*_create_legend(color_norm, kwargs["palette"], 5), title=color_name)
     elif color_name is not None and color_name != "":
         ax.legend(title=color_name)
     ax.set_xlabel(dimensions[0])
@@ -278,9 +284,7 @@ def plot_position_legend(
     """
     col_wrap = g._col_wrap
     facets = g._n_facets
-    g.data
-    handles, labels = _create_legend(hue_norm, plt.get_cmap(palette), 6)
-    legend = {l: h for h, l in zip(handles, labels)}
+    legend = {l: h for h, l in zip(*_create_legend(hue_norm, palette, 6))}
     inside = legend_inside and col_wrap < facets and facets % col_wrap != 0
     w = 1 / col_wrap
     h = 1 / ((facets - 1) // col_wrap + 1)
