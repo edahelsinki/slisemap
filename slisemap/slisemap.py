@@ -1223,7 +1223,11 @@ class Slisemap:
         return sm
 
     def get_model_clusters(
-        self, clusters: int, B: Optional[np.ndarray] = None, random_state: int = 42
+        self,
+        clusters: int,
+        B: Optional[np.ndarray] = None,
+        random_state: int = 42,
+        **kwargs,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Cluster the local model coefficients using k-means (from scikit-learn).
         This method (with a fixed random seed) is used for plotting Slisemap solutions.
@@ -1232,13 +1236,15 @@ class Slisemap:
             clusters: Number of clusters.
             B: B matrix. Defaults to self.get_B().
             random_state: random_state for the KMeans clustering. Defaults to 42.
+        Keyword Args:
+            **kwargs: Additional arguments to `sklearn.KMeans`.
 
         Returns:
             labels: Vector of cluster labels.
             centres: Matrix of cluster centres.
         """
         B = B if B is not None else self.get_B()
-        km = KMeans(clusters, random_state=random_state).fit(B)
+        km = KMeans(clusters, random_state=random_state, **kwargs).fit(B)
         # Sort according to value for the most influential coefficient
         influence = (
             km.cluster_centers_.var(0)
