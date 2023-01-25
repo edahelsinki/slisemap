@@ -81,8 +81,8 @@ def test_PCA_for_rotation():
         Xvar = torch.sqrt(torch.sum(X**2) / X.shape[0])
         XRvar = torch.sqrt(torch.sum(XR**2) / X.shape[0])
         assert torch.allclose(Xvar, XRvar, atol=1e-6)
-        Xmd = torch.sqrt(torch.sum(torch.mean(X, 0)**2))
-        XRmd = torch.sqrt(torch.sum(torch.mean(XR, 0)**2))
+        Xmd = torch.sqrt(torch.sum(torch.mean(X, 0) ** 2))
+        XRmd = torch.sqrt(torch.sum(torch.mean(XR, 0) ** 2))
         assert torch.allclose(Xmd, XRmd, atol=1e-6)
 
 
@@ -129,7 +129,8 @@ def test_metadata():
     assert len(sm.metadata.get_coefficients()) == 6
     assert len(sm.metadata.get_variables(False)) == 5
     assert len(sm.metadata.get_variables(True)) == 6
-    sm.metadata.set_variables(range(6))
+    sm.metadata.set_variables(range(5))
+    sm.metadata.set_variables(range(6), add_intercept=False)
     sm.metadata.set_variables(range(5), add_intercept=True)
     assert len(sm.metadata.get_variables(False)) == 5
     assert len(sm.metadata.get_variables(True)) == 6
