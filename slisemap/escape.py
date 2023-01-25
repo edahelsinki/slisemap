@@ -28,20 +28,20 @@ def escape_neighbourhood(
     This is done by finding another item (in the optimal neighbourhood) and copying its values for Z and B.
 
     Args:
-        X (torch.Tensor): Data matrix.
-        Y (torch.Tensor): Target matrix.
-        B (torch.Tensor): Local models.
-        Z (torch.Tensor): Embedding matrix.
-        local_model (Callable[[torch.Tensor, torch.Tensor], torch.Tensor]): Prediction function for the local models.
-        local_loss (Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor]): Loss function for the local models.
-        distance (Callable[[torch.Tensor, torch.Tensor], torch.Tensor]): Embedding distance function.
-        kernel (Callable[[torch.Tensor], torch.Tensor]):  Kernel for embedding distances.
-        radius (float, optional): For enforcing the radius of Z. Defaults to 3.5.
-        force_move (bool, optional): Do not allow the items to pair with themselves. Defaults to True.
+        X: Data matrix.
+        Y: Target matrix.
+        B: Local models.
+        Z: Embedding matrix.
+        local_model: Prediction function for the local models.
+        local_loss: Loss function for the local models.
+        distance: Embedding distance function.
+        kernel: Kernel for embedding distances.
+        radius: For enforcing the radius of Z. Defaults to 3.5.
+        force_move: Do not allow the items to pair with themselves. Defaults to True.
 
     Returns:
-        B (torch.Tensor): Escaped `B`.
-        Z (torch.Tensor]): Escaped `Z`.
+        B: Escaped `B`.
+        Z: Escaped `Z`.
     """
     L = local_loss(local_model(X, B), Y, B)
     if radius > 0:
@@ -84,20 +84,20 @@ def escape_greedy(
     This is done by finding another item (with an optimal local model) and copying its values for Z and B.
 
     Args:
-        X (torch.Tensor): Data matrix.
-        Y (torch.Tensor): Target matrix.
-        B (torch.Tensor): Local models.
-        Z (torch.Tensor): Embedding matrix.
-        local_model (Callable[[torch.Tensor, torch.Tensor], torch.Tensor]): Prediction function for the local models.
-        local_loss (Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor]): Loss function for the local models.
-        distance (Callable[[torch.Tensor, torch.Tensor], torch.Tensor]): Embedding distance function.
-        kernel (Callable[[torch.Tensor], torch.Tensor]):  Kernel for embedding distances.
-        radius (float, optional): For enforcing the radius of Z. Defaults to 3.5.
-        force_move (bool, optional): Do not allow the items to pair with themselves. Defaults to True.
+        X: Data matrix.
+        Y: Target matrix.
+        B: Local models.
+        Z: Embedding matrix.
+        local_model: Prediction function for the local models.
+        local_loss: Loss function for the local models.
+        distance: Embedding distance function.
+        kernel: Kernel for embedding distances.
+        radius: For enforcing the radius of Z. Defaults to 3.5.
+        force_move: Do not allow the items to pair with themselves. Defaults to True.
 
     Returns:
-        B (torch.Tensor): Escaped `B`.
-        Z (torch.Tensor]): Escaped `Z`.
+        B: Escaped `B`.
+        Z: Escaped `Z`.
     """
     L = local_loss(local_model(X, B), Y, B)
     if force_move:
@@ -131,20 +131,20 @@ def escape_combined(
     This is a combination of escape_neighbourhood and escape_greedy.
 
     Args:
-        X (torch.Tensor): Data matrix.
-        Y (torch.Tensor): Target matrix.
-        B (torch.Tensor): Local models.
-        Z (torch.Tensor): Embedding matrix.
-        local_model (Callable[[torch.Tensor, torch.Tensor], torch.Tensor]): Prediction function for the local models.
-        local_loss (Callable[[torch.Tensor, torch.Tensor], torch.Tensor, torch.Tensor]): Loss function for the local models.
-        distance (Callable[[torch.Tensor, torch.Tensor], torch.Tensor]): Embedding distance function.
-        kernel (Callable[[torch.Tensor], torch.Tensor]):  Kernel for embedding distances.
-        radius (float, optional): For enforcing the radius of Z. Defaults to 3.5.
-        force_move (bool, optional): Do not allow the items to pair with themselves. Defaults to True.
+        X: Data matrix.
+        Y: Target matrix.
+        B: Local models.
+        Z: Embedding matrix.
+        local_model: Prediction function for the local models.
+        local_loss: Loss function for the local models.
+        distance: Embedding distance function.
+        kernel: Kernel for embedding distances.
+        radius: For enforcing the radius of Z. Defaults to 3.5.
+        force_move: Do not allow the items to pair with themselves. Defaults to True.
 
     Returns:
-        B (torch.Tensor): Escaped `B`.
-        Z (torch.Tensor]): Escaped `Z`.
+        B: Escaped `B`.
+        Z: Escaped `Z`.
     """
     L = local_loss(local_model(X, B), Y, B)
     if radius > 0:
@@ -188,21 +188,21 @@ def escape_marginal(
     This might produce better results than `escape_neighbourhood`, but is really slow.
 
     Args:
-        X (torch.Tensor): Data matrix.
-        Y (torch.Tensor): Target matrix.
-        B (torch.Tensor): Local models.
-        Z (torch.Tensor): Embedding matrix.
-        local_model (Callable[[torch.Tensor, torch.Tensor], torch.Tensor]): Prediction function for the local models.
-        local_loss (Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor]): Loss function for the local models.
-        distance (Callable[[torch.Tensor, torch.Tensor], torch.Tensor]): Embedding distance function.
-        kernel (Callable[[torch.Tensor], torch.Tensor]):  Kernel for embedding distances.
-        radius (float, optional): For enforcing the radius of Z. Defaults to 3.5.
-        force_move (bool, optional): Do not allow the items to pair with themselves. Defaults to True.
-        jit (bool, optional): Just-In-Time compile the loss function. Defaults to True.
+        X: Data matrix.
+        Y: Target matrix.
+        B: Local models.
+        Z: Embedding matrix.
+        local_model: Prediction function for the local models.
+        local_loss: Loss function for the local models.
+        distance: Embedding distance function.
+        kernel: Kernel for embedding distances.
+        radius: For enforcing the radius of Z. Defaults to 3.5.
+        force_move: Do not allow the items to pair with themselves. Defaults to True.
+        jit: Just-In-Time compile the loss function. Defaults to True.
 
     Returns:
-        B (torch.Tensor): Escaped `B`.
-        Z (torch.Tensor]): Escaped `Z`.
+        B: Escaped `B`.
+        Z: Escaped `Z`.
     """
     from slisemap.slisemap import make_marginal_loss
 

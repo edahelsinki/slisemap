@@ -59,24 +59,31 @@ def test_PCA():
         assert PCA_rotation(x * np.nan, 5, full=True).shape == (3, 3)
     with pytest.warns(SlisemapWarning, match="PCA"):
         assert PCA_rotation(x * np.nan, 5, full=False).shape == (3, 3)
-    assert np.allclose(
-        np.abs(PCA_rotation(x, 3).numpy()), np.abs(np.linalg.svd(x.numpy())[2].T)
+    assert_allclose(
+        np.abs(PCA_rotation(x, 3, center=False).numpy()),
+        np.abs(np.linalg.svd(x.numpy())[2].T),
     )
     x = torch.normal(0, 1, (3, 5))
     assert PCA_rotation(x, 2, full=False).shape == (5, 2)
     assert PCA_rotation(x, 2, full=True).shape == (5, 2)
     assert np.allclose(
-        np.abs(PCA_rotation(x, 2).numpy()), np.abs(np.linalg.svd(x.numpy())[2][:2].T)
+        np.abs(PCA_rotation(x, 2, center=False).numpy()),
+        np.abs(np.linalg.svd(x.numpy())[2][:2].T),
     )
 
 
 def test_PCA_for_rotation():
     for i in range(1, 6):
         X = torch.normal(0, 1, size=(10 + i * 5, i))
-        XR = X @ PCA_rotation(X)
+        XR = X @ PCA_rotation(X, center=False)
         assert X.shape == XR.shape
-        # print(i, torch.abs(torch.cdist(X, X) - torch.cdist(XR, XR)).max())
         assert torch.allclose(torch.cdist(X, X), torch.cdist(XR, XR), atol=2e-3)
+        Xvar = torch.sqrt(torch.sum(X**2) / X.shape[0])
+        XRvar = torch.sqrt(torch.sum(XR**2) / X.shape[0])
+        assert torch.allclose(Xvar, XRvar, atol=1e-6)
+        Xmd = torch.sqrt(torch.sum(torch.mean(X, 0) ** 2))
+        XRmd = torch.sqrt(torch.sum(torch.mean(XR, 0) ** 2))
+        assert torch.allclose(Xmd, XRmd, atol=1e-6)
 
 
 def test_dict():
@@ -87,3 +94,58 @@ def test_dict():
         dict(a=2, b="asd", c=list(range(i)), d=np.arange(i), e=0.2, f=None)
         for i in range(2, 3)
     )
+
+
+def test_to_tensor():
+    X = np.random.normal(0, 1, (5, 5))
+    X2 = torch.as_tensor(X)
+    X3 = [c for c in X]
+    X4 = {k: v for k, v in enumerate(X.T)}
+
+    def test(X):
+        Xn, r, c = to_tensor(X)
+        assert torch.allclose(X2, Xn)
+        assert r is None or X2.shape[0] == len(r)
+        assert c is None or X2.shape[1] == len(c)
+
+    test(X)
+    test(X2)
+    test(X3)
+    test(X4)
+
+    try:
+        import pandas
+
+        test(pandas.DataFrame(X))
+        test(pandas.DataFrame(X4))
+    except ImportError:
+        pass
+
+    Slisemap(X=X4, y=X3[1], lasso=0.1)
+
+
+def test_metadata():
+    sm, _ = get_slisemap2(40, 5)
+    assert len(sm.metadata.get_coefficients()) == 6
+    assert len(sm.metadata.get_variables(False)) == 5
+    assert len(sm.metadata.get_variables(True)) == 6
+    sm.metadata.set_variables(range(5))
+    sm.metadata.set_variables(range(6), add_intercept=False)
+    sm.metadata.set_variables(range(5), add_intercept=True)
+    assert len(sm.metadata.get_variables(False)) == 5
+    assert len(sm.metadata.get_variables(True)) == 6
+    assert len(sm.metadata.get_coefficients()) == 6
+    assert len(sm.metadata.get_targets()) == 1
+    sm.metadata.set_targets("asd")
+    assert len(sm.metadata.get_targets()) == 1
+    sm.metadata.set_targets(["asd"])
+    assert len(sm.metadata.get_targets()) == 1
+    assert len(sm.metadata.get_coefficients()) == 6
+    sm.metadata.set_coefficients(range(6))
+    assert len(sm.metadata.get_coefficients()) == 6
+    assert_allclose(sm.metadata.unscale_X(), sm.get_X(intercept=False))
+    assert_allclose(sm.metadata.unscale_Y(), sm.get_Y())
+    sm.metadata.set_scale_X(np.zeros(5), np.ones(5))
+    sm.metadata.set_scale_Y(0, 1)
+    assert_allclose(sm.metadata.unscale_X(), sm.get_X(intercept=False))
+    assert_allclose(sm.metadata.unscale_Y(), sm.get_Y())

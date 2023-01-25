@@ -40,7 +40,7 @@ def test_underfit():
 
 
 def test_overfit():
-    sm, _ = get_slisemap2(60, 4, radius=10, lasso=0.01, seed=75308)
+    sm, _ = get_slisemap2(60, 4, k=5, radius=10, lasso=0.01, seed=75308)
     sm.lbfgs()
     assert np.mean(distant_diagnostic(sm)) > 0.1
     assert np.mean(heavyweight_diagnostic(sm)) > 0.2
