@@ -1300,7 +1300,7 @@ class Slisemap:
             B = self.get_B()
         else:
             _deprecated("Parameter 'B' in Slisemap.plot")
-        Z_names = self.metadata.get_dimensions(True)
+        Z_names = self.metadata.get_dimensions(long=True)
         if variables is not None:
             _deprecated(
                 "Parameter 'variables' in 'Slisemap.plot'",
