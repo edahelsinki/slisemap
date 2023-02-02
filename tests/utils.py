@@ -27,8 +27,7 @@ def get_slisemap(
         sm = Slisemap(
             X,
             y,
-            local_model=logistic_regression,
-            local_loss=logistic_regression_loss,
+            local_model=LogisticRegression,
             coefficients=(m + 1) * (classes - 1),
             lasso=lasso * 10,
             **kwargs,
@@ -59,8 +58,7 @@ def get_slisemap2(
         sm = Slisemap(
             X,
             y,
-            local_model=logistic_regression,
-            local_loss=logistic_regression_loss,
+            local_model=LogisticLogRegression,
             lasso=lasso * 10,
             random_state=seed,
             **kwargs,

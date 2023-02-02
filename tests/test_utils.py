@@ -129,7 +129,8 @@ def test_metadata():
     assert len(sm.metadata.get_coefficients()) == 6
     assert len(sm.metadata.get_variables(False)) == 5
     assert len(sm.metadata.get_variables(True)) == 6
-    sm.metadata.set_variables(range(6))
+    sm.metadata.set_variables(range(5))
+    sm.metadata.set_variables(range(6), add_intercept=False)
     sm.metadata.set_variables(range(5), add_intercept=True)
     assert len(sm.metadata.get_variables(False)) == 5
     assert len(sm.metadata.get_variables(True)) == 6

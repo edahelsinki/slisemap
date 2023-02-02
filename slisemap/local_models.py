@@ -206,12 +206,7 @@ def logistic_regression_coefficients(
     Returns:
         Number of coefficients (columns of B).
     """
-    _assert(
-        len(Y.shape) > 1 and Y.shape[1] > 1,
-        "Logistic regression requires Y:s with multiple classes",
-        logistic_regression_coefficients,
-    )
-    return (X.shape[1] + intercept) * (Y.shape[1] - 1)
+    return (X.shape[1] + intercept) * max(1, Y.shape[1] - 1)
 
 
 class LogisticRegression(ALocalModel):
