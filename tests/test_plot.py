@@ -1,5 +1,4 @@
 from matplotlib import pyplot as plt
-from slisemap.local_models import multiple_linear_regression
 
 from .utils import *
 
@@ -16,10 +15,7 @@ def test_plot():
         sm.plot(title="ASD", clusters=4, bars=3, show=False)
         sm.plot(jitter=1, show=False)
         sm = Slisemap(
-            np.random.normal(size=(10, 3)),
-            np.random.normal(size=(10, 3)),
-            local_model=multiple_linear_regression,
-            lasso=0,
+            np.random.normal(size=(10, 3)), np.random.normal(size=(10, 3)), lasso=0
         )
         sm.plot(show=False)
         sm.metadata.set_variables(range(3), add_intercept=True)

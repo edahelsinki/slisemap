@@ -41,8 +41,21 @@ def identify_local_model(
         coef_fn = local_model.coefficients
     elif callable(local_model):
         pred_fn = local_model
-        loss_fn = local_loss
-        coef_fn = coefficients
+        if (
+            local_model == linear_regression
+            or local_model == multiple_linear_regression
+        ):
+            loss_fn = linear_regression_loss
+            coef_fn = linear_regression_coefficients
+        elif local_model == logistic_regression:
+            loss_fn = logistic_regression_loss
+            coef_fn = logistic_regression_coefficients
+        elif local_model == logistic_regression_log:
+            loss_fn = logistic_regression_log_loss
+            coef_fn = logistic_regression_coefficients
+        else:
+            loss_fn = local_loss
+            coef_fn = coefficients
     elif isinstance(local_model, Sequence) and all(callable(o) for o in local_model):
         pred_fn = local_model[0]
         loss_fn = local_model[1] if len(local_model) > 1 else local_loss

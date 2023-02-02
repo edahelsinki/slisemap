@@ -386,12 +386,10 @@ class Slisemap:
         self,
         value: Union[ALocalModel, Callable[[torch.Tensor, torch.Tensor], torch.Tensor]],
     ):
-        value, loss, _ = identify_local_model(value)
+        value, _, _ = identify_local_model(value)
         if self._local_model != value:
             self._local_model = value
             self._loss = None  # invalidate cached loss function
-        if loss is not None:
-            self.local_loss = loss
 
     @property
     def local_loss(
