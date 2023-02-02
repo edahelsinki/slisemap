@@ -95,3 +95,14 @@ def test_logistic_log_model():
     assert logistic_regression_log(X[:1, :], B).shape == (10, 1, 3)
     torch.jit.trace(logistic_regression_log, (X, B))
     torch.jit.trace(logistic_regression_log_loss, (P, Y))
+
+
+def test_identify():
+    p, l, c = identify_local_model(LinearRegression)
+    assert p == linear_regression
+    assert l == linear_regression_loss
+    assert c == linear_regression_coefficients
+    p, l, c = identify_local_model(LinearRegression, logistic_regression_loss, 3)
+    assert p == linear_regression
+    assert l == logistic_regression_loss
+    assert c(None, None) == 3

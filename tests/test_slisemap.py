@@ -119,7 +119,7 @@ def test_loss():
         np.random.normal(size=(10, 3)),
         np.random.normal(size=(10, 3)),
         lasso=1e-4,
-        local_model=multiple_linear_regression,
+        local_model=linear_regression,
         local_loss=linear_regression_loss,
     )
     assert sm.q == linear_regression_coefficients(sm._X, sm._Y)

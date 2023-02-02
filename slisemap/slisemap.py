@@ -25,7 +25,7 @@ from matplotlib.figure import Figure
 from sklearn.cluster import KMeans
 
 from slisemap.escape import escape_neighbourhood
-from slisemap.local_models import linear_regression, linear_regression_loss
+from slisemap.local_models import identify_local_model, LinearRegression, ALocalModel
 from slisemap.loss import make_loss, make_marginal_loss, softmax_row_kernel
 from slisemap.plot import (
     _expand_variable_names,
@@ -116,12 +116,12 @@ class Slisemap:
         ridge: Optional[float] = None,
         z_norm: float = 0.01,
         intercept: bool = True,
-        local_model: Callable[
-            [torch.Tensor, torch.Tensor], torch.Tensor
-        ] = linear_regression,
-        local_loss: Callable[
-            [torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor
-        ] = linear_regression_loss,
+        local_model: Union[
+            ALocalModel, Callable[[torch.Tensor, torch.Tensor], torch.Tensor]
+        ] = LinearRegression,
+        local_loss: Optional[
+            Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor]
+        ] = None,
         coefficients: Union[
             None, int, Callable[[torch.Tensor, torch.Tensor], int]
         ] = None,
@@ -146,9 +146,9 @@ class Slisemap:
             ridge: Ridge regularisation coefficient. Defaults to 0.0.
             z_norm: Z normalisation regularisation coefficient. Defaults to 0.01.
             intercept: Should an intercept term be added to `X`. Defaults to True.
-            local_model: Local model prediction function (see [slisemap.local_models][]). Defaults to [linear_regression][slisemap.local_models.linear_regression].
-            local_loss: Local model loss function (see [slisemap.local_models][]). Defaults to [linear_regression_loss][slisemap.local_models.linear_regression_loss].
-            coefficients: The number of local model coefficients or a function: `f(X,Y)->coefficients`. Defaults to `X.shape[1] * Y.shape[1]`.
+            local_model: Local model prediction function (see [slisemap.local_models.identify_local_model][]). Defaults to [LinearRegression][slisemap.local_models.LinearRegression].
+            local_loss: Local model loss function (see [slisemap.local_models.identify_local_model][]). Defaults to None.
+            coefficients: The number of local model coefficients (see [slisemap.local_models.identify_local_model][]). Defaults to None.
             distance: Distance function. Defaults to `torch.cdist` (Euclidean distance).
             kernel: Kernel function. Defaults to [softmax_row_kernel][slisemap.loss.softmax_row_kernel].
             B0: Initial value for B (random if None). Defaults to None.
@@ -170,6 +170,9 @@ class Slisemap:
                 + "Set `lasso=0` to disable this warning (if no regularisation is really desired).",
                 Slisemap,
             )
+        local_model, local_loss, coefficients = identify_local_model(
+            local_model, local_loss, coefficients
+        )
         self.lasso = 0.0 if lasso is None else lasso
         self.ridge = 0.0 if ridge is None else ridge
         self.kernel = kernel
@@ -237,17 +240,13 @@ class Slisemap:
             self._Z0 = self._Z0 * norm
         self._Z = self._Z0.detach().clone()
 
-        if callable(coefficients):
-            coefficients = coefficients(self._X, self._Y)
         if B0 is None:
-            if coefficients is None:
-                coefficients = m * self.o
             B0 = global_model(
                 X=self._X,
                 Y=self._Y,
                 local_model=self.local_model,
                 local_loss=self.local_loss,
-                coefficients=coefficients,
+                coefficients=coefficients(self._X, self._Y),
                 lasso=self.lasso,
                 ridge=self.ridge,
             )
@@ -257,19 +256,14 @@ class Slisemap:
                     Slisemap,
                 )
                 B0 = torch.zeros_like(B0)
-            self._B0 = B0.expand((n, coefficients))
+            self._B0 = B0.expand((n, B0.shape[1]))
             B_rows = None
         else:
             self._B0, B_rows, B_columns = to_tensor(B0, **tensorargs)
             self.metadata.set_coefficients(B_columns)
-            if coefficients is None:
-                _assert(
-                    len(B0.shape) > 1, "B0 must have more than one dimension", Slisemap
-                )
-                coefficients = B0.shape[1]
             _assert(
-                self._B0.shape == (n, coefficients),
-                f"B0 has the wrong shape: {self._B0.shape} != ({n}, {coefficients})",
+                self._B0.shape == (n, B0.shape[1]),
+                f"B0 has the wrong shape: {self._B0.shape} != ({n}, {coefficients(self._X, self._Y)})",
                 Slisemap,
             )
         self._B = self._B0.detach().clone()
