@@ -382,13 +382,16 @@ class Slisemap:
         return self._local_model
 
     @local_model.setter
-    def local_model(self, value: Callable[[torch.Tensor, torch.Tensor], torch.Tensor]):
+    def local_model(
+        self,
+        value: Union[ALocalModel, Callable[[torch.Tensor, torch.Tensor], torch.Tensor]],
+    ):
+        value, loss, _ = identify_local_model(value)
         if self._local_model != value:
-            _assert(
-                callable(value), "local_model must be callable", Slisemap.local_model
-            )
             self._local_model = value
             self._loss = None  # invalidate cached loss function
+        if loss is not None:
+            self.local_loss = loss
 
     @property
     def local_loss(
