@@ -23,8 +23,7 @@ def linear_regression(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
         Prediction tensor [n_b, n_x, p]
     """
     # return (B @ X.T)[:, :, None] # Only for single linear regression
-    n, m = X.shape
-    return (B.view(n, -1, m) @ X.T).transpose(1, 2)
+    return (B.view(B.shape[0], -1, X.shape[1]) @ X.T).transpose(1, 2)
 
 
 def multiple_linear_regression(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
