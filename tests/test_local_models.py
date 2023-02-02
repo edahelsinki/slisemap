@@ -1,6 +1,6 @@
 import pytest
+import torch
 from slisemap.local_models import *
-from slisemap.utils import SlisemapException
 
 from .utils import *
 
@@ -16,17 +16,19 @@ def test_linear_model():
     assert L.shape == (10, 10)
     L = linear_regression_loss(Y, Y)
     assert L.shape == (10,)
+    torch.jit.trace(linear_regression, (X, B))
+    torch.jit.trace(linear_regression_loss, (P, Y))
     B = torch.as_tensor(np.random.normal(size=(10, 8)))
     Y = torch.as_tensor(np.random.normal(size=(10, 2)))
     assert B.shape[1] == linear_regression_coefficients(X, Y)
-    P = multiple_linear_regression(X, B)
+    P = linear_regression(X, B)
     L = linear_regression_loss(P, Y)
     assert P.shape == (10, 10, 2)
     assert L.shape == (10, 10)
     L = linear_regression_loss(Y, Y)
     assert L.shape == (10,)
-    with pytest.raises(SlisemapException, match=r"multiple_linear_regression"):
-        linear_regression(X, B)
+    torch.jit.trace(linear_regression, (X, B))
+    torch.jit.trace(linear_regression_loss, (P, Y))
 
 
 def test_logistic_model():

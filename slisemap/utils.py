@@ -27,15 +27,6 @@ def _assert(condition: bool, message: str, method: Optional[Callable] = None):
         else:
             raise SlisemapException(f"AssertionError, {method.__qualname__}: {message}")
 
-
-def _assert_no_trace(
-    condition: Callable[[], bool], message: str, method: Optional[Callable] = None
-):
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=torch.jit.TracerWarning)
-        _assert(condition(), message, method)
-
-
 def _deprecated(
     old: Union[Callable, str],
     new: Union[None, Callable, str] = None,

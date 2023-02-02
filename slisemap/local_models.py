@@ -9,25 +9,22 @@ import numpy as np
 import torch
 from torch.nn.functional import softmax
 
-from slisemap.utils import _assert, _assert_no_trace
+from slisemap.utils import _assert, _deprecated
 
 
 def linear_regression(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
-    """Prediction function for linear regression.
+    """Prediction function for (multiple) linear regression.
 
     Args:
         X: Data matrix [n_x, m].
-        B: Coefficient Matrix [n_b, m].
+        B: Coefficient Matrix [n_b, m*p].
 
     Returns:
-        Prediction tensor [n_b, n_x, 1]
+        Prediction tensor [n_b, n_x, p]
     """
-    _assert_no_trace(
-        lambda: X.shape[1] == B.shape[1],
-        "The B matrix does not have the same number of columns as X.\n\tDid you mean to use `multiple_linear_regression` for a multidimensional Y?",
-        linear_regression,
-    )
-    return (B @ X.T)[:, :, None]
+    # return (B @ X.T)[:, :, None] # Only for single linear regression
+    n, m = X.shape
+    return (B.view(n, -1, m) @ X.T).transpose(1, 2)
 
 
 def multiple_linear_regression(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
@@ -39,14 +36,13 @@ def multiple_linear_regression(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor
 
     Returns:
         Prediction tensor [n_b, n_x, p]
+
+    Deprecated:
+        1.4: In favour of a combined `linear_regression`
     """
-    n_x, m = X.shape
-    n_b, o = B.shape
-    p = torch.div(o, m, rounding_mode="trunc")
-    a = torch.empty([n_b, n_x, p], device=B.device, dtype=B.dtype)
-    for i in range(p):
-        a[:, :, i] = B[:, (i * m) : ((i + 1) * m)] @ X.T
-    return a
+    _deprecated(multiple_linear_regression, linear_regression)
+    n, m = X.shape
+    return (B.view(n, -1, m) @ X.T).transpose(1, 2)
 
 
 def linear_regression_loss(
