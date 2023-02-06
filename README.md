@@ -13,10 +13,9 @@ SLISEMAP is implemented in *Python* using *PyTorch* for efficient optimisation, 
 
 ## Citation
 
-> *Björklund, A., Mäkelä, J. & Puolamäki, K. (2022).*  
-> **SLISEMAP: Supervised dimensionality reduction through local explanations**.  
-> Machine Learning, [DOI 10.1007/s10994-022-06261-1](https://doi.org/10.1007/s10994-022-06261-1)  
-
+> *Björklund, A., Mäkelä, J. & Puolamäki, K. (2023).*  
+> **SLISEMAP: Supervised dimensionality reduction through local explanations.**  
+> Machine Learning 112, 1-43. [DOI: 10.1007/s10994-022-06261-1](https://doi.org/10.1007/s10994-022-06261-1)  
 
 ## Installation
 
