@@ -959,7 +959,10 @@ class Slisemap:
         verbose: bool = False,
         numpy: bool = True,
         **kwargs,
-    ) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
+    ) -> Union[
+        Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]],
+        Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]],
+    ]:
         """Generate embedding(s) and model(s) for new data item(s).
 
         This works as follows:
@@ -974,7 +977,7 @@ class Slisemap:
             escape_fn: Escape function (see [slisemap.escape][]). Defaults to [escape_neighbourhood][slisemap.escape.escape_neighbourhood].
             loss: Return a vector of individual losses for the new items. Defaults to False.
             verbose: Print status messages. Defaults to False.
-            numpy: Return the matrices as a numpy (True) or pytorch (False) matrices. Defaults to True.
+            numpy: Return the results as numpy (True) or pytorch (False) matrices. Defaults to True.
         Keyword Args:
             **kwargs: Optional keyword arguments to LBFGS.
 
