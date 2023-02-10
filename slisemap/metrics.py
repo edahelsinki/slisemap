@@ -595,7 +595,7 @@ def accuracy(
     sm: Slisemap,
     X: Union[None, np.ndarray, torch.Tensor] = None,
     Y: Union[None, np.ndarray, torch.Tensor] = None,
-    fidelity: bool = False,
+    fidelity: bool = True,
     optimise: bool = False,
     **kwargs,
 ) -> float:
@@ -605,7 +605,7 @@ def accuracy(
         sm: Trained Slisemap solution.
         X: New data matrix (uses the training data if None). Defaults to None.
         Y: New target matrix (uses the training data if None). Defaults to None.
-        fidelity: Return the mean local loss (fidelity) instead of mean individual loss. Defaults to False.
+        fidelity: Return the mean local loss (fidelity) instead of the mean embedding weighted loss. Defaults to True.
     Keyword Args:
         **kwargs: Optional keyword arguments to [Slisemap.fit_new][slisemap.slisemap.Slisemap.fit_new].
 
