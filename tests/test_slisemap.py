@@ -100,6 +100,10 @@ def test_fit_new():
         Z=torch.cat((sm._Z, torch.as_tensor(Z2 / sm.radius, **sm.tensorargs)), 0),
     )[sm.n :]
     assert np.sum(np.abs(tonp(l2b_) - l2b)) < 0.01
+    sm.fit_new(x1, y1, optimise=False, between=True, loss=True, numpy=False)
+    sm.fit_new(x2, y2, optimise=False, between=False, loss=True, numpy=False)
+    sm.fit_new(x1, y1, optimise=False, between=True, loss=True, numpy=False)
+    sm.fit_new(x2, y2, optimise=False, between=False, loss=True, numpy=False)
 
 
 def test_loss():

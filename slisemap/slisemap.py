@@ -744,6 +744,7 @@ class Slisemap:
 
         Args:
             individual: Give loss individual loss values for the data points. Defaults to False.
+            numpy: Return the loss as a numpy.ndarray or float instead of a torch.Tensor. Defaults to True.
 
         Returns:
             The loss value(s).
@@ -956,6 +957,7 @@ class Slisemap:
         escape_fn: Callable = escape_neighbourhood,
         loss: bool = False,
         verbose: bool = False,
+        numpy: bool = True,
         **kwargs,
     ) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
         """Generate embedding(s) and model(s) for new data item(s).
@@ -972,6 +974,7 @@ class Slisemap:
             escape_fn: Escape function (see [slisemap.escape][]). Defaults to [escape_neighbourhood][slisemap.escape.escape_neighbourhood].
             loss: Return a vector of individual losses for the new items. Defaults to False.
             verbose: Print status messages. Defaults to False.
+            numpy: Return the matrices as a numpy (True) or pytorch (False) matrices. Defaults to True.
         Keyword Args:
             **kwargs: Optional keyword arguments to LBFGS.
 
@@ -1059,24 +1062,22 @@ class Slisemap:
                     B=torch.cat((self._B, Bnew), 0),
                     Z=torch.cat((self._Z, Znew), 0),
                 )[self.n :]
-                loss = tonp(loss)
             else:
                 if self._jit:
                     lf = torch.jit.trace(lf, (Xnew[:1], ynew[:1], Bnew[:1], Znew[:1]))
-                loss = np.zeros(n)
+                loss = torch.zeros(n, **self.tensorargs)
                 for j in range(n):
-                    l = lf(
+                    loss[j] = lf(
                         X=torch.cat((self._X, Xnew[None, j]), 0),
                         Y=torch.cat((self._Y, ynew[None, j]), 0),
                         B=torch.cat((self._B, Bnew[None, j]), 0),
                         Z=torch.cat((self._Z, Znew[None, j]), 0),
                     )[-1]
-                    loss[j] = l.detach().cpu().item()
             if verbose:
-                print("  mean(loss) =", loss.mean())
-            return tonp(Bnew), tonp(Zout), loss
+                print("  mean(loss) =", loss.detach().mean().cpu().item())
+            return (tonp(Bnew), tonp(Zout), tonp(loss)) if numpy else (Bnew, Zout, loss)
         else:
-            return tonp(Bnew), tonp(Zout)
+            return (tonp(Bnew), tonp(Zout)) if numpy else (Bnew, Zout)
 
     def predict(
         self,
