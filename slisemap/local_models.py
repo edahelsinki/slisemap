@@ -77,6 +77,31 @@ def identify_local_model(
     return pred_fn, loss_fn, coef_fn
 
 
+def local_predict(
+    X: torch.Tensor,
+    B: torch.Tensor,
+    local_model: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
+) -> torch.Tensor:
+    """Get individual predictions when every data item has a separate model.
+
+    Args:
+        X: Data matrix [n, m].
+        B: Coefficient matrix [n, q].
+        local_model: Prediction function: [1, m], [1, q] -> [1, 1, o].
+
+    Returns:
+        Matrix of local predictions [n, o].
+    """
+    n = X.shape[0]
+    _assert(n == B.shape[0], "X and B must have the same number of rows", local_predict)
+    y = local_model(X[:1, :], B[:1, :])[0, 0, ...]
+    Y = torch.empty((n, *y.shape), dtype=y.dtype, device=y.device)
+    Y[0, ...] = y
+    for i in range(1, n):
+        Y[i, ...] = local_model(X[i : i + 1, :], B[i : i + 1, :])[0, 0, ...]
+    return Y
+
+
 class ALocalModel(ABC):
     """Abstract class for gathering all the functions needed for local model (predict, loss, coefficients)."""
 

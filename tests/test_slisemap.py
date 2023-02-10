@@ -152,8 +152,13 @@ def test_loss():
 
 def test_predict():
     sm = get_slisemap(40, 5)
-    y1 = sm.predict(np.random.normal(size=(10, 5)), np.random.normal(size=(10, 2)))
-    y2 = sm.predict(np.random.normal(size=5), np.random.normal(size=2))
+    y1 = sm.predict(X=np.random.normal(size=(10, 5)), Z=np.random.normal(size=(10, 2)))
+    y2 = sm.predict(X=np.random.normal(size=5), Z=np.random.normal(size=2))
+    assert y1.shape == (10, 1)
+    assert y2.shape == (1, 1)
+    assert all_finite(y1, y2)
+    y1 = sm.predict(X=np.random.normal(size=(10, 5)), B=np.random.normal(size=(10, 6)))
+    y2 = sm.predict(X=np.random.normal(size=5), B=np.random.normal(size=6))
     assert y1.shape == (10, 1)
     assert y2.shape == (1, 1)
     assert all_finite(y1, y2)

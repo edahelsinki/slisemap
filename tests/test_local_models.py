@@ -106,3 +106,15 @@ def test_identify():
     assert p == linear_regression
     assert l == logistic_regression_loss
     assert c(None, None) == 3
+
+
+def test_local_predict():
+    X = torch.normal(0.0, 1.0, (10, 5))
+    B = torch.normal(0.0, 1.0, (10, 5))
+    Y = local_predict(X, B, linear_regression)
+    assert Y.shape == (10, 1)
+    B = torch.normal(0.0, 1.0, (10, 10))
+    Y = local_predict(X, B, linear_regression)
+    assert Y.shape == (10, 2)
+    Y = local_predict(X, B, logistic_regression)
+    assert Y.shape == (10, 3)

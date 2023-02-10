@@ -221,25 +221,27 @@ def test_prec_rec():
 
 def test_accuracy():
     set_seed(73409409)
-    sm, _ = get_slisemap2(30, 4, randomB=True)
-    ab1 = accuracy(sm, between=True)
-    an1 = accuracy(sm, between=True, optimise=False)
-    af1 = accuracy(sm, between=False)
-    assert all_finite(ab1, an1, af1)
-    sm.lbfgs()
-    ab2 = accuracy(sm, between=True)
-    an2 = accuracy(sm, between=True, optimise=False)
-    af2 = accuracy(sm, between=False)
-    assert all_finite(ab2, an2, af2)
-    assert ab1 > ab2
-    assert an1 > an2
-    assert af1 > af2
-    assert an2 > ab2 * 0.95
-    a = accuracy(sm, np.random.normal(size=(2, 4)), np.random.uniform(size=2))
-    assert all_finite(a)
-    sm = get_slisemap(30, 4, classes=3, intercept=True)
-    a = accuracy(sm, np.random.normal(size=(2, 4)), np.random.uniform(size=(2, 3)))
-    assert all_finite(a)
+    for f in [False, True]:
+        sm, _ = get_slisemap2(30, 4, randomB=True)
+        ab1 = accuracy(sm, between=True, fidelity=f)
+        an1 = accuracy(sm, between=True, fidelity=f, optimise=False)
+        af1 = accuracy(sm, between=False, fidelity=f)
+        assert all_finite(ab1, an1, af1)
+        sm.lbfgs()
+        ab2 = accuracy(sm, between=True, fidelity=f)
+        an2 = accuracy(sm, between=True, fidelity=f, optimise=False)
+        af2 = accuracy(sm, between=False, fidelity=f)
+        assert all_finite(ab2, an2, af2)
+        assert ab1 > ab2
+        assert an1 > an2
+        assert af1 > af2
+        assert an2 > ab2 * 0.95
+        X_test = np.random.normal(size=(2, 4))
+        a = accuracy(sm, X_test, np.random.uniform(size=2), fidelity=f)
+        assert all_finite(a)
+        sm = get_slisemap(30, 4, classes=3, intercept=True)
+        a = accuracy(sm, X_test, np.random.uniform(size=(2, 3)), fidelity=f)
+        assert all_finite(a)
 
 
 def test_kmeans_matching():

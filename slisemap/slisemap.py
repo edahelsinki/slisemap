@@ -25,7 +25,12 @@ from matplotlib.figure import Figure
 from sklearn.cluster import KMeans
 
 from slisemap.escape import escape_neighbourhood
-from slisemap.local_models import identify_local_model, LinearRegression, ALocalModel
+from slisemap.local_models import (
+    identify_local_model,
+    LinearRegression,
+    ALocalModel,
+    local_predict,
+)
 from slisemap.loss import make_loss, make_marginal_loss, softmax_row_kernel
 from slisemap.plot import (
     _expand_variable_names,
@@ -1084,50 +1089,83 @@ class Slisemap:
 
     def predict(
         self,
-        Xnew: Union[np.ndarray, torch.Tensor],
-        Znew: Union[np.ndarray, torch.Tensor],
+        X: Union[None, np.ndarray, torch.Tensor] = None,
+        B: Union[None, np.ndarray, torch.Tensor] = None,
+        Z: Union[None, np.ndarray, torch.Tensor] = None,
+        numpy: bool = True,
+        *_,
+        Xnew=None,
+        Znew=None,
         **kwargs,
     ) -> np.ndarray:
-        """Predict new outcomes when the data and embedding is known.
+        """Predict new outcomes when the data and embedding or local model is known.
+
+        If the local models are known they are used, otherwise the embeddings are used to find new local models.
 
         Args:
-            Xnew: Data matrix.
-            Znew: Embedding matrix.
+            X: Data matrix (set to None to use the training data). Defaults to None.
+            B: Coefficient matrix. Defaults to None.
+            Z: Embedding matrix. Defaults to None.
+            numpy: Return the result as a numpy (True) or a pytorch (False) matrix. Defaults to True.
         Keyword Args:
             **kwargs: Optional keyword arguments to LBFGS.
 
         Returns:
             Prediction matrix.
+
+        Deprecated:
+            1.4: Renamed Xnew, Znew to X, Z and added optional B.
         """
-        Xnew = to_tensor(Xnew, **self.tensorargs)[0]
-        Xnew = torch.atleast_2d(Xnew)
-        N = Xnew.shape[0]
-        if self._intercept:
-            Xnew = torch.cat([Xnew, torch.ones([N, 1], **self.tensorargs)], 1)
-        _assert(
-            Xnew.shape == (N, self.m),
-            f"Xnew has the wrong shape {Xnew.shape} != {(N, self.m)}",
-            Slisemap.predict,
-        )
-        Znew = to_tensor(Znew, **self.tensorargs)[0]
-        Znew = torch.atleast_2d(Znew)
-        _assert(
-            Znew.shape == (N, self.d),
-            f"Znew has the wrong shape {Znew.shape} != {(N, self.d)}",
-            Slisemap.predict,
-        )
-        D = self._distance(Znew, self._Z)
-        W = self.kernel(D)
-        Bnew = self._B[torch.argmin(D, 1)].clone().requires_grad_(True)
-        loss = lambda: (
-            torch.sum(
-                W * self.local_loss(self.local_model(self._X, Bnew), self._Y, Bnew)
+        if Xnew is not None:
+            X = Xnew
+            _deprecated(
+                "Parameter 'Xnew' in Slisemap.predict",
+                "parameter 'X' in Slisemap.predict",
             )
-            + self.lasso * torch.sum(torch.abs(Bnew))
-            + self.ridge * torch.sum(Bnew**2)
+        if Znew is not None:
+            Z = Znew
+            _deprecated(
+                "Parameter 'Znew' in Slisemap.predict",
+                "parameter 'Z' in Slisemap.predict",
+            )
+        if X is None and B is None and Z is None:
+            X = self._X
+            B = self._B
+        _assert(
+            B is not None or Z is not None,
+            "Either B or Z must be given",
+            Slisemap.predict,
         )
-        LBFGS(loss, [Bnew], **kwargs)
-        return tonp(torch.diagonal(self.local_model(Xnew, Bnew), dim1=0, dim2=1).T)
+        X = self._as_new_X(X)
+        if B is not None:
+            B = torch.atleast_2d(to_tensor(B, **self.tensorargs)[0])
+            if B.shape[0] == 1:
+                yhat = self.local_model(X, B)[0, ...]
+            else:
+                _assert(
+                    X.shape[0] == B.shape[0],
+                    f"X and B must have the same number of rows: {X.shape[0]} != {B.shape[0]}",
+                    Slisemap.predict,
+                )
+                yhat = local_predict(X, B, self.local_model)
+        else:
+            Z = torch.atleast_2d(to_tensor(Z, **self.tensorargs)[0])
+            _assert(
+                Z.shape == (X.shape[0], self.d),
+                f"Z has the wrong shape {Z.shape} != {(X.shape[0], self.d)}",
+                Slisemap.predict,
+            )
+            D = self._distance(Z, self._Z)
+            W = self.kernel(D)
+            B = self._B[torch.argmin(D, 1)].clone().requires_grad_(True)
+            yhat = lambda: (
+                torch.sum(W * self.local_loss(self.local_model(self._X, B), self._Y, B))
+                + self.lasso * torch.sum(torch.abs(B))
+                + self.ridge * torch.sum(B**2)
+            )
+            LBFGS(yhat, [B], **kwargs)
+            yhat = local_predict(X, B, self.local_model)
+        return tonp(yhat) if numpy else yhat
 
     def copy(self) -> "Slisemap":
         """Make a copy of this Slisemap that references as much of the same torch-data as possible.
@@ -1321,7 +1359,8 @@ class Slisemap:
         if clusters is None:
             _assert(not bars, "`bars!=False` requires `clusters`", Slisemap.plot)
             if Z.shape[0] == self._Z.shape[0]:
-                L = tonp(torch.diagonal(self.get_L(numpy=False))).ravel()
+                yhat = self.predict(numpy=False)
+                L = tonp(self.local_loss(yhat, self._Y, self._B)).ravel()
             else:
                 L = None
             plot_embedding(
@@ -1512,8 +1551,8 @@ class Slisemap:
         data = np.concatenate((X, Y), 1)
         labels = self.metadata.get_variables(False) + self.metadata.get_targets()
         if X.shape[0] == self.n:
-            L = tonp(torch.diagonal(self.get_L(numpy=False))).ravel()
-            data = np.concatenate((data, L[:, None]), 1)
+            L = tonp(self.local_loss(self.predict(numpy=False), self._Y, self._B))
+            data = np.concatenate((data, L), 1)
             labels.append("Local loss")
         if scatter:
             g = plot_embedding_facet(

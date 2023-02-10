@@ -622,4 +622,4 @@ def accuracy(
         X = sm._as_new_X(X)
         Y = sm._as_new_Y(Y, X.shape[0])
         B, _ = sm.fit_new(X, Y, loss=False, optimise=optimise, numpy=False, **kwargs)
-        return sm.local_loss(sm.local_model(X, B), Y, B).diag().mean().cpu().item()
+        return sm.local_loss(sm.predict(X, B, numpy=False), Y, B).mean().cpu().item()
