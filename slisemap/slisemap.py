@@ -288,7 +288,7 @@ class Slisemap:
     @property
     def p(self) -> int:
         # The number of target variables (i.e. the number of classes)
-        # Deprecated, use `o` instead!
+        # Deprecated (1.2), use `o` instead!
         _deprecated(Slisemap.p, Slisemap.o)
         return self._Y.shape[-1]
 
@@ -324,7 +324,7 @@ class Slisemap:
     @property
     def coefficients(self) -> int:
         # The number of local model coefficients
-        # Deprecated, use `q` instead!
+        # Deprecated (1.2), use `q` instead!
         _deprecated(Slisemap.coefficients, Slisemap.q)
         return self.q
 
@@ -473,28 +473,28 @@ class Slisemap:
     @property
     def X(self) -> torch.Tensor:
         # Get the data matrix as a `torch.Tensor`
-        # Deprecated, use `get_X(numpy=False)` instead!
+        # Deprecated (1.2), use `get_X(numpy=False)` instead!
         _deprecated(Slisemap.X, Slisemap.get_X)
         return self._X
 
     @property
     def Y(self) -> torch.Tensor:
         # Target matrix as a `torch.Tensor`.
-        # Deprecated, use `get_Y(numpy=False)` instead!
+        # Deprecated (1.2), use `get_Y(numpy=False)` instead!
         _deprecated(Slisemap.Y, Slisemap.get_Y)
         return self._Y
 
     @property
     def Z(self) -> torch.Tensor:
         # Normalised embedding matrix as a `torch.Tensor`.
-        # Deprecated, use `get_Z(numpy=False)` instead!
+        # Deprecated (1.2), use `get_Z(numpy=False)` instead!
         _deprecated(Slisemap.Z, Slisemap.get_Z)
         return self._Z
 
     @property
     def B(self) -> torch.Tensor:
         # Coefficient matrix for the local models as a `torch.Tensor`.
-        # Deprecated, use `get_B(numpy=False)` instead!
+        # Deprecated (1.2), use `get_B(numpy=False)` instead!
         _deprecated(Slisemap.B, Slisemap.get_B)
         return self._B
 
@@ -772,14 +772,14 @@ class Slisemap:
 
         Returns:
             The entropy.
+
+        Deprecated:
+            1.4: Use [slisemap.metrics.entropy][slisemap.metrics.entropy] instead.
         """
-        W = self.get_W(False)
-        entropy = -(W * W.log()).sum(dim=1)
-        if aggregate:
-            entropy = entropy.mean().exp() / self.n
-            return entropy.cpu().item() if numpy else entropy
-        else:
-            return tonp(entropy) if numpy else entropy
+        _deprecated(Slisemap.entropy, "slisemap.metrics.entropy")
+        from slisemap.metrics import entropy
+
+        return entropy(self, aggregate, numpy)
 
     def lbfgs(
         self,

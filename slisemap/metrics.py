@@ -11,7 +11,7 @@ import torch
 from sklearn.cluster import KMeans
 
 from slisemap.slisemap import Slisemap
-from slisemap.utils import tonp
+from slisemap.utils import _deprecated, tonp
 
 
 def _non_crashing_median(x: torch.Tensor) -> float:
@@ -193,6 +193,27 @@ def slisemap_loss(sm: Slisemap) -> float:
     return sm.value()
 
 
+def entropy(
+    sm: Slisemap, aggregate: bool = True, numpy: bool = True
+) -> Union[float, np.ndarray, torch.Tensor]:
+    """Compute row-wise entropy of the `W` matrix induced by `Z`.
+
+    Args:
+        aggregate: Aggregate the row-wise entropies into one scalar. Defaults to True.
+        numpy: Return a `numpy.ndarray` or `float` instead of a `torch.Tensor`. Defaults to True.
+
+    Returns:
+        The entropy.
+    """
+    W = sm.get_W(False)
+    entropy = -(W * W.log()).sum(dim=1)
+    if aggregate:
+        entropy = entropy.mean().exp() / sm.n
+        return entropy.cpu().item() if numpy else entropy
+    else:
+        return tonp(entropy) if numpy else entropy
+
+
 def slisemap_entropy(sm: Slisemap) -> float:
     """Evaluate a SLISEMAP solution by calculating the entropy.
 
@@ -200,9 +221,13 @@ def slisemap_entropy(sm: Slisemap) -> float:
         sm: Trained Slisemap solution.
 
     Returns:
-        The loss value.
+        The embedding entropy.
+
+    Deprecated:
+        1.4: Use [entropy][slisemap.metrics.entropy] instead.
     """
-    return sm.entropy()
+    _deprecated(slisemap_entropy, entropy)
+    return entropy(sm, aggregate=True, numpy=True)
 
 
 def fidelity(
