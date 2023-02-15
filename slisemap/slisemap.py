@@ -81,7 +81,6 @@ class Slisemap:
         coefficients: The number of local model coefficients.
         distance: Distance function.
         kernel: Kernel function.
-        metadata: Dictionary of arbitrary metadata such as variable names.
         jit: Just-In-Time compile the loss function for increased performance (see `torch.jit.trace` for caveats).
         random_state: Set an explicit seed for the random number generator (i.e. `torch.manual_seed`).
         metadata: A dictionary for storing variable names and other metadata (see [slisemap.utils.Metadata][]).
@@ -189,7 +188,7 @@ class Slisemap:
         self._intercept = intercept
         self._jit = jit
         self._rs0 = random_state
-        self.metadata = Metadata(self)
+        self.metadata: Metadata = Metadata(self)
 
         if device is None:
             if cuda is None and isinstance(X, torch.Tensor):
@@ -593,7 +592,7 @@ class Slisemap:
             Loss function: `f(X, Y, B, Z) -> loss`.
 
         Deprecated:
-            1.2: The functions has been renamed, use `_gets_loss_fn` instead!
+            1.2: The functions has been renamed, use `_get_loss_fn` instead!
         """
         _deprecated(Slisemap.get_loss_fn, Slisemap._get_loss_fn)
         return self._get_loss_fn(individual)
