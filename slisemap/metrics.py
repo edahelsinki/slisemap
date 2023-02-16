@@ -215,7 +215,7 @@ def entropy(
 
 
 def slisemap_entropy(sm: Slisemap) -> float:
-    """Evaluate a SLISEMAP solution by calculating the entropy.
+    """Evaluate a SLISEMAP solution by calculating the entropy. **DEPRECATED**
 
     Args:
         sm: Trained Slisemap solution.

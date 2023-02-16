@@ -135,7 +135,7 @@ def linear_regression(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
 
 
 def multiple_linear_regression(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
-    """Prediction function for multiple linear regression.
+    """Prediction function for multiple linear regression. **DEPRECATED**
 
     Args:
         X: Data matrix [n_x, m].

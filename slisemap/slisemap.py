@@ -583,7 +583,7 @@ class Slisemap:
         [torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor
     ]:
         """Returns the Slisemap loss function.
-        This function JITs and caches the loss function for efficiency.
+        This function JITs and caches the loss function for efficiency. **DEPRECATED**
 
         Args:
             individual: Make a loss function for individual losses. Defaults to False.
@@ -763,7 +763,7 @@ class Slisemap:
     def entropy(
         self, aggregate: bool = True, numpy: bool = True
     ) -> Union[float, np.ndarray, torch.Tensor]:
-        """Compute row-wise entropy of the `W` matrix induced by `Z`.
+        """Compute row-wise entropy of the `W` matrix induced by `Z`. **DEPRECATED**
 
         Args:
             aggregate: Aggregate the row-wise entropies into one scalar. Defaults to True.
@@ -788,7 +788,6 @@ class Slisemap:
         only_B: bool = False,
         **kwargs,
     ) -> float:
-
         """Optimise Slisemap using LBFGS.
 
         Args:
@@ -1408,7 +1407,7 @@ class Slisemap:
         show: bool = True,
         **kwargs,
     ) -> Optional[sns.FacetGrid]:
-        """Plot fidelities for alternative locations for the selected item(s).
+        """Plot local losses for alternative locations for the selected item(s).
         Indicate the selected item(s) either via `X` and `Y` or via `index`.
 
         Args:
@@ -1525,6 +1524,10 @@ class Slisemap:
         else:
             _deprecated("Parameter 'Y' in Slisemap.plot_dist")
             Y = np.reshape(Y, (X.shape[0], -1))
+        if isinstance(X, torch.Tensor):
+            X = tonp(X)
+        if isinstance(Y, torch.Tensor):
+            Y = tonp(Y)
         if unscale:
             X = self.metadata.unscale_X(X)
             Y = self.metadata.unscale_Y(Y)
@@ -1550,8 +1553,8 @@ class Slisemap:
         data = np.concatenate((X, Y), 1)
         labels = self.metadata.get_variables(False) + self.metadata.get_targets()
         if X.shape[0] == self.n:
-            L = tonp(self.local_loss(self.predict(numpy=False), self._Y, self._B))
-            data = np.concatenate((data, L), 1)
+            loss = tonp(self.local_loss(self.predict(numpy=False), self._Y, self._B))
+            data = np.concatenate((data, loss[:, None]), 1)
             labels.append("Local loss")
         if scatter:
             g = plot_embedding_facet(
