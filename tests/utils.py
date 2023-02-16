@@ -37,6 +37,7 @@ def get_slisemap(
         sm = Slisemap(X, y, lasso=lasso, **kwargs)
     if randomB:
         sm._B = torch.normal(0, 1, sm._B.shape, **sm.tensorargs)
+        sm._B0 = sm._B.clone()
     return sm
 
 
