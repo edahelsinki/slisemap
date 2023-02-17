@@ -172,6 +172,8 @@ def plot_matrix(
     ax.set_yticks(np.arange(len(coefficients)) + 0.5)
     ax.set_yticklabels(coefficients, rotation=0)
     # ax.set_ylabel("Coefficients")
+    ax.set_xlabel("Data items sorted left to right")
+    ax.set_xticklabels([])
     ax.set_title("Local models")
     return ax
 
