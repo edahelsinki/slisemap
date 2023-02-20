@@ -22,7 +22,7 @@ def identify_local_model(
 
     Args:
         local_model: A instance/subclass of `ALocalModel`, a predict function, or a sequence of functions.
-        loss: A loss function or None if it is part of `local_model`. Defaults to None.
+        local_loss: A loss function or None if it is part of `local_model`. Defaults to None.
         coefficients: The number of coefficients, or a function giving that number, or None (`X.shape[1] * Y.shape[1]` if it is not given by `local_model`). Defaults to None.
 
     Returns:

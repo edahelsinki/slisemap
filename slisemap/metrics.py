@@ -4,7 +4,7 @@
     This float should either be minimised or maximised for best results (see individual functions).
 """
 
-from typing import Callable, Optional, Sequence, Union
+from typing import Any, Callable, Optional, Sequence, Union
 
 import numpy as np
 import torch
@@ -145,7 +145,7 @@ def get_neighbours(
         Callable[[torch.Tensor, int], torch.LongTensor],
     ],
     full_if_none: bool = False,
-    **kwargs,
+    **kwargs: Any,
 ) -> Callable[[int], torch.LongTensor]:
     """Create a function that takes the index of an item and returns the indices of its neighbours.
 
@@ -238,7 +238,7 @@ def fidelity(
         torch.LongTensor,
         Callable[[torch.Tensor, int], torch.LongTensor],
     ] = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> float:
     """Evaluate a SLISEMAP solution by calculating the fidelity (loss per item/neighbourhood).
 
@@ -274,7 +274,7 @@ def coverage(
         torch.LongTensor,
         Callable[[torch.Tensor, int], torch.LongTensor],
     ] = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> float:
     """Evaluate a SLISEMAP solution by calculating the coverage.
 
@@ -312,7 +312,7 @@ def median_loss(
         torch.LongTensor,
         Callable[[torch.Tensor, int], torch.LongTensor],
     ] = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> float:
     """Evaluate a SLISEMAP solution by calculating the median loss.
 
@@ -347,7 +347,7 @@ def coherence(
         torch.LongTensor,
         Callable[[torch.Tensor, int], torch.LongTensor],
     ] = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> float:
     """Evaluate a SLISEMAP solution by calculating the coherence (max change in prediction divided by the change in variable values).
 
@@ -386,7 +386,7 @@ def stability(
         torch.LongTensor,
         Callable[[torch.Tensor, int], torch.LongTensor],
     ] = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> float:
     """Evaluate a SLISEMAP solution by calculating the stability (max change in the local model divided by the change in variable values).
 
@@ -417,7 +417,7 @@ def stability(
 
 
 def kmeans_matching(
-    sm: Slisemap, clusters: Union[int, Sequence[int]] = range(2, 10), **kwargs
+    sm: Slisemap, clusters: Union[int, Sequence[int]] = range(2, 10), **kwargs: Any
 ) -> float:
     """Evaluate SLISE by measuring how well clusters in Z and B overlap (using kmeans to find the clusters).
     The overlap is measured by finding the best matching clusters and dividing the size of intersect by the size of the union of each cluster pair.
@@ -622,7 +622,7 @@ def accuracy(
     Y: Union[None, np.ndarray, torch.Tensor] = None,
     fidelity: bool = True,
     optimise: bool = False,
-    **kwargs,
+    **kwargs: Any,
 ) -> float:
     """Evaluate a SLISEMAP solution by checking how well the fitted models work on new points
 

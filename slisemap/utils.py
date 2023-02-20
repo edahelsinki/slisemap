@@ -99,7 +99,7 @@ class CheckConvergence:
         "iter": "The current number of iterations.",
     }
 
-    def __init__(self, patience: float = 3, max_iter=1 << 20):
+    def __init__(self, patience: float = 3, max_iter: int = 1 << 20):
         self.current = np.inf
         self.best = np.asarray(np.inf)
         self.counter = 0.0
@@ -157,7 +157,7 @@ def LBFGS(
     time_limit: Optional[float] = None,
     increase_tolerance: bool = False,
     verbose: bool = False,
-    **kwargs,
+    **kwargs: Any,
 ) -> torch.optim.LBFGS:
     """Optimise a function using LBFGS.
 
@@ -170,6 +170,7 @@ def LBFGS(
         time_limit: Optional time limit for the optimisation (in seconds). Defaults to None.
         increase_tolerance: Increase the tolerances for convergence checking. Defaults to False.
         verbose: Print status messages. Defaults to False.
+    Keyword Args:
         **kwargs: Argumemts passed to `torch.optim.LBFGS`.
 
     Returns:
@@ -365,14 +366,15 @@ def dict_concat(
 
 def to_tensor(
     input: Union[np.ndarray, torch.Tensor, Dict[str, Any], Sequence[Any], Any],
-    **tensorargs,
+    **tensorargs: Any,
 ) -> Tuple[torch.Tensor, Optional[Sequence[Any]], Optional[Sequence[Any]]]:
     """Convert the input into a `torch.Tensor` (via `numpy.ndarray` if necessary).
     This function wrapps `torch.as_tensor` (and `numpy.asarray`) and tries to extract row and column names.
     This function can handle arbitrary objects (such as `pandas.DataFrame`) if they implement `.to_numpy()` and, optionally, `.index` and `.columns`.
 
     Args:
-        data: input data
+        input: input data
+    Keyword Args:
         **tensorargs: additional arguments to `torch.as_tensor`
 
     Returns:

@@ -10,7 +10,7 @@ These are diagnostics for identifying potential issues with SLISEMAP solutions.
     plot_diagnostics(sm, diagnostics)
 """
 from functools import reduce
-from typing import Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Union
 
 import numpy as np
 import seaborn as sns
@@ -36,7 +36,7 @@ def _frac(n: int, part: Union[float, int]) -> float:
 
 
 def global_model_losses(
-    sm: Slisemap, indices: Optional[np.ndarray] = None, **kwargs
+    sm: Slisemap, indices: Optional[np.ndarray] = None, **kwargs: Any
 ) -> torch.Tensor:
     """Train a global model
 
@@ -99,7 +99,7 @@ def plot_diagnostics(
     summary: bool = False,
     title: str = "Slisemap Diagnostics",
     show: bool = True,
-    **kwargs,
+    **kwargs: Any,
 ) -> Optional[sns.FacetGrid]:
     """Plot diagnostic results.
 
@@ -309,7 +309,7 @@ def quantile_loss_diagnostic(sm: Slisemap, quantile: float = 0.4) -> np.ndarray:
 
 
 def optics_diagnostic(
-    sm: Slisemap, min_size: Union[float, int] = 0.1, **kwargs
+    sm: Slisemap, min_size: Union[float, int] = 0.1, **kwargs: Any
 ) -> np.ndarray:
     """Use a clustering method to check for problematic data items in the embedding.
 

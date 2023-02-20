@@ -2,13 +2,13 @@
 Utility functions for plotting
 """
 
-from typing import Any, Callable, List, Optional, Sequence, Tuple, Union
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import seaborn as sns
 from matplotlib import pyplot as plt
-from matplotlib.lines import Line2D
 from matplotlib.colors import Colormap
+from matplotlib.lines import Line2D
 
 from slisemap.utils import _assert, _warn, dict_concat
 
@@ -107,7 +107,7 @@ def plot_embedding(
     color: Optional[Sequence[float]] = None,
     color_name: str = "",
     color_norm: Optional[Tuple[float]] = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> plt.Axes:
     """Plot an embedding in a scatterplot.
 
@@ -120,6 +120,8 @@ def plot_embedding(
         color: Variable for coloring. Defaults to None.
         color_name: Variable name. Defaults to "".
         color_norm: Color scale limits. Defaults to None.
+    Keyword Args:
+        **kwargs: Additional arguments to `seaborn.scatterplot`.
 
     Returns:
         The plot.
@@ -164,6 +166,8 @@ def plot_matrix(
         B: Local model coefficients.
         coefficients: Coefficient names.
         palette: `seaborn` palette. Defaults to "RdBu".
+    Keyword Args:
+        **kwargs: Additional arguments to `seaborn.heatmap`.
 
     Returns:
         The plot.
@@ -185,7 +189,7 @@ def plot_barmodels(
     coefficients: Sequence[str],
     bars: Union[bool, int] = True,
     palette: str = "bright",
-    **kwargs,
+    **kwargs: Any,
 ) -> plt.Axes:
     """Plot local models in a barplot.
 
@@ -196,6 +200,8 @@ def plot_barmodels(
         coefficients: Coefficient names.
         bars: Number of variables to show (or a bool for all). Defaults to True.
         palette: `seaborn` palette. Defaults to "bright".
+    Keyword Args:
+        **kwargs: Additional arguments to `seaborn.barplot`.
 
     Returns:
         The plot.
@@ -229,7 +235,7 @@ def plot_embedding_facet(
     names: Sequence[str],
     legend_title: str = "Value",
     jitter: Union[float, np.ndarray] = 0.0,
-    **kwargs,
+    **kwargs: Any,
 ) -> sns.FacetGrid:
     """Plot (multiple) embeddings.
 
@@ -240,6 +246,8 @@ def plot_embedding_facet(
         names: Column names.
         legend_title: Legend title. Defaults to "Value".
         jitter: jitter. Defaults to 0.0.
+    Keyword Args:
+        **kwargs: Additional arguments to `seaborn.relplot`.
 
     Returns:
         The plot.
@@ -326,7 +334,7 @@ def plot_density_facet(
     data: np.ndarray,
     names: Sequence[str],
     clusters: Optional[np.ndarray] = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> sns.FacetGrid:
     """Plot density plots.
 
@@ -334,6 +342,8 @@ def plot_density_facet(
         data: Data matrix.
         names: Column names.
         clusters: Cluster labels. Defaults to None.
+    Keyword Args:
+        **kwargs: Additional arguments to `seaborn.displot`.
 
     Returns:
         The plot.

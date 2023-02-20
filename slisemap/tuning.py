@@ -20,7 +20,7 @@ def _hyper_grid(
     lasso_grid: float = 3.0,
     ridge_grid: float = 3.0,
     search_size: int = 6,
-    **kwargs,
+    **kwargs: Any,
 ):
     # Do a local random search over hyperparameters
     sm.lbfgs(only_B=True, **kwargs)
@@ -49,7 +49,7 @@ def _hyper_select(
     y_test: torch.Tensor,
     test: Callable[[Slisemap, torch.Tensor, torch.Tensor], float] = accuracy,
     verbose: bool = False,
-    **kwargs,
+    **kwargs: Any,
 ) -> Tuple[Slisemap, float]:
     # Select new hyperparameters
     ev = np.inf
@@ -165,8 +165,8 @@ def optimise_with_test_set(
     max_iterations: int = 100,
     verbose: Literal[0, 1, 2, 3] = 0,
     escape_kws: Dict[str, Any] = {},
-    **kwargs,
-):
+    **kwargs: Any,
+) -> Slisemap:
     """Optimise a Slisemap object using test data to tune the regularisation.
 
     How this works:
@@ -250,7 +250,7 @@ def optimise_with_cross_validation(
     max_iterations: int = 100,
     verbose: Literal[0, 1, 2, 3] = 0,
     escape_kws: Dict[str, Any] = {},
-    **kwargs,
+    **kwargs: Any,
 ) -> Slisemap:
     """Optimise a Slisemap object using cross validation to tune the regularisation.
 
@@ -364,7 +364,7 @@ def optimise(
     sm: Slisemap,
     X_test: Union[None, np.ndarray, torch.Tensor] = None,
     y_test: Union[None, np.ndarray, torch.Tensor] = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> Slisemap:
     """Optimise a Slisemap object with hyperparameter tuning.
     This can either be done using a [test set][slisemap.tuning.optimise_with_test_set] or [cross validation][slisemap.tuning.optimise_with_cross_validation].

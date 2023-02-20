@@ -26,9 +26,9 @@ from sklearn.cluster import KMeans
 
 from slisemap.escape import escape_neighbourhood
 from slisemap.local_models import (
-    identify_local_model,
-    LinearRegression,
     ALocalModel,
+    LinearRegression,
+    identify_local_model,
     local_predict,
 )
 from slisemap.loss import make_loss, make_marginal_loss, softmax_row_kernel
@@ -502,7 +502,7 @@ class Slisemap:
         # When creating a new `torch.Tensor` add these keyword arguments to match the `dtype` and `device` of this Slisemap object.
         return dict(device=self._X.device, dtype=self._X.dtype)
 
-    def cuda(self, **kwargs):
+    def cuda(self, **kwargs: Any):
         """Move the tensors to CUDA memory (and run the calculations there).
         Note that this resets the random state.
 
@@ -517,7 +517,7 @@ class Slisemap:
         self.random_state = self._rs0
         self._loss = None  # invalidate cached loss function
 
-    def cpu(self, **kwargs):
+    def cpu(self, **kwargs: Any):
         """Move the tensors to CPU memory (and run the calculations there).
         Note that this resets the random state.
 
@@ -786,7 +786,7 @@ class Slisemap:
         verbose: bool = False,
         *,
         only_B: bool = False,
-        **kwargs,
+        **kwargs: Any,
     ) -> float:
         """Optimise Slisemap using LBFGS.
 
@@ -891,7 +891,7 @@ class Slisemap:
         verbose: Literal[0, 1, 2] = 0,
         noise: float = 1e-4,
         only_B: bool = False,
-        **kwargs,
+        **kwargs: Any,
     ) -> float:
         """Optimise Slisemap by alternating between [self.lbfgs()][slisemap.slisemap.Slisemap.lbfgs] and [self.escape()][slisemap.slisemap.Slisemap.escape] until convergence.
 
@@ -961,7 +961,7 @@ class Slisemap:
         loss: bool = False,
         verbose: bool = False,
         numpy: bool = True,
-        **kwargs,
+        **kwargs: Any,
     ) -> Union[
         Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]],
         Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]],
@@ -1094,7 +1094,7 @@ class Slisemap:
         *_,
         Xnew=None,
         Znew=None,
-        **kwargs,
+        **kwargs: Any,
     ) -> np.ndarray:
         """Predict new outcomes when the data and embedding or local model is known.
 
@@ -1184,7 +1184,10 @@ class Slisemap:
         self.random_state = self._rs0
 
     def save(
-        self, f: Union[str, PathLike, BinaryIO], any_extension: bool = False, **kwargs
+        self,
+        f: Union[str, PathLike, BinaryIO],
+        any_extension: bool = False,
+        **kwargs: Any,
     ):
         """Save the Slisemap object to a file.
 
@@ -1227,7 +1230,7 @@ class Slisemap:
         f: Union[str, PathLike, BinaryIO],
         device: Union[None, str, torch.device] = None,
         map_location: Optional[Any] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> "Slisemap":
         """Load a Slisemap object from a file.
 
@@ -1262,7 +1265,7 @@ class Slisemap:
         clusters: int,
         B: Optional[np.ndarray] = None,
         random_state: int = 42,
-        **kwargs,
+        **kwargs: Any,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Cluster the local model coefficients using k-means (from scikit-learn).
         This method (with a fixed random seed) is used for plotting Slisemap solutions.
@@ -1301,7 +1304,7 @@ class Slisemap:
         B: Optional[np.ndarray] = None,
         Z: Optional[np.ndarray] = None,
         show: bool = True,
-        **kwargs,
+        **kwargs: Any,
     ) -> Optional[Figure]:
         """Plot the Slisemap solution using seaborn.
 
@@ -1405,7 +1408,7 @@ class Slisemap:
         legend_inside: bool = True,
         Z: Optional[np.ndarray] = None,
         show: bool = True,
-        **kwargs,
+        **kwargs: Any,
     ) -> Optional[sns.FacetGrid]:
         """Plot local losses for alternative locations for the selected item(s).
         Indicate the selected item(s) either via `X` and `Y` or via `index`.
@@ -1422,7 +1425,7 @@ class Slisemap:
             Z: Override `self.get_Z()` in the plot. Defaults to None. **DEPRECATED**
             show: Show the plot. Defaults to True.
         Keyword Args:
-            **kwargs: Additional arguments to seaborn.relplot.
+            **kwargs: Additional arguments to `seaborn.relplot`.
 
         Returns:
             `seaborn.FacetGrid` if `show=False`.
@@ -1484,7 +1487,7 @@ class Slisemap:
         legend_inside: bool = True,
         B: Optional[np.ndarray] = None,
         show: bool = True,
-        **kwargs,
+        **kwargs: Any,
     ) -> Optional[sns.FacetGrid]:
         """Plot the distribution of the variables, either as density plots (with clusters) or as scatterplots.
 
@@ -1503,7 +1506,7 @@ class Slisemap:
             B: Override self.get_B() when finding the clusters (only used if clusters is an int). Defaults to None. **DEPRECATED**
             show: Show the plot. Defaults to True.
         Keyword Args:
-            **kwargs: Additional arguments to seaborn.relplot.
+            **kwargs: Additional arguments to `seaborn.relplot` or `seaborn.scatterplot`.
 
         Returns:
             `seaborn.FacetGrid` if `show=False`.
