@@ -50,6 +50,7 @@ def test_global_model():
 
 
 def test_PCA():
+    set_seed(453789359)
     x = torch.normal(0, 1, (5, 3))
     assert PCA_rotation(x, 2, full=True).shape == (3, 2)
     assert PCA_rotation(x, 2, full=False).shape == (3, 2)
@@ -66,9 +67,10 @@ def test_PCA():
     x = torch.normal(0, 1, (3, 5))
     assert PCA_rotation(x, 2, full=False).shape == (5, 2)
     assert PCA_rotation(x, 2, full=True).shape == (5, 2)
-    assert np.allclose(
+    assert_allclose(
         np.abs(PCA_rotation(x, 2, center=False).numpy()),
         np.abs(np.linalg.svd(x.numpy())[2][:2].T),
+        "rotation",
     )
 
 
