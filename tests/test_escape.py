@@ -84,6 +84,7 @@ def test_escape():
             sm2.get_Y()[:2],
             optimise=False,
             escape_fn=fn,
+            numpy=False,
         )
         sm2.escape(force_move=True, escape_fn=fn)
     assert torch.all(sm._B.max(0)[0] >= sm2._B.max(0)[0])

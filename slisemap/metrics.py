@@ -4,14 +4,14 @@
     This float should either be minimised or maximised for best results (see individual functions).
 """
 
-from typing import Callable, Optional, Sequence, Union
+from typing import Any, Callable, Optional, Sequence, Union
 
 import numpy as np
 import torch
 from sklearn.cluster import KMeans
 
 from slisemap.slisemap import Slisemap
-from slisemap.utils import tonp
+from slisemap.utils import _deprecated, tonp
 
 
 def _non_crashing_median(x: torch.Tensor) -> float:
@@ -145,7 +145,7 @@ def get_neighbours(
         Callable[[torch.Tensor, int], torch.LongTensor],
     ],
     full_if_none: bool = False,
-    **kwargs,
+    **kwargs: Any,
 ) -> Callable[[int], torch.LongTensor]:
     """Create a function that takes the index of an item and returns the indices of its neighbours.
 
@@ -193,16 +193,41 @@ def slisemap_loss(sm: Slisemap) -> float:
     return sm.value()
 
 
+def entropy(
+    sm: Slisemap, aggregate: bool = True, numpy: bool = True
+) -> Union[float, np.ndarray, torch.Tensor]:
+    """Compute row-wise entropy of the `W` matrix induced by `Z`.
+
+    Args:
+        aggregate: Aggregate the row-wise entropies into one scalar. Defaults to True.
+        numpy: Return a `numpy.ndarray` or `float` instead of a `torch.Tensor`. Defaults to True.
+
+    Returns:
+        The entropy.
+    """
+    W = sm.get_W(False)
+    entropy = -(W * W.log()).sum(dim=1)
+    if aggregate:
+        entropy = entropy.mean().exp() / sm.n
+        return entropy.cpu().item() if numpy else entropy
+    else:
+        return tonp(entropy) if numpy else entropy
+
+
 def slisemap_entropy(sm: Slisemap) -> float:
-    """Evaluate a SLISEMAP solution by calculating the entropy.
+    """Evaluate a SLISEMAP solution by calculating the entropy. **DEPRECATED**
 
     Args:
         sm: Trained Slisemap solution.
 
     Returns:
-        The loss value.
+        The embedding entropy.
+
+    Deprecated:
+        1.4: Use [entropy][slisemap.metrics.entropy] instead.
     """
-    return sm.entropy()
+    _deprecated(slisemap_entropy, entropy)
+    return entropy(sm, aggregate=True, numpy=True)
 
 
 def fidelity(
@@ -213,7 +238,7 @@ def fidelity(
         torch.LongTensor,
         Callable[[torch.Tensor, int], torch.LongTensor],
     ] = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> float:
     """Evaluate a SLISEMAP solution by calculating the fidelity (loss per item/neighbourhood).
 
@@ -249,7 +274,7 @@ def coverage(
         torch.LongTensor,
         Callable[[torch.Tensor, int], torch.LongTensor],
     ] = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> float:
     """Evaluate a SLISEMAP solution by calculating the coverage.
 
@@ -287,7 +312,7 @@ def median_loss(
         torch.LongTensor,
         Callable[[torch.Tensor, int], torch.LongTensor],
     ] = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> float:
     """Evaluate a SLISEMAP solution by calculating the median loss.
 
@@ -322,7 +347,7 @@ def coherence(
         torch.LongTensor,
         Callable[[torch.Tensor, int], torch.LongTensor],
     ] = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> float:
     """Evaluate a SLISEMAP solution by calculating the coherence (max change in prediction divided by the change in variable values).
 
@@ -361,7 +386,7 @@ def stability(
         torch.LongTensor,
         Callable[[torch.Tensor, int], torch.LongTensor],
     ] = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> float:
     """Evaluate a SLISEMAP solution by calculating the stability (max change in the local model divided by the change in variable values).
 
@@ -392,7 +417,7 @@ def stability(
 
 
 def kmeans_matching(
-    sm: Slisemap, clusters: Union[int, Sequence[int]] = range(2, 10), **kwargs
+    sm: Slisemap, clusters: Union[int, Sequence[int]] = range(2, 10), **kwargs: Any
 ) -> float:
     """Evaluate SLISE by measuring how well clusters in Z and B overlap (using kmeans to find the clusters).
     The overlap is measured by finding the best matching clusters and dividing the size of intersect by the size of the union of each cluster pair.
@@ -593,10 +618,11 @@ def relevance(sm: Slisemap, pred_fn: Callable, change: float) -> float:
 
 def accuracy(
     sm: Slisemap,
-    X: Optional[np.ndarray] = None,
-    Y: Optional[np.ndarray] = None,
-    fidelity: bool = False,
-    **kwargs,
+    X: Union[None, np.ndarray, torch.Tensor] = None,
+    Y: Union[None, np.ndarray, torch.Tensor] = None,
+    fidelity: bool = True,
+    optimise: bool = False,
+    **kwargs: Any,
 ) -> float:
     """Evaluate a SLISEMAP solution by checking how well the fitted models work on new points
 
@@ -604,7 +630,7 @@ def accuracy(
         sm: Trained Slisemap solution.
         X: New data matrix (uses the training data if None). Defaults to None.
         Y: New target matrix (uses the training data if None). Defaults to None.
-        fidelity: Return the mean fidelity instead of mean loss. Defaults to False.
+        fidelity: Return the mean local loss (fidelity) instead of the mean embedding weighted loss. Defaults to True.
     Keyword Args:
         **kwargs: Optional keyword arguments to [Slisemap.fit_new][slisemap.slisemap.Slisemap.fit_new].
 
@@ -615,11 +641,10 @@ def accuracy(
         X = sm.get_X(intercept=False, numpy=False)
         Y = sm.get_Y(numpy=False)
     if not fidelity:
-        _, _, loss = sm.fit_new(X, Y, loss=True, **kwargs)
-        return loss.mean()
+        loss = sm.fit_new(X, Y, loss=True, optimise=optimise, numpy=False, **kwargs)[2]
+        return loss.mean().cpu().item()
     else:
-        B, _ = sm.fit_new(X, Y, loss=False, **kwargs)
         X = sm._as_new_X(X)
         Y = sm._as_new_Y(Y, X.shape[0])
-        B = torch.as_tensor(B, **sm.tensorargs)
-        return sm.local_loss(sm.local_model(X, B), Y, B).diag().mean().cpu().item()
+        B, _ = sm.fit_new(X, Y, loss=False, optimise=optimise, numpy=False, **kwargs)
+        return sm.local_loss(sm.predict(X, B, numpy=False), Y, B).mean().cpu().item()

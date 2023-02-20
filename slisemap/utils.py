@@ -28,14 +28,6 @@ def _assert(condition: bool, message: str, method: Optional[Callable] = None):
             raise SlisemapException(f"AssertionError, {method.__qualname__}: {message}")
 
 
-def _assert_no_trace(
-    condition: Callable[[], bool], message: str, method: Optional[Callable] = None
-):
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=torch.jit.TracerWarning)
-        _assert(condition(), message, method)
-
-
 def _deprecated(
     old: Union[Callable, str],
     new: Union[None, Callable, str] = None,
@@ -107,7 +99,7 @@ class CheckConvergence:
         "iter": "The current number of iterations.",
     }
 
-    def __init__(self, patience: float = 3, max_iter=1 << 20):
+    def __init__(self, patience: float = 3, max_iter: int = 1 << 20):
         self.current = np.inf
         self.best = np.asarray(np.inf)
         self.counter = 0.0
@@ -165,7 +157,7 @@ def LBFGS(
     time_limit: Optional[float] = None,
     increase_tolerance: bool = False,
     verbose: bool = False,
-    **kwargs,
+    **kwargs: Any,
 ) -> torch.optim.LBFGS:
     """Optimise a function using LBFGS.
 
@@ -178,6 +170,7 @@ def LBFGS(
         time_limit: Optional time limit for the optimisation (in seconds). Defaults to None.
         increase_tolerance: Increase the tolerances for convergence checking. Defaults to False.
         verbose: Print status messages. Defaults to False.
+    Keyword Args:
         **kwargs: Argumemts passed to `torch.optim.LBFGS`.
 
     Returns:
@@ -373,14 +366,15 @@ def dict_concat(
 
 def to_tensor(
     input: Union[np.ndarray, torch.Tensor, Dict[str, Any], Sequence[Any], Any],
-    **tensorargs,
+    **tensorargs: Any,
 ) -> Tuple[torch.Tensor, Optional[Sequence[Any]], Optional[Sequence[Any]]]:
     """Convert the input into a `torch.Tensor` (via `numpy.ndarray` if necessary).
     This function wrapps `torch.as_tensor` (and `numpy.asarray`) and tries to extract row and column names.
     This function can handle arbitrary objects (such as `pandas.DataFrame`) if they implement `.to_numpy()` and, optionally, `.index` and `.columns`.
 
     Args:
-        data: input data
+        input: input data
+    Keyword Args:
         **tensorargs: additional arguments to `torch.as_tensor`
 
     Returns:
@@ -434,11 +428,11 @@ class Metadata(dict):
         for row in rows:
             if row is not None:
                 _assert(
-                    len(rows) == self.root.n,
-                    f"Wrong number of row names {len(rows)} != {self.root.n}",
+                    len(row) == self.root.n,
+                    f"Wrong number of row names {len(row)} != {self.root.n}",
                     Metadata.set_rows,
                 )
-                self["rows"] = rows
+                self["rows"] = row
                 break
 
     def set_variables(
@@ -508,8 +502,11 @@ class Metadata(dict):
             )
             self["dimensions"] = dimensions
 
-    def get_coefficients(self) -> List[str]:
-        """Get a list of coefficient names (with a fallback if not assigned)
+    def get_coefficients(self, fallback: bool = True) -> Optional[List[str]]:
+        """Get a list of coefficient names
+
+        Args:
+            fallback: If metadata for coefficients is missing, return a new list instead of None. Defaults to True.
 
         Returns:
             list of coefficient names
@@ -523,24 +520,36 @@ class Metadata(dict):
                 return [
                     f"{t}: {v}" for t in self["targets"] for v in self["variables"]
                 ][: self.root.q]
-        return [f"B_{i}" for i in range(self.root.q)]
+        if fallback:
+            return [f"B_{i}" for i in range(self.root.q)]
+        else:
+            return None
 
-    def get_targets(self) -> List[str]:
-        """Get a list of target names (with a fallback if not assigned)
+    def get_targets(self, fallback: bool = True) -> Optional[List[str]]:
+        """Get a list of target names
+
+        Args:
+            fallback: If metadata for targets is missing, return a new list instead of None. Defaults to True.
 
         Returns:
             list of target names
         """
         if "targets" in self:
             return self["targets"]
-        else:
+        elif fallback:
             return [f"Y_{i}" for i in range(self.root.o)] if self.root.o > 1 else ["Y"]
+        else:
+            return None
 
-    def get_variables(self, intercept: bool = True) -> List[str]:
-        """Get a list of variable names (with a fallback if not assigned)
+    def get_variables(
+        self, intercept: bool = True, fallback: bool = True
+    ) -> Optional[List[str]]:
+        """Get a list of variable names
 
         Args:
             intercept: include the intercept in the list. Defaults to True.
+            fallback: If metadata for variables is missing, return a new list instead of None. Defaults to True.
+
 
         Returns:
             list of variable names
@@ -555,12 +564,18 @@ class Metadata(dict):
                 return [f"X_{i}" for i in range(self.root.m - 1)]
             else:
                 return [f"X_{i}" for i in range(self.root.m - 1)] + ["X_Intercept"]
-        return [f"X_{i}" for i in range(self.root.m)]
+        if fallback:
+            return [f"X_{i}" for i in range(self.root.m)]
+        else:
+            return None
 
-    def get_dimensions(self, long: bool = False) -> List[str]:
-        """Get a list of dimension names (with a fallback if not assigned)
+    def get_dimensions(
+        self, fallback: bool = True, long: bool = False
+    ) -> Optional[List[str]]:
+        """Get a list of dimension names
 
         Args:
+            fallback: If metadata for dimensions is missing, return a new list instead of None. Defaults to True.
             long: Use "SLISEMAP 1",... as fallback instead of "Z_0",...
 
         Returns:
@@ -568,56 +583,75 @@ class Metadata(dict):
         """
         if "dimensions" in self:
             return self["dimensions"]
-        elif long:
-            return [f"SLISEMAP {i+1}" for i in range(self.root.d)]
+        elif fallback:
+            if long:
+                return [f"SLISEMAP {i+1}" for i in range(self.root.d)]
+            else:
+                return [f"Z_{i}" for i in range(self.root.d)]
         else:
-            return [f"Z_{i}" for i in range(self.root.d)]
+            return None
+
+    def get_rows(self, fallback: bool = True) -> Optional[Sequence[Any]]:
+        """Get a list of row names
+
+        Args:
+            fallback: If metadata for rows is missing, return a range instead of None. Defaults to True.
+
+        Returns:
+            list (or range) of row names
+        """
+        if "rows" in self:
+            return self["rows"]
+        elif fallback:
+            return range(self.root.n)
+        else:
+            return None
 
     def set_scale_X(
         self,
-        X_center: Union[None, torch.Tensor, np.ndarray, Sequence[float]] = None,
-        X_scale: Union[None, torch.Tensor, np.ndarray, Sequence[float]] = None,
+        center: Union[None, torch.Tensor, np.ndarray, Sequence[float]] = None,
+        scale: Union[None, torch.Tensor, np.ndarray, Sequence[float]] = None,
     ):
         """Set scaling information with checks.
         Use if `X` has been scaled before being input to Slisemap.
-        Assuming the scaling can be converted to the form `X = (X_unscaled - X_center) / X_scale`.
+        Assuming the scaling can be converted to the form `X = (X_unscaled - center) / scale`.
         This allows some plots to (temporarily) revert the scaling (for more intuitive units).
 
         Args:
-            X_center: The constant offset of `X`. Defaults to None.
-            X_scale: The scaling factor of `X`. Defaults to None.
+            center: The constant offset of `X`. Defaults to None.
+            scale: The scaling factor of `X`. Defaults to None.
         """
-        if X_center is not None:
-            X_center = tonp(X_center).ravel()
-            assert X_center.size == self.root.m - self.root.intercept
-            self["X_center"] = X_center
-        if X_scale is not None:
-            X_scale = tonp(X_scale).ravel()
-            assert X_scale.size == self.root.m - self.root.intercept
-            self["X_scale"] = X_scale
+        if center is not None:
+            center = tonp(center).ravel()
+            assert center.size == self.root.m - self.root.intercept
+            self["X_center"] = center
+        if scale is not None:
+            scale = tonp(scale).ravel()
+            assert scale.size == self.root.m - self.root.intercept
+            self["X_scale"] = scale
 
     def set_scale_Y(
         self,
-        Y_center: Union[None, torch.Tensor, np.ndarray, Sequence[float]] = None,
-        Y_scale: Union[None, torch.Tensor, np.ndarray, Sequence[float]] = None,
+        center: Union[None, torch.Tensor, np.ndarray, Sequence[float]] = None,
+        scale: Union[None, torch.Tensor, np.ndarray, Sequence[float]] = None,
     ):
         """Set scaling information with checks.
         Use if `Y` has been scaled before being input to Slisemap.
-        Assuming the scaling can be converted to the form `Y = (Y_unscaled - Y_center) / Y_scale`.
+        Assuming the scaling can be converted to the form `Y = (Y_unscaled - center) / scale`.
         This allows some plots to (temporarily) revert the scaling (for more intuitive units).
 
         Args:
-            Y_center: The constant offset of `Y`. Defaults to None.
-            Y_scale: The scaling factor of `Y`. Defaults to None.
+            center: The constant offset of `Y`. Defaults to None.
+            scale: The scaling factor of `Y`. Defaults to None.
         """
-        if Y_center is not None:
-            Y_center = tonp(Y_center).ravel()
-            assert Y_center.size == self.root.o
-            self["Y_center"] = Y_center
-        if Y_scale is not None:
-            Y_scale = tonp(Y_scale).ravel()
-            assert Y_scale.size == self.root.o
-            self["Y_scale"] = Y_scale
+        if center is not None:
+            center = tonp(center).ravel()
+            assert center.size == self.root.o
+            self["Y_center"] = center
+        if scale is not None:
+            scale = tonp(scale).ravel()
+            assert scale.size == self.root.o
+            self["Y_scale"] = scale
 
     def unscale_X(self, X: Optional[np.ndarray] = None) -> np.ndarray:
         """Unscale X if the scaling information has been given (see `set_scale_X`).

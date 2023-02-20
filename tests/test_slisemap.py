@@ -7,6 +7,18 @@ from slisemap.utils import SlisemapWarning
 from .utils import *
 
 
+@pytest.fixture
+def sm_data():
+    sm = get_slisemap(
+        40, 5, intercept=True, lasso=0, ridge=0, randomB=True, seed=459872
+    )
+    sm0 = sm.copy()
+    sm.lbfgs(100)
+    sm.z_norm = 0
+    sm._normalise()
+    return (sm0, sm)
+
+
 def test_parameters():
     # Just a naïve check to see that some parameters are working
     sm4 = get_slisemap(30, 4, z_norm=1, radius=4)
@@ -24,22 +36,23 @@ def test_parameters():
 
 
 def test_lbfgs():
+    set_seed(10983422)
     sm = get_slisemap(30, 4)
     l1 = sm.value()
     l2 = sm.lbfgs()
     assert all_finite(l1, l2)
     assert l1 >= l2
+    assert_allclose(l2, sm.value(), rtol=1e-3)
     sm = get_slisemap(30, 4, classes=3)
     l1 = sm.value()
     l2 = sm.lbfgs()
     assert all_finite(l1, l2)
     assert l1 >= l2
+    assert_allclose(l2, sm.value(), rtol=1e-3)
 
 
-def test_only_B():
-    set_seed(653274)
-    sm = get_slisemap(30, 4)
-    sm.optimise(1, 3)
+def test_only_B(sm_data):
+    sm = sm_data[1].copy()
     sm2 = Slisemap(
         X=sm.get_X(intercept=False, numpy=False),
         y=sm.get_Y(numpy=False),
@@ -47,6 +60,7 @@ def test_only_B():
         lasso=sm.lasso,
         intercept=sm.intercept,
         Z0=sm.get_Z(numpy=False),
+        random_state=123009857,
     )
     sm2.optimise(1, 3, only_B=True)
     assert_allclose(sm.get_Z(), sm2.get_Z())
@@ -56,7 +70,7 @@ def test_only_B():
 
 def test_fit_new():
     sm, _ = get_slisemap2(60, 5, cheat=True, seed=239177)
-    sm.lbfgs()
+    sm.lbfgs(100)
     X = sm.get_X(intercept=False)
     y = sm.get_Y()
     x1 = X[4, :]
@@ -100,6 +114,10 @@ def test_fit_new():
         Z=torch.cat((sm._Z, torch.as_tensor(Z2 / sm.radius, **sm.tensorargs)), 0),
     )[sm.n :]
     assert np.sum(np.abs(tonp(l2b_) - l2b)) < 0.01
+    sm.fit_new(x1, y1, optimise=False, between=True, loss=True, numpy=False)
+    sm.fit_new(x2, y2, optimise=False, between=False, loss=True, numpy=False)
+    sm.fit_new(x1, y1, optimise=False, between=True, loss=True, numpy=False)
+    sm.fit_new(x2, y2, optimise=False, between=False, loss=True, numpy=False)
 
 
 def test_loss():
@@ -119,7 +137,7 @@ def test_loss():
         np.random.normal(size=(10, 3)),
         np.random.normal(size=(10, 3)),
         lasso=1e-4,
-        local_model=multiple_linear_regression,
+        local_model=linear_regression,
         local_loss=linear_regression_loss,
     )
     assert sm.q == linear_regression_coefficients(sm._X, sm._Y)
@@ -146,18 +164,28 @@ def test_loss():
     assert all_finite(sm.value())
 
 
-def test_predict():
-    sm = get_slisemap(40, 5)
-    y1 = sm.predict(np.random.normal(size=(10, 5)), np.random.normal(size=(10, 2)))
-    y2 = sm.predict(np.random.normal(size=5), np.random.normal(size=2))
+def test_predict(sm_data):
+    sm = sm_data[1]
+    y1 = sm.predict(X=np.random.normal(size=(10, 5)), Z=np.random.normal(size=(10, 2)))
+    y2 = sm.predict(X=np.random.normal(size=5), Z=np.random.normal(size=2))
+    assert y1.shape == (10, 1)
+    assert y2.shape == (1, 1)
+    assert all_finite(y1, y2)
+    y1 = sm.predict(X=np.random.normal(size=(10, 5)), B=np.random.normal(size=(10, 6)))
+    y2 = sm.predict(X=np.random.normal(size=5), B=np.random.normal(size=6))
     assert y1.shape == (10, 1)
     assert y2.shape == (1, 1)
     assert all_finite(y1, y2)
 
 
-def test_get():
-    sm = get_slisemap(40, 5, intercept=True, lasso=0, ridge=0, z_norm=0, seed=459872)
-    sm.lbfgs(10)
+def test_get(sm_data):
+    sm = sm_data[1]
+    assert sm.get_Y(False, True).shape == (40,)
+    assert sm.get_Y(False, False).shape == (40, 1)
+    assert sm.get_X(intercept=False).shape[1] == sm.m - 1
+    assert sm.get_X(False, False).shape == (40, 5)
+    assert sm.get_X(False, True).shape == (40, 6)
+    assert sm.get_B(False).shape == (40, 6)
     assert_allclose(sm._Z, sm.get_Z(False, False, False), "Z")
     assert_allclose(torch.sqrt(torch.sum(sm._Z**2) / sm.n), torch.ones(1), "scale")
     Z = sm.get_Z(numpy=False)
@@ -168,19 +196,15 @@ def test_get():
     L = sm.get_L(numpy=False)
     assert_allclose(sm.value(), torch.sum(W * L).cpu().item(), "loss", 1e-4, 1e-6)
     assert_allclose(sm.value(True, False), torch.sum(W * L, 1), "ind_loss", 1e-4, 1e-4)
-    assert sm.get_Y(False, True).shape == (40,)
-    assert sm.get_Y(False, False).shape == (40, 1)
-    assert sm.get_X(intercept=False).shape[1] == sm.m - 1
-    assert sm.get_X(False, False).shape == (40, 5)
-    assert sm.get_X(False, True).shape == (40, 6)
-    assert sm.get_B(False).shape == (40, 6)
     assert_allclose(
-        sm.get_L(numpy=False), sm.get_L(X=sm._X[:, :-1], Y=sm._Y, numpy=False), "L"
+        sm.get_L(numpy=False),
+        sm.get_L(X=sm._X[:, :-1], Y=sm._Y, numpy=False),
+        "L",
     )
 
 
-def test_set():
-    sm = get_slisemap(40, 5, intercept=True, lasso=0, ridge=0, random_state=42)
+def test_set(sm_data):
+    sm = sm_data[1]
     sm.d = 5
     sm.jit = False
     sm.random_state = None
@@ -195,27 +219,20 @@ def test_set():
     assert np.isfinite(sm.value())
 
 
-def test_restore():
-    sm = get_slisemap(40, 3, lasso=0.01, random_state=42)
-    B1 = sm.get_B()
-    Z1 = sm.get_Z()
-    v1 = sm.value()
-    sm.optimise(max_escapes=2, max_iter=10)
-    B2 = sm.get_B()
-    Z2 = sm.get_Z()
-    v2 = sm.value()
-    sm.restore()
-    assert np.allclose(B1, sm.get_B())
-    assert np.allclose(Z1, sm.get_Z())
-    assert np.allclose(v1, sm.value())
-    sm.optimise(max_escapes=2, max_iter=10)
-    assert np.allclose(B2, sm.get_B())
-    assert np.allclose(Z2, sm.get_Z())
-    assert np.allclose(v2, sm.value())
+def test_restore(sm_data):
+    sm0, sm1 = sm_data
+    B1 = sm0.get_B()
+    Z1 = sm0.get_Z()
+    v1 = sm0.value()
+    sm2 = sm1.copy()
+    sm2.restore()
+    assert_allclose(B1, sm2.get_B(), "restore B")
+    assert_allclose(Z1, sm2.get_Z(), "restore Z")
+    assert_allclose(v1, sm2.value(), "restore value")
 
 
-def test_cluster():
-    sm = get_slisemap(40, 5, randomB=True)
+def test_cluster(sm_data):
+    sm = sm_data[1]
     id, cm = sm.get_model_clusters(5)
     assert id.max() == 4
     assert id.min() == 0
@@ -224,10 +241,9 @@ def test_cluster():
     assert np.all(id == id2)
 
 
-def test_cuda():
+def test_cuda(sm_data):
+    sm = sm_data[1].copy()
     if torch.cuda.is_available():
-        sm = get_slisemap(40, 3, randomB=True, cuda=False, random_state=42)
-        sm.optimise(max_escapes=2, max_iter=10)
         sm.cuda()
         sm.optimise(max_escapes=2, max_iter=10)
         sm.cpu()

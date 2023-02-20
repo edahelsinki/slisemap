@@ -50,6 +50,7 @@ def test_global_model():
 
 
 def test_PCA():
+    set_seed(453789359)
     x = torch.normal(0, 1, (5, 3))
     assert PCA_rotation(x, 2, full=True).shape == (3, 2)
     assert PCA_rotation(x, 2, full=False).shape == (3, 2)
@@ -66,9 +67,10 @@ def test_PCA():
     x = torch.normal(0, 1, (3, 5))
     assert PCA_rotation(x, 2, full=False).shape == (5, 2)
     assert PCA_rotation(x, 2, full=True).shape == (5, 2)
-    assert np.allclose(
+    assert_allclose(
         np.abs(PCA_rotation(x, 2, center=False).numpy()),
         np.abs(np.linalg.svd(x.numpy())[2][:2].T),
+        "rotation",
     )
 
 
@@ -118,6 +120,8 @@ def test_to_tensor():
 
         test(pandas.DataFrame(X))
         test(pandas.DataFrame(X4))
+        rows = [1, 4, 2, 0, 3]
+        assert_allclose(rows, to_tensor(pandas.DataFrame(X4).iloc[rows])[1])
     except ImportError:
         pass
 
@@ -129,7 +133,6 @@ def test_metadata():
     assert len(sm.metadata.get_coefficients()) == 6
     assert len(sm.metadata.get_variables(False)) == 5
     assert len(sm.metadata.get_variables(True)) == 6
-    sm.metadata.set_variables(range(5))
     sm.metadata.set_variables(range(6), add_intercept=False)
     sm.metadata.set_variables(range(5), add_intercept=True)
     assert len(sm.metadata.get_variables(False)) == 5
@@ -149,3 +152,8 @@ def test_metadata():
     sm.metadata.set_scale_Y(0, 1)
     assert_allclose(sm.metadata.unscale_X(), sm.get_X(intercept=False))
     assert_allclose(sm.metadata.unscale_Y(), sm.get_Y())
+    assert_allclose(np.arange(sm.n), sm.metadata.get_rows(True))
+    sm.metadata.set_rows(np.arange(2, 2 + sm.n), None, None, None)
+    assert_allclose(np.arange(2, 2 + sm.n), sm.metadata.get_rows())
+    sm.metadata.set_rows(np.arange(1, 1 + sm.n))
+    assert_allclose(np.arange(1, 1 + sm.n), sm.metadata.get_rows())

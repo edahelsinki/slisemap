@@ -16,9 +16,9 @@ the [documentation](https://edahelsinki.github.io/slisemap/slisemap), or the
 
 Citation
 --------
-> Björklund, A., Mäkelä, J. & Puolamäki, K. (2022).  
+> Björklund, A., Mäkelä, J. & Puolamäki, K. (2023).  
 > SLISEMAP: Supervised dimensionality reduction through local explanations.  
-> Machine Learning, DOI 10.1007/s10994-022-06261-1.  
+> Machine Learning 112, 1-43. DOI: 10.1007/s10994-022-06261-1.  
 
 
 Example Usage
