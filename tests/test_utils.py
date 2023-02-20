@@ -119,7 +119,7 @@ def test_to_tensor():
         test(pandas.DataFrame(X))
         test(pandas.DataFrame(X4))
         rows = [1, 4, 2, 0, 3]
-        assert_allclose(rows, to_tensor(pandas.DataFrame(X4).iloc[rows, ...])[1])
+        assert_allclose(rows, to_tensor(pandas.DataFrame(X4).iloc[rows])[1])
     except ImportError:
         pass
 
