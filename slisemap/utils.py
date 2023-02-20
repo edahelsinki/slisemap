@@ -426,11 +426,11 @@ class Metadata(dict):
         for row in rows:
             if row is not None:
                 _assert(
-                    len(rows) == self.root.n,
-                    f"Wrong number of row names {len(rows)} != {self.root.n}",
+                    len(row) == self.root.n,
+                    f"Wrong number of row names {len(row)} != {self.root.n}",
                     Metadata.set_rows,
                 )
-                self["rows"] = rows
+                self["rows"] = row
                 break
 
     def set_variables(

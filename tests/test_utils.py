@@ -118,6 +118,8 @@ def test_to_tensor():
 
         test(pandas.DataFrame(X))
         test(pandas.DataFrame(X4))
+        rows = [1, 4, 2, 0, 3]
+        assert_allclose(rows, to_tensor(pandas.DataFrame(X4).iloc[rows, ...])[1])
     except ImportError:
         pass
 
@@ -129,7 +131,6 @@ def test_metadata():
     assert len(sm.metadata.get_coefficients()) == 6
     assert len(sm.metadata.get_variables(False)) == 5
     assert len(sm.metadata.get_variables(True)) == 6
-    sm.metadata.set_variables(range(5))
     sm.metadata.set_variables(range(6), add_intercept=False)
     sm.metadata.set_variables(range(5), add_intercept=True)
     assert len(sm.metadata.get_variables(False)) == 5
@@ -149,3 +150,8 @@ def test_metadata():
     sm.metadata.set_scale_Y(0, 1)
     assert_allclose(sm.metadata.unscale_X(), sm.get_X(intercept=False))
     assert_allclose(sm.metadata.unscale_Y(), sm.get_Y())
+    assert_allclose(np.arange(sm.n), sm.metadata.get_rows(True))
+    sm.metadata.set_rows(np.arange(2, 2 + sm.n), None, None, None)
+    assert_allclose(np.arange(2, 2 + sm.n), sm.metadata.get_rows())
+    sm.metadata.set_rows(np.arange(1, 1 + sm.n))
+    assert_allclose(np.arange(1, 1 + sm.n), sm.metadata.get_rows())
