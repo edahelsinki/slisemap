@@ -559,13 +559,14 @@ class Metadata(dict):
                 return self["variables"][:-1]
             else:
                 return self["variables"]
-        if self.root.intercept:
-            if not intercept:
-                return [f"X_{i}" for i in range(self.root.m - 1)]
+        elif fallback:
+            if self.root.intercept:
+                if not intercept:
+                    return [f"X_{i}" for i in range(self.root.m - 1)]
+                else:
+                    return [f"X_{i}" for i in range(self.root.m - 1)] + ["X_Intercept"]
             else:
-                return [f"X_{i}" for i in range(self.root.m - 1)] + ["X_Intercept"]
-        if fallback:
-            return [f"X_{i}" for i in range(self.root.m)]
+                return [f"X_{i}" for i in range(self.root.m)]
         else:
             return None
 
