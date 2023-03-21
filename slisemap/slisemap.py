@@ -1387,7 +1387,14 @@ class Slisemap:
             if bars:
                 plot_barmodels(B, clusters, centers, coefficients, bars=bars, ax=ax2)
             else:
-                plot_matrix(centers, coefficients, ax=ax2)
+                plot_matrix(
+                    centers,
+                    coefficients,
+                    title="Cluster models",
+                    xlabel="Cluster",
+                    xticks=True,
+                    ax=ax2,
+                )
         sns.despine(fig)
         plt.suptitle(title)
         plt.tight_layout()

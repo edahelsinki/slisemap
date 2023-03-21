@@ -158,7 +158,13 @@ def plot_embedding(
 
 
 def plot_matrix(
-    B: np.ndarray, coefficients: Sequence[str], palette: str = "RdBu", **kwargs
+    B: np.ndarray,
+    coefficients: Sequence[str],
+    palette: str = "RdBu",
+    title: str = "Local models",
+    xlabel: str = "Data items sorted left to right",
+    xticks: bool = False,
+    **kwargs,
 ) -> plt.Axes:
     """Plot local models in a heatmap.
 
@@ -166,6 +172,9 @@ def plot_matrix(
         B: Local model coefficients.
         coefficients: Coefficient names.
         palette: `seaborn` palette. Defaults to "RdBu".
+        title: Title of the plot. Defaults to "Local models".
+        xlabel: Label for the x-axis. Defaults to "Data items sorted left to right".
+        xticks: Show ticklabels for the x-axis. Defaults to False.
     Keyword Args:
         **kwargs: Additional arguments to `seaborn.heatmap`.
 
@@ -175,10 +184,10 @@ def plot_matrix(
     ax = sns.heatmap(B.T, center=0, cmap=palette, robust=True, **kwargs)
     ax.set_yticks(np.arange(len(coefficients)) + 0.5)
     ax.set_yticklabels(coefficients, rotation=0)
-    # ax.set_ylabel("Coefficients")
-    ax.set_xlabel("Data items sorted left to right")
-    ax.set_xticklabels([])
-    ax.set_title("Local models")
+    ax.set_xlabel(xlabel)
+    if not xticks:
+        ax.set_xticklabels([])
+    ax.set_title(title)
     return ax
 
 
