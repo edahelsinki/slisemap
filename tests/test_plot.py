@@ -9,7 +9,11 @@ def test_plot():
         sm.plot(title="ASD", clusters=4, show=False)
         sm.plot(title="ASD", clusters=4, bars=True, show=False)
         sm.plot(title="ASD", clusters=4, bars=-1, show=False)
-        sm.plot(clusters=cl, show=False)
+        sm.plot(clusters=cl, bars=False, show=False)
+        sm.plot(clusters=cl, bars=True, show=False)
+        cl2 = np.asarray([f"A{9-i}" for i in np.unique(cl)])[cl]
+        sm.plot(clusters=cl2, bars=False, show=False)
+        sm.plot(clusters=cl2, bars=True, show=False)
         sm.plot(jitter=1, figsize=(2, 2), show=False)
         sm.metadata.set_variables(range(4), add_intercept=True)
         sm.plot(title="ASD", clusters=4, bars=3, show=False)

@@ -1304,6 +1304,7 @@ class Slisemap:
         B: Optional[np.ndarray] = None,
         Z: Optional[np.ndarray] = None,
         show: bool = True,
+        bar: Union[None, bool, int] = None,
         **kwargs: Any,
     ) -> Optional[Figure]:
         """Plot the Slisemap solution using seaborn.
@@ -1318,6 +1319,7 @@ class Slisemap:
             B: Override self.get_B() in the plot. Defaults to None. **DEPRECATED**
             Z: Override self.get_Z() in the plot. Defaults to None. **DEPRECATED**
             show: Show the plot. Defaults to True.
+            bar: Alternative spelling for `bars`. Defaults to None.
         Keyword Args:
             **kwargs: Additional arguments to `plt.subplots`.
 
@@ -1330,6 +1332,8 @@ class Slisemap:
             1.3: Parameter `B`.
             1.3: Parameter `Z`.
         """
+        if bar is not None:
+            bars = bar
         if Z is None:
             Z = self.get_Z(rotate=True)
         else:
@@ -1378,11 +1382,14 @@ class Slisemap:
         else:
             if isinstance(clusters, int):
                 clusters, centers = self.get_model_clusters(clusters, B)
+                cl = np.arange(np.max(clusters))
             else:
-                cl = np.sort(np.unique(clusters))
-                centers = np.zeros((cl.max() + 1, B.shape[1]))
-                for c in cl:
-                    centers[c, :] = np.mean(B[clusters == c, :], 0)
+                if isinstance(clusters, (list, tuple)):
+                    clusters = np.asarray(clusters)
+                cl = np.unique(clusters)
+                centers = np.zeros((len(cl), B.shape[1]))
+                for i, c in enumerate(cl):
+                    centers[i, :] = np.mean(B[clusters == c, :], 0)
             plot_embedding(Z, Z_names, jitter=jitter, clusters=clusters, ax=ax1)
             if bars:
                 plot_barmodels(B, clusters, centers, coefficients, bars=bars, ax=ax2)
@@ -1390,9 +1397,9 @@ class Slisemap:
                 plot_matrix(
                     centers,
                     coefficients,
-                    title="Cluster models",
+                    title="Cluster mean models",
                     xlabel="Cluster",
-                    xticks=True,
+                    items=cl,
                     ax=ax2,
                 )
         sns.despine(fig)

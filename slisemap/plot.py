@@ -163,7 +163,7 @@ def plot_matrix(
     palette: str = "RdBu",
     title: str = "Local models",
     xlabel: str = "Data items sorted left to right",
-    xticks: bool = False,
+    items: Optional[Sequence[str]] = None,
     **kwargs,
 ) -> plt.Axes:
     """Plot local models in a heatmap.
@@ -174,7 +174,7 @@ def plot_matrix(
         palette: `seaborn` palette. Defaults to "RdBu".
         title: Title of the plot. Defaults to "Local models".
         xlabel: Label for the x-axis. Defaults to "Data items sorted left to right".
-        xticks: Show ticklabels for the x-axis. Defaults to False.
+        items: Ticklabels for the x-axis. Defaults to None.
     Keyword Args:
         **kwargs: Additional arguments to `seaborn.heatmap`.
 
@@ -185,8 +185,11 @@ def plot_matrix(
     ax.set_yticks(np.arange(len(coefficients)) + 0.5)
     ax.set_yticklabels(coefficients, rotation=0)
     ax.set_xlabel(xlabel)
-    if not xticks:
+    if items is None:
         ax.set_xticklabels([])
+    else:
+        ax.set_xticks(np.arange(len(items)) + 0.5)
+        ax.set_xticklabels(items)
     ax.set_title(title)
     return ax
 
@@ -233,7 +236,7 @@ def plot_barmodels(
     lim = np.max(np.abs(ax.get_xlim()))
     ax.set(xlabel=None, ylabel=None, xlim=(-lim, lim))
     # ax.set_ylabel("Coefficients")
-    ax.set_title("Local models")
+    ax.set_title("Cluster mean models")
     return ax
 
 
