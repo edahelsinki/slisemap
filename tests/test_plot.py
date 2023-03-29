@@ -17,6 +17,7 @@ def test_plot():
         sm.plot(jitter=1, figsize=(2, 2), show=False)
         sm.metadata.set_variables(range(4), add_intercept=True)
         sm.plot(title="ASD", clusters=4, bars=3, show=False)
+        sm.plot(title="ASD", clusters=4, bars=[1, 0, 3], show=False)
         sm.plot(jitter=1, show=False)
         sm = Slisemap(
             np.random.normal(size=(10, 3)), np.random.normal(size=(10, 3)), lasso=0

@@ -199,7 +199,7 @@ def plot_barmodels(
     clusters: np.ndarray,
     centers: np.ndarray,
     coefficients: Sequence[str],
-    bars: Union[bool, int] = True,
+    bars: Union[bool, int, Sequence[str]] = True,
     palette: str = "bright",
     **kwargs: Any,
 ) -> plt.Axes:
@@ -210,7 +210,7 @@ def plot_barmodels(
         clusters: Cluster labels.
         centers: Cluster centers.
         coefficients: Coefficient names.
-        bars: Number of variables to show (or a bool for all). Defaults to True.
+        bars: Number / list of variables to show (or a bool for all). Defaults to True.
         palette: `seaborn` palette. Defaults to "bright".
     Keyword Args:
         **kwargs: Additional arguments to `seaborn.barplot`.
@@ -218,7 +218,11 @@ def plot_barmodels(
     Returns:
         The plot.
     """
-    if not isinstance(bars, bool):
+    if isinstance(bars, Sequence):
+        mask = [coefficients.index(var) for var in bars]
+        coefficients = bars
+        B = B[:, mask]
+    if isinstance(bars, int):
         influence = np.abs(centers)
         influence = influence.max(0) + influence.mean(0)
         mask = np.argsort(-influence)[:bars]

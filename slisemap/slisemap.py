@@ -1316,7 +1316,7 @@ class Slisemap:
         variables: Optional[Sequence[str]] = None,
         targets: Union[None, str, Sequence[str]] = None,
         clusters: Union[None, int, np.ndarray] = None,
-        bars: Union[bool, int] = False,
+        bars: Union[bool, int, Sequence[str]] = False,
         jitter: Union[float, np.ndarray] = 0.0,
         B: Optional[np.ndarray] = None,
         Z: Optional[np.ndarray] = None,
@@ -1331,7 +1331,7 @@ class Slisemap:
             variables: List of variable names. Defaults to None. **DEPRECATED**
             targets: Target name(s). Defaults to None. **DEPRECATED**
             clusters: Can be None (plot individual losses), an int (plot k-means clusters of B), or an array of known cluster id:s. Defaults to None.
-            bars: If the clusters are from k-means, plot the local models in a bar plot. If `bar` is an int then only plot the most influential variables. Defaults to False.
+            bars: Plot the local models in a bar plot. Either an int (to only plot the most influential variables), a list of variables, or a bool. Defaults to False.
             jitter: Add random (normal) noise to the embedding, or a matrix with pre-generated noise matching Z. Defaults to 0.0.
             B: Override self.get_B() in the plot. Defaults to None. **DEPRECATED**
             Z: Override self.get_Z() in the plot. Defaults to None. **DEPRECATED**
