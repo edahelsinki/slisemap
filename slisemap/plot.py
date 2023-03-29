@@ -158,7 +158,13 @@ def plot_embedding(
 
 
 def plot_matrix(
-    B: np.ndarray, coefficients: Sequence[str], palette: str = "RdBu", **kwargs
+    B: np.ndarray,
+    coefficients: Sequence[str],
+    palette: str = "RdBu",
+    title: str = "Local models",
+    xlabel: str = "Data items sorted left to right",
+    items: Optional[Sequence[str]] = None,
+    **kwargs,
 ) -> plt.Axes:
     """Plot local models in a heatmap.
 
@@ -166,6 +172,9 @@ def plot_matrix(
         B: Local model coefficients.
         coefficients: Coefficient names.
         palette: `seaborn` palette. Defaults to "RdBu".
+        title: Title of the plot. Defaults to "Local models".
+        xlabel: Label for the x-axis. Defaults to "Data items sorted left to right".
+        items: Ticklabels for the x-axis. Defaults to None.
     Keyword Args:
         **kwargs: Additional arguments to `seaborn.heatmap`.
 
@@ -175,10 +184,13 @@ def plot_matrix(
     ax = sns.heatmap(B.T, center=0, cmap=palette, robust=True, **kwargs)
     ax.set_yticks(np.arange(len(coefficients)) + 0.5)
     ax.set_yticklabels(coefficients, rotation=0)
-    # ax.set_ylabel("Coefficients")
-    ax.set_xlabel("Data items sorted left to right")
-    ax.set_xticklabels([])
-    ax.set_title("Local models")
+    ax.set_xlabel(xlabel)
+    if items is None:
+        ax.set_xticklabels([])
+    else:
+        ax.set_xticks(np.arange(len(items)) + 0.5)
+        ax.set_xticklabels(items)
+    ax.set_title(title)
     return ax
 
 
@@ -187,7 +199,7 @@ def plot_barmodels(
     clusters: np.ndarray,
     centers: np.ndarray,
     coefficients: Sequence[str],
-    bars: Union[bool, int] = True,
+    bars: Union[bool, int, Sequence[str]] = True,
     palette: str = "bright",
     **kwargs: Any,
 ) -> plt.Axes:
@@ -198,7 +210,7 @@ def plot_barmodels(
         clusters: Cluster labels.
         centers: Cluster centers.
         coefficients: Coefficient names.
-        bars: Number of variables to show (or a bool for all). Defaults to True.
+        bars: Number / list of variables to show (or a bool for all). Defaults to True.
         palette: `seaborn` palette. Defaults to "bright".
     Keyword Args:
         **kwargs: Additional arguments to `seaborn.barplot`.
@@ -206,7 +218,11 @@ def plot_barmodels(
     Returns:
         The plot.
     """
-    if not isinstance(bars, bool):
+    if isinstance(bars, Sequence):
+        mask = [coefficients.index(var) for var in bars]
+        coefficients = bars
+        B = B[:, mask]
+    if isinstance(bars, int):
         influence = np.abs(centers)
         influence = influence.max(0) + influence.mean(0)
         mask = np.argsort(-influence)[:bars]
@@ -224,7 +240,7 @@ def plot_barmodels(
     lim = np.max(np.abs(ax.get_xlim()))
     ax.set(xlabel=None, ylabel=None, xlim=(-lim, lim))
     # ax.set_ylabel("Coefficients")
-    ax.set_title("Local models")
+    ax.set_title("Cluster mean models")
     return ax
 
 

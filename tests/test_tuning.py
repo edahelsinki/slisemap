@@ -3,7 +3,7 @@ from .utils import get_slisemap2
 import pytest
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def tune_data():
     sm, _ = get_slisemap2(100, 5, lasso=1, ridge=1, seed=245230984)
     X_test = sm.get_X(intercept=False)[:30, ...]

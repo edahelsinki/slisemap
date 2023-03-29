@@ -3,6 +3,7 @@ This module contains the `Slisemap` class.
 """
 
 from copy import copy
+import lzma
 from os import PathLike
 from typing import (
     Any,
@@ -1187,6 +1188,7 @@ class Slisemap:
         self,
         f: Union[str, PathLike, BinaryIO],
         any_extension: bool = False,
+        compress: Union[bool, int] = True,
         **kwargs: Any,
     ):
         """Save the Slisemap object to a file.
@@ -1201,6 +1203,7 @@ class Slisemap:
         Args:
             f: Either a Path-like object or a (writable) File-like object.
             any_extension: Do not check the file extension. Defaults to False.
+            compress: Compress the file with LZMA. Either a bool or a compression preset [0, 9]. Defaults to True.
         Keyword Args:
             **kwargs: Parameters forwarded to `torch.save`.
         """
@@ -1218,7 +1221,14 @@ class Slisemap:
             self._Z = self._Z.detach()
             self._loss = None
             self._random_state = None
-            torch.save(self, f, **kwargs)
+            if isinstance(compress, int) and compress > 0:
+                with lzma.open(f, "wb", preset=compress) as f2:
+                    torch.save(self, f2, **kwargs)
+            elif compress:
+                with lzma.open(f, "wb") as f2:
+                    torch.save(self, f2, **kwargs)
+            else:
+                torch.save(self, f, **kwargs)
         finally:
             self.metadata.root = self
             self._loss = loss
@@ -1240,6 +1250,9 @@ class Slisemap:
 
         Note that this is a classmethod, use it with: `Slisemap.load(...)`.
 
+        SAFETY: This function is based on `torch.load` which (by default) uses `pickle`.
+        Do not use `Slisemap.load` on untrusted files, since `pickle` can run arbitrary Python code.
+
         Args:
             f: Either a Path-like object or a (readable) File-like object.
             device: Device to load the tensors to (or the original if None). Defaults to None.
@@ -1252,7 +1265,11 @@ class Slisemap:
         """
         if device is None:
             device = map_location
-        sm = torch.load(f, map_location=device, **kwargs)
+        try:
+            with lzma.open(f, "rb") as f2:
+                sm = torch.load(f2, map_location=device, **kwargs)
+        except lzma.LZMAError:
+            sm = torch.load(f, map_location=device, **kwargs)
         sm.random_state = sm._rs0
         try:  # Backwards compatibility
             sm.metadata.root = sm
@@ -1264,6 +1281,7 @@ class Slisemap:
         self,
         clusters: int,
         B: Optional[np.ndarray] = None,
+        Z: Optional[np.ndarray] = None,
         random_state: int = 42,
         **kwargs: Any,
     ) -> Tuple[np.ndarray, np.ndarray]:
@@ -1272,7 +1290,8 @@ class Slisemap:
 
         Args:
             clusters: Number of clusters.
-            B: B matrix. Defaults to self.get_B().
+            B: B matrix. Defaults to `self.get_B()`.
+            Z: Z matrix. Defaults to `self.get_Z(rotate=True)`.
             random_state: random_state for the KMeans clustering. Defaults to 42.
         Keyword Args:
             **kwargs: Additional arguments to `sklearn.KMeans`.
@@ -1282,15 +1301,9 @@ class Slisemap:
             centres: Matrix of cluster centres.
         """
         B = B if B is not None else self.get_B()
+        Z = Z if Z is not None else self.get_Z(rotate=True)
         km = KMeans(clusters, random_state=random_state, **kwargs).fit(B)
-        # Sort according to value for the most influential coefficient
-        influence = (
-            km.cluster_centers_.var(0)
-            + np.abs(km.cluster_centers_).mean(0)
-            + np.abs(km.cluster_centers_).max(0)
-        )
-        col = np.argmax(influence)
-        ord = np.argsort(km.cluster_centers_[:, col])
+        ord = np.argsort([Z[km.labels_ == k, 0].mean() for k in range(clusters)])
         return np.argsort(ord)[km.labels_], km.cluster_centers_[ord]
 
     def plot(
@@ -1299,11 +1312,12 @@ class Slisemap:
         variables: Optional[Sequence[str]] = None,
         targets: Union[None, str, Sequence[str]] = None,
         clusters: Union[None, int, np.ndarray] = None,
-        bars: Union[bool, int] = False,
+        bars: Union[bool, int, Sequence[str]] = False,
         jitter: Union[float, np.ndarray] = 0.0,
         B: Optional[np.ndarray] = None,
         Z: Optional[np.ndarray] = None,
         show: bool = True,
+        bar: Union[None, bool, int] = None,
         **kwargs: Any,
     ) -> Optional[Figure]:
         """Plot the Slisemap solution using seaborn.
@@ -1313,11 +1327,12 @@ class Slisemap:
             variables: List of variable names. Defaults to None. **DEPRECATED**
             targets: Target name(s). Defaults to None. **DEPRECATED**
             clusters: Can be None (plot individual losses), an int (plot k-means clusters of B), or an array of known cluster id:s. Defaults to None.
-            bars: If the clusters are from k-means, plot the local models in a bar plot. If `bar` is an int then only plot the most influential variables. Defaults to False.
+            bars: Plot the local models in a bar plot. Either an int (to only plot the most influential variables), a list of variables, or a bool. Defaults to False.
             jitter: Add random (normal) noise to the embedding, or a matrix with pre-generated noise matching Z. Defaults to 0.0.
             B: Override self.get_B() in the plot. Defaults to None. **DEPRECATED**
             Z: Override self.get_Z() in the plot. Defaults to None. **DEPRECATED**
             show: Show the plot. Defaults to True.
+            bar: Alternative spelling for `bars`. Defaults to None.
         Keyword Args:
             **kwargs: Additional arguments to `plt.subplots`.
 
@@ -1330,6 +1345,8 @@ class Slisemap:
             1.3: Parameter `B`.
             1.3: Parameter `Z`.
         """
+        if bar is not None:
+            bars = bar
         if Z is None:
             Z = self.get_Z(rotate=True)
         else:
@@ -1377,17 +1394,27 @@ class Slisemap:
             plot_matrix(B, coefficients, ax=ax2)
         else:
             if isinstance(clusters, int):
-                clusters, centers = self.get_model_clusters(clusters, B)
+                clusters, centers = self.get_model_clusters(clusters, B, Z)
+                cl = np.arange(np.max(clusters))
             else:
-                cl = np.sort(np.unique(clusters))
-                centers = np.zeros((cl.max() + 1, B.shape[1]))
-                for c in cl:
-                    centers[c, :] = np.mean(B[clusters == c, :], 0)
+                if isinstance(clusters, (list, tuple)):
+                    clusters = np.asarray(clusters)
+                cl = np.unique(clusters)
+                centers = np.zeros((len(cl), B.shape[1]))
+                for i, c in enumerate(cl):
+                    centers[i, :] = np.mean(B[clusters == c, :], 0)
             plot_embedding(Z, Z_names, jitter=jitter, clusters=clusters, ax=ax1)
             if bars:
                 plot_barmodels(B, clusters, centers, coefficients, bars=bars, ax=ax2)
             else:
-                plot_matrix(centers, coefficients, ax=ax2)
+                plot_matrix(
+                    centers,
+                    coefficients,
+                    title="Cluster mean models",
+                    xlabel="Cluster",
+                    items=cl,
+                    ax=ax2,
+                )
         sns.despine(fig)
         plt.suptitle(title)
         plt.tight_layout()

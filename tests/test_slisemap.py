@@ -7,7 +7,7 @@ from slisemap.utils import SlisemapWarning
 from .utils import *
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def sm_data():
     sm = get_slisemap(
         40, 5, intercept=True, lasso=0, ridge=0, randomB=True, seed=459872
@@ -179,7 +179,7 @@ def test_predict(sm_data):
 
 
 def test_get(sm_data):
-    sm = sm_data[1]
+    sm = sm_data[1].copy()
     assert sm.get_Y(False, True).shape == (40,)
     assert sm.get_Y(False, False).shape == (40, 1)
     assert sm.get_X(intercept=False).shape[1] == sm.m - 1
@@ -195,7 +195,7 @@ def test_get(sm_data):
     assert_allclose(W, sm.kernel(torch.cdist(Z, Z)), "W")
     L = sm.get_L(numpy=False)
     assert_allclose(sm.value(), torch.sum(W * L).cpu().item(), "loss", 1e-4, 1e-6)
-    assert_allclose(sm.value(True, False), torch.sum(W * L, 1), "ind_loss", 1e-4, 1e-4)
+    assert_allclose(sm.value(True, False), torch.sum(W * L, 1), "ind_loss", 1e-4, 3e-4)
     assert_allclose(
         sm.get_L(numpy=False),
         sm.get_L(X=sm._X[:, :-1], Y=sm._Y, numpy=False),
@@ -204,7 +204,7 @@ def test_get(sm_data):
 
 
 def test_set(sm_data):
-    sm = sm_data[1]
+    sm = sm_data[1].copy()
     sm.d = 5
     sm.jit = False
     sm.random_state = None

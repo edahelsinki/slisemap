@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "slisemap"
-version = "1.4.0"
+version = "1.5.0"
 authors = [
     { name = "Anton Björklund", email = "anton.bjorklund@helsinki.fi" },
     { name = "Jarmo Mäkelä", email = "jarmo.makela@helsinki.fi" },

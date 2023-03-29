@@ -6,7 +6,7 @@ from slisemap.metrics import *
 from .utils import *
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def metrics_data():
     sm1, c = get_slisemap2(30, 4, randomB=True, seed=357938)
     sm2 = sm1.copy()
