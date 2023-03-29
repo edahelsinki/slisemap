@@ -1281,6 +1281,7 @@ class Slisemap:
         self,
         clusters: int,
         B: Optional[np.ndarray] = None,
+        Z: Optional[np.ndarray] = None,
         random_state: int = 42,
         **kwargs: Any,
     ) -> Tuple[np.ndarray, np.ndarray]:
@@ -1289,7 +1290,8 @@ class Slisemap:
 
         Args:
             clusters: Number of clusters.
-            B: B matrix. Defaults to self.get_B().
+            B: B matrix. Defaults to `self.get_B()`.
+            Z: Z matrix. Defaults to `self.get_Z(rotate=True)`.
             random_state: random_state for the KMeans clustering. Defaults to 42.
         Keyword Args:
             **kwargs: Additional arguments to `sklearn.KMeans`.
@@ -1299,15 +1301,9 @@ class Slisemap:
             centres: Matrix of cluster centres.
         """
         B = B if B is not None else self.get_B()
+        Z = Z if Z is not None else self.get_Z(rotate=True)
         km = KMeans(clusters, random_state=random_state, **kwargs).fit(B)
-        # Sort according to value for the most influential coefficient
-        influence = (
-            km.cluster_centers_.var(0)
-            + np.abs(km.cluster_centers_).mean(0)
-            + np.abs(km.cluster_centers_).max(0)
-        )
-        col = np.argmax(influence)
-        ord = np.argsort(km.cluster_centers_[:, col])
+        ord = np.argsort([Z[km.labels_ == k, 0].mean() for k in range(clusters)])
         return np.argsort(ord)[km.labels_], km.cluster_centers_[ord]
 
     def plot(
@@ -1398,7 +1394,7 @@ class Slisemap:
             plot_matrix(B, coefficients, ax=ax2)
         else:
             if isinstance(clusters, int):
-                clusters, centers = self.get_model_clusters(clusters, B)
+                clusters, centers = self.get_model_clusters(clusters, B, Z)
                 cl = np.arange(np.max(clusters))
             else:
                 if isinstance(clusters, (list, tuple)):
