@@ -3,6 +3,7 @@ This module contains the `Slisemap` class.
 """
 
 from copy import copy
+import lzma
 from os import PathLike
 from typing import (
     Any,
@@ -1187,6 +1188,7 @@ class Slisemap:
         self,
         f: Union[str, PathLike, BinaryIO],
         any_extension: bool = False,
+        compress: Union[bool, int] = True,
         **kwargs: Any,
     ):
         """Save the Slisemap object to a file.
@@ -1201,6 +1203,7 @@ class Slisemap:
         Args:
             f: Either a Path-like object or a (writable) File-like object.
             any_extension: Do not check the file extension. Defaults to False.
+            compress: Compress the file with LZMA. Either a bool or a compression preset [0, 9]. Defaults to True.
         Keyword Args:
             **kwargs: Parameters forwarded to `torch.save`.
         """
@@ -1218,7 +1221,14 @@ class Slisemap:
             self._Z = self._Z.detach()
             self._loss = None
             self._random_state = None
-            torch.save(self, f, **kwargs)
+            if isinstance(compress, int) and compress > 0:
+                with lzma.open(f, "wb", preset=compress) as f2:
+                    torch.save(self, f2, **kwargs)
+            elif compress:
+                with lzma.open(f, "wb") as f2:
+                    torch.save(self, f2, **kwargs)
+            else:
+                torch.save(self, f, **kwargs)
         finally:
             self.metadata.root = self
             self._loss = loss
@@ -1240,6 +1250,9 @@ class Slisemap:
 
         Note that this is a classmethod, use it with: `Slisemap.load(...)`.
 
+        SAFETY: This function is based on `torch.load` which (by default) uses `pickle`.
+        Do not use `Slisemap.load` on untrusted files, since `pickle` can run arbitrary Python code.
+
         Args:
             f: Either a Path-like object or a (readable) File-like object.
             device: Device to load the tensors to (or the original if None). Defaults to None.
@@ -1252,7 +1265,11 @@ class Slisemap:
         """
         if device is None:
             device = map_location
-        sm = torch.load(f, map_location=device, **kwargs)
+        try:
+            with lzma.open(f, "rb") as f2:
+                sm = torch.load(f2, map_location=device, **kwargs)
+        except lzma.LZMAError:
+            sm = torch.load(f, map_location=device, **kwargs)
         sm.random_state = sm._rs0
         try:  # Backwards compatibility
             sm.metadata.root = sm
