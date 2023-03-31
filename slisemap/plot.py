@@ -222,7 +222,7 @@ def plot_barmodels(
         mask = [coefficients.index(var) for var in bars]
         coefficients = bars
         B = B[:, mask]
-    if isinstance(bars, int):
+    if isinstance(bars, int) and not isinstance(bars, bool):
         influence = np.abs(centers)
         influence = influence.max(0) + influence.mean(0)
         mask = np.argsort(-influence)[:bars]
@@ -239,7 +239,6 @@ def plot_barmodels(
     ax.legend().remove()
     lim = np.max(np.abs(ax.get_xlim()))
     ax.set(xlabel=None, ylabel=None, xlim=(-lim, lim))
-    # ax.set_ylabel("Coefficients")
     ax.set_title("Cluster mean models")
     return ax
 
