@@ -291,6 +291,7 @@ def plot_embedding_facet(
         )
     else:
         fgkws = kwargs.pop("facet_kws", {})
+        fgkws.setdefault("height", 5)
         for k in ("height", "aspect", "col_wrap"):
             if k in kwargs:
                 fgkws[k] = kwargs.pop(k)
