@@ -250,6 +250,7 @@ def plot_embedding_facet(
     names: Sequence[str],
     legend_title: str = "Value",
     jitter: Union[float, np.ndarray] = 0.0,
+    share_hue: bool = True,
     **kwargs: Any,
 ) -> sns.FacetGrid:
     """Plot (multiple) embeddings.
@@ -278,15 +279,34 @@ def plot_embedding_facet(
         for i, n in enumerate(names)
     )
     kwargs.setdefault("palette", "rocket")
-    kwargs.setdefault("kind", "scatter")
-    g = sns.relplot(
-        data=df,
-        x=dimensions[0],
-        y=dimensions[1],
-        hue=legend_title,
-        col="var",
-        **kwargs,
-    )
+    if share_hue:
+        kwargs.setdefault("kind", "scatter")
+        g = sns.relplot(
+            data=df,
+            x=dimensions[0],
+            y=dimensions[1],
+            hue=legend_title,
+            col="var",
+            **kwargs,
+        )
+    else:
+        fgkws = kwargs.pop("facet_kws", {})
+        for k in ("height", "aspect", "col_wrap"):
+            if k in kwargs:
+                fgkws[k] = kwargs.pop(k)
+        fgkws.setdefault("legend_out", False)
+        g = sns.FacetGrid(data=df, col="var", hue=legend_title, **fgkws)
+        for key, ax in g.axes_dict.items():
+            mask = df["var"] == key
+            df2 = {k: v[mask] for k, v in df.items()}
+            sns.scatterplot(
+                data=df2,
+                hue=legend_title,
+                x=dimensions[0],
+                y=dimensions[1],
+                ax=ax,
+                **kwargs,
+            )
     g.set_titles("{col_name}")
     return g
 

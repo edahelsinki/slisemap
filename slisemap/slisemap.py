@@ -1594,8 +1594,10 @@ class Slisemap:
                 labels,
                 jitter=jitter,
                 col_wrap=col_wrap,
+                share_hue=False,
                 **kwargs,
             )
+            legend_inside = False
         else:
             if isinstance(clusters, int):
                 clusters, _ = self.get_model_clusters(clusters, B)
