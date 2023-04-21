@@ -1374,7 +1374,7 @@ class Slisemap:
 
         kwargs.setdefault("figsize", (12, 6))
         fig, (ax1, ax2) = plt.subplots(1, 2, **kwargs)
-        if clusters is None or clusters == False or clusters == 0:
+        if not np.iterable(clusters) and not clusters:
             _assert(not bars, "`bars!=False` requires `clusters`", Slisemap.plot)
             if Z.shape[0] == self._Z.shape[0]:
                 yhat = self.predict(numpy=False)
