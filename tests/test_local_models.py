@@ -1,6 +1,8 @@
 import pytest
 import torch
+
 from slisemap.local_models import *
+from slisemap.utils import SlisemapException
 
 from .utils import *
 
@@ -41,7 +43,6 @@ def test_logistic_model():
     Y = torch.as_tensor(np.eye(2)[np.random.randint(0, 2, 10)])
     assert B.shape[1] == logistic_regression_coefficients(X, Y)
     P = logistic_regression(X, B)
-    print(P.shape, Y.shape)
     L = logistic_regression_loss(P, Y)
     assert P.shape == (10, 10, 2)
     assert L.shape == (10, 10)
@@ -51,6 +52,11 @@ def test_logistic_model():
     assert logistic_regression(X[:1, :], B).shape == (10, 1, 2)
     torch.jit.trace(logistic_regression, (X, B))
     torch.jit.trace(logistic_regression_loss, (P, Y))
+    with pytest.raises(SlisemapException, match="AssertionError"):
+        logistic_regression_loss(
+            logistic_regression(X, B),
+            torch.as_tensor(np.random.uniform(0, 1.0, size=(10, 1))),
+        )
     B = torch.as_tensor(np.random.normal(size=(10, 8)))
     Y = torch.as_tensor(np.eye(3)[np.random.randint(0, 3, 10)])
     assert B.shape[1] == logistic_regression_coefficients(X, Y)

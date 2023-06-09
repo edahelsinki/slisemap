@@ -10,7 +10,7 @@ import numpy as np
 import torch
 from torch.nn.functional import softmax
 
-from slisemap.utils import _assert, _deprecated, _warn
+from slisemap.utils import _assert, _assert_no_trace, _deprecated, _warn
 
 
 def identify_local_model(
@@ -226,6 +226,11 @@ def logistic_regression_loss(
     Returns:
         Loss values [n_b, n_x].
     """
+    _assert_no_trace(
+        lambda: Ytilde.shape[-1] <= Y.shape[-1],
+        "Too few columns in Y",
+        logistic_regression_loss,
+    )
     return ((Ytilde.sqrt() - Y.sqrt().expand(Ytilde.shape)) ** 2).sum(dim=-1) * 0.5
 
 
@@ -289,6 +294,11 @@ def logistic_regression_log_loss(
     Returns:
         Loss values [n_b, n_x].
     """
+    _assert_no_trace(
+        lambda: Ytilde.shape[-1] <= Y.shape[-1],
+        "Too few columns in Y",
+        logistic_regression_loss,
+    )
     return torch.sum(-Y * Ytilde - (1 - Y) * torch.log1p(-torch.exp(Ytilde)), -1)
 
 
