@@ -45,7 +45,7 @@ from slisemap.escape import *
 from slisemap.local_models import *
 from slisemap.metrics import *
 from slisemap.slisemap import Slisemap
-from slisemap.utils import LBFGS, _tonp
+from slisemap.utils import LBFGS, tonp
 from slisemap.utils import global_model as _global_model
 
 from experiments.data import *
@@ -194,7 +194,7 @@ def method_generator(c=None, B=None):
     def train_fn(sm: Slisemap):
         se = SpectralEmbedding(2, n_jobs=-1)
         sm._Z = torch.as_tensor(
-            se.fit_transform(_tonp(sm.X)),
+            se.fit_transform(tonp(sm.X)),
             **sm.tensorargs,
         ).contiguous()
         sm.optimise()

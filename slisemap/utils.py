@@ -85,9 +85,6 @@ def tonp(x: Union[torch.Tensor, Any]) -> np.ndarray:
         return np.asarray(x)
 
 
-_tonp = tonp
-
-
 class CheckConvergence:
     """An object that tries to estimate when an optimisation has converged.
     Use it for, e.g., escape+optimisation cycles in Slisemap.
