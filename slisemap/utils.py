@@ -95,6 +95,7 @@ class CheckConvergence:
     Args:
         patience: How long should the optimisation continue without improvement. Defaults to 3.
         max_iter: The maximum number of iterations. Defaults to `2**20`.
+        rel: Minimum relative error change that is considered an improvement. Defaults to `1e-4`.
     """
 
     __slots__ = {
@@ -105,9 +106,10 @@ class CheckConvergence:
         "optimal": "Cache for storing the state that produced the best loss value.",
         "max_iter": "The maximum number of iterations.",
         "iter": "The current number of iterations.",
+        "rel": "Minimum relative error for convergence check",
     }
 
-    def __init__(self, patience: float = 3, max_iter: int = 1 << 20):
+    def __init__(self, patience: float = 3, max_iter: int = 1 << 20, rel: float = 1e-4):
         self.current = np.inf
         self.best = np.asarray(np.inf)
         self.counter = 0.0
@@ -115,6 +117,7 @@ class CheckConvergence:
         self.optimal = None
         self.max_iter = max_iter
         self.iter = 0
+        self.rel = rel
 
     def has_converged(
         self,
@@ -140,7 +143,7 @@ class CheckConvergence:
         if np.any(np.isnan(loss)):
             _warn("Loss is `nan`", CheckConvergence.has_converged)
             return True
-        if np.any(loss < self.best):
+        if np.any(loss < self.best - np.abs(self.best) * self.rel):
             self.counter = 0.0  # Reset the counter if a new best
             if store is not None and loss.item(0) < self.best.item(0):
                 self.optimal = store()
@@ -372,10 +375,19 @@ def dict_concat(
     return df
 
 
+ToTensor = Union[np.ndarray, torch.Tensor, Dict[str, Sequence[float]], Sequence[float]]
+try:
+    import pandas as pd
+
+    ToTensor = Union[ToTensor, pd.DataFrame]
+except ImportError:
+    pass
+
+
 def to_tensor(
-    input: Union[np.ndarray, torch.Tensor, Dict[str, Any], Sequence[Any], Any],
+    input: ToTensor,
     **tensorargs: Any,
-) -> Tuple[torch.Tensor, Optional[Sequence[Any]], Optional[Sequence[Any]]]:
+) -> Tuple[torch.Tensor, Optional[Sequence[object]], Optional[Sequence[object]]]:
     """Convert the input into a `torch.Tensor` (via `numpy.ndarray` if necessary).
     This function wrapps `torch.as_tensor` (and `numpy.asarray`) and tries to extract row and column names.
     This function can handle arbitrary objects (such as `pandas.DataFrame`) if they implement `.to_numpy()` and, optionally, `.index` and `.columns`.
@@ -405,7 +417,10 @@ def to_tensor(
             try:
                 output = torch.as_tensor(input.numpy(), **tensorargs)
             except (AttributeError, TypeError):
-                output = torch.as_tensor(np.asarray(input), **tensorargs)
+                try:
+                    output = torch.as_tensor(input, **tensorargs)
+                except (TypeError, RuntimeError):
+                    output = torch.as_tensor(np.asarray(input), **tensorargs)
         try:
             columns = input.columns if len(input.columns) == output.shape[1] else None
         except (AttributeError, TypeError):
