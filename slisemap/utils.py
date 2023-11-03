@@ -140,7 +140,7 @@ class CheckConvergence:
         if np.any(np.isnan(loss)):
             _warn("Loss is `nan`", CheckConvergence.has_converged)
             return True
-        if np.any(loss < self.best - np.abs(self.best) * self.rel):
+        if np.any(loss + np.abs(loss) * self.rel < self.best):
             self.counter = 0.0  # Reset the counter if a new best
             if store is not None and loss.item(0) < self.best.item(0):
                 self.optimal = store()
