@@ -29,22 +29,20 @@ from slisemap.escape import escape_neighbourhood
 from slisemap.local_models import (
     ALocalModel,
     LinearRegression,
+    LocalModelCollection,
     identify_local_model,
     local_predict,
 )
 from slisemap.loss import make_loss, make_marginal_loss, softmax_row_kernel
 from slisemap.plot import (
     _expand_variable_names,
-    legend_inside_facet,
-    plot_barmodels,
-    plot_density_facet,
-    plot_embedding,
-    plot_embedding_facet,
-    plot_matrix,
-    plot_position_legend,
+    plot_dist,
+    plot_position,
+    plot_solution,
 )
 from slisemap.utils import (
     LBFGS,
+    CallableLike,
     CheckConvergence,
     Metadata,
     PCA_rotation,
@@ -79,11 +77,10 @@ class Slisemap:
         z_norm: Z normalisation regularisation coefficient.
         local_model: Local model prediction function (see [slisemap.local_models][]).
         local_loss: Local model loss function (see [slisemap.local_models][]).
-        coefficients: The number of local model coefficients.
+        regularisation: Additional regularisation function.
         distance: Distance function.
         kernel: Kernel function.
         jit: Just-In-Time compile the loss function for increased performance (see `torch.jit.trace` for caveats).
-        random_state: Set an explicit seed for the random number generator (i.e. `torch.manual_seed`).
         metadata: A dictionary for storing variable names and other metadata (see [slisemap.utils.Metadata][]).
     """
 
@@ -92,9 +89,7 @@ class Slisemap:
         "_X",
         "_Y",
         "_Z",
-        "_Z0",
         "_B",
-        "_B0",
         "_radius",
         "_lasso",
         "_ridge",
@@ -102,13 +97,15 @@ class Slisemap:
         "_intercept",
         "_local_model",
         "_local_loss",
+        "_regularisation",
         "_loss",
         "_distance",
         "_kernel",
         "_jit",
-        "_random_state",
-        "_rs0",
         "metadata",
+        "_Z0",  # deprecated
+        "_B0",  # deprecated
+        "_random_state",  # deprecated
     )
 
     def __init__(
@@ -122,14 +119,11 @@ class Slisemap:
         z_norm: float = 0.01,
         intercept: bool = True,
         local_model: Union[
-            ALocalModel, Callable[[torch.Tensor, torch.Tensor], torch.Tensor]
+            LocalModelCollection, CallableLike[ALocalModel.predict]
         ] = LinearRegression,
-        local_loss: Optional[
-            Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor]
-        ] = None,
-        coefficients: Union[
-            None, int, Callable[[torch.Tensor, torch.Tensor], int]
-        ] = None,
+        local_loss: Optional[CallableLike[ALocalModel.loss]] = None,
+        coefficients: Union[None, int, CallableLike[ALocalModel.coefficients]] = None,
+        regularisation: Union[None, CallableLike[ALocalModel.regularisation]] = None,
         distance: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] = torch.cdist,
         kernel: Callable[[torch.Tensor], torch.Tensor] = softmax_row_kernel,
         B0: Union[None, np.ndarray, torch.Tensor, Sequence[Any]] = None,
@@ -154,6 +148,7 @@ class Slisemap:
             local_model: Local model prediction function (see [slisemap.local_models.identify_local_model][]). Defaults to [LinearRegression][slisemap.local_models.LinearRegression].
             local_loss: Local model loss function (see [slisemap.local_models.identify_local_model][]). Defaults to None.
             coefficients: The number of local model coefficients (see [slisemap.local_models.identify_local_model][]). Defaults to None.
+            regularisation: Additional regularisation method (see [slisemap.local_models.identify_local_model][]). Defaults to None.
             distance: Distance function. Defaults to `torch.cdist` (Euclidean distance).
             kernel: Kernel function. Defaults to [softmax_row_kernel][slisemap.loss.softmax_row_kernel].
             B0: Initial value for B (random if None). Defaults to None.
@@ -161,8 +156,12 @@ class Slisemap:
             jit: Just-In-Time compile the loss function for increased performance (see `torch.jit.trace` for caveats). Defaults to True.
             random_state: Set an explicit seed for the random number generator (i.e. `torch.manual_seed`). Defaults to None.
             dtype: Floating type. Defaults to `torch.float32`.
-            device: Torch device (see `cuda` if None). Defaults to None.
+            device: Torch device. Defaults to None.
             cuda: Use cuda if available. Defaults to True, if the data is large enough.
+
+        Deprecated:
+            1.6: Use `device` instead of `cuda` to force a specific device.
+            1.6: The `random_state` has been moved to the escape function.
         """
         for s in Slisemap.__slots__:
             # Initialise all attributes (to avoid attribute errors)
@@ -175,8 +174,8 @@ class Slisemap:
                 + "Set `lasso=0` to disable this warning (if no regularisation is really desired).",
                 Slisemap,
             )
-        local_model, local_loss, coefficients = identify_local_model(
-            local_model, local_loss, coefficients
+        local_model, local_loss, coefficients, regularisation = identify_local_model(
+            local_model, local_loss, coefficients, regularisation
         )
         self.lasso = 0.0 if lasso is None else lasso
         self.ridge = 0.0 if ridge is None else ridge
@@ -184,13 +183,15 @@ class Slisemap:
         self.distance = distance
         self.local_model = local_model
         self.local_loss = local_loss
+        self.regularisation = regularisation
         self.z_norm = z_norm
         self.radius = radius
         self._intercept = intercept
         self._jit = jit
-        self._rs0 = random_state
         self.metadata: Metadata = Metadata(self)
 
+        if cuda is not None:
+            _deprecated("cuda", "device")
         if device is None:
             if cuda is None and isinstance(X, torch.Tensor):
                 device = X.device
@@ -220,7 +221,8 @@ class Slisemap:
                 self._X = self._X.cuda()
                 self._Y = self._Y.cuda()
 
-        self.random_state = random_state
+        if random_state is not None:
+            self.random_state = random_state
 
         if Z0 is None:
             self._Z0 = self._X @ PCA_rotation(self._X, d)
@@ -286,13 +288,6 @@ class Slisemap:
         return self._X.shape[1]
 
     @property
-    def p(self) -> int:
-        # The number of target variables (i.e. the number of classes)
-        # Deprecated (1.2), use `o` instead!
-        _deprecated(Slisemap.p, Slisemap.o)
-        return self._Y.shape[-1]
-
-    @property
     def o(self) -> int:
         # The number of target variables (i.e. the number of classes)
         return self._Y.shape[-1]
@@ -304,9 +299,11 @@ class Slisemap:
 
     @d.setter
     def d(self, value: int):
+        """Deprecated: 1.6"""
         _assert(
             value > 0, "The number of embedding dimensions must be positive", Slisemap.d
         )
+        _deprecated("Set `Slisemap.d`", "Create a new Slisemap instead")
         if self.d != value:
             self._loss = None  # invalidate cached loss function
             self._Z = self._Z.detach()
@@ -320,13 +317,6 @@ class Slisemap:
     def q(self) -> int:
         # The number of local model coefficients
         return self._B.shape[1]
-
-    @property
-    def coefficients(self) -> int:
-        # The number of local model coefficients
-        # Deprecated (1.2), use `q` instead!
-        _deprecated(Slisemap.coefficients, Slisemap.q)
-        return self.q
 
     @property
     def intercept(self) -> bool:
@@ -382,37 +372,45 @@ class Slisemap:
             self._loss = None  # invalidate cached loss function
 
     @property
-    def local_model(self) -> Callable[[torch.Tensor, torch.Tensor], torch.Tensor]:
+    def local_model(self) -> CallableLike[ALocalModel.predict]:
         # Local model prediction function. Takes in X[n, m] and B[n, q], and returns Ytilde[n, n, o]
         return self._local_model
 
     @local_model.setter
-    def local_model(
-        self,
-        value: Union[ALocalModel, Callable[[torch.Tensor, torch.Tensor], torch.Tensor]],
-    ):
-        value, _, _ = identify_local_model(value)
+    def local_model(self, value: CallableLike[ALocalModel.predict]):
         if self._local_model != value:
+            _assert(
+                callable(value), "local_model must be callable", Slisemap.local_model
+            )
             self._local_model = value
             self._loss = None  # invalidate cached loss function
 
     @property
-    def local_loss(
-        self,
-    ) -> Callable[[torch.Tensor, torch.Tensor, Optional[torch.Tensor]], torch.Tensor]:
-        # Local model loss function. Takes in Ytilde[n, n, o], Y[n, o], and B[n, q], and returns L[n, n]
+    def local_loss(self) -> CallableLike[ALocalModel.loss]:
+        # Local model loss function. Takes in Ytilde[n, n, o] and Y[n, o] and returns L[n, n]
         return self._local_loss
 
     @local_loss.setter
-    def local_loss(
-        self,
-        value: Callable[
-            [torch.Tensor, torch.Tensor, Optional[torch.Tensor]], torch.Tensor
-        ],
-    ):
+    def local_loss(self, value: CallableLike[ALocalModel.loss]):
         if self._local_loss != value:
             _assert(callable(value), "local_loss must be callable", Slisemap.local_loss)
             self._local_loss = value
+            self._loss = None  # invalidate cached loss function
+
+    @property
+    def regularisation(self) -> CallableLike[ALocalModel.regularisation]:
+        # Regularisation function. Takes in X, Y, Bp, Z, and Ytilde and returns an additional loss scalar
+        return self._regularisation
+
+    @regularisation.setter
+    def regularisation(self, value: CallableLike[ALocalModel.regularisation]):
+        if self._regularisation != value:
+            _assert(
+                callable(value),
+                "regularisation function must be callable",
+                Slisemap.regularisation,
+            )
+            self._regularisation = value
             self._loss = None  # invalidate cached loss function
 
     @property
@@ -451,7 +449,12 @@ class Slisemap:
             self._loss = None  # invalidate cached loss function
 
     def random_state(self, value: Optional[int]):
-        # Set the seed for the random number generator specific for this object (None reverts to the global `torch` PRNG)
+        """Set the seed for the random number generator specific for this object (None reverts to the global `torch` PRNG).
+
+        Deprecated:
+            1.6: Use `Slisemap.escape(random_state=...)` instead.
+        """
+        _deprecated(Slisemap.random_state, "Slisemap.escape(random_state=...)")
         if value is None:
             self._random_state = None
         else:
@@ -471,34 +474,6 @@ class Slisemap:
     random_state = property(fset=random_state, doc=random_state.__doc__)
 
     @property
-    def X(self) -> torch.Tensor:
-        # Get the data matrix as a `torch.Tensor`
-        # Deprecated (1.2), use `get_X(numpy=False)` instead!
-        _deprecated(Slisemap.X, Slisemap.get_X)
-        return self._X
-
-    @property
-    def Y(self) -> torch.Tensor:
-        # Target matrix as a `torch.Tensor`.
-        # Deprecated (1.2), use `get_Y(numpy=False)` instead!
-        _deprecated(Slisemap.Y, Slisemap.get_Y)
-        return self._Y
-
-    @property
-    def Z(self) -> torch.Tensor:
-        # Normalised embedding matrix as a `torch.Tensor`.
-        # Deprecated (1.2), use `get_Z(numpy=False)` instead!
-        _deprecated(Slisemap.Z, Slisemap.get_Z)
-        return self._Z
-
-    @property
-    def B(self) -> torch.Tensor:
-        # Coefficient matrix for the local models as a `torch.Tensor`.
-        # Deprecated (1.2), use `get_B(numpy=False)` instead!
-        _deprecated(Slisemap.B, Slisemap.get_B)
-        return self._B
-
-    @property
     def tensorargs(self) -> Dict[str, Any]:
         # When creating a new `torch.Tensor` add these keyword arguments to match the `dtype` and `device` of this Slisemap object.
         return dict(device=self._X.device, dtype=self._X.dtype)
@@ -515,7 +490,6 @@ class Slisemap:
         self._Y = self._Y.cuda(**kwargs)
         self._Z = self._Z.detach().cuda(**kwargs)
         self._B = self._B.detach().cuda(**kwargs)
-        self.random_state = self._rs0
         self._loss = None  # invalidate cached loss function
 
     def cpu(self, **kwargs: Any):
@@ -530,7 +504,6 @@ class Slisemap:
         self._Y = self._Y.cpu(**kwargs)
         self._Z = self._Z.detach().cpu(**kwargs)
         self._B = self._B.detach().cpu(**kwargs)
-        self.random_state = self._rs0
         self._loss = None  # invalidate cached loss function
 
     def _get_loss_fn(
@@ -570,6 +543,7 @@ class Slisemap:
                 lasso=self.lasso,
                 ridge=self.ridge,
                 z_norm=self.z_norm,
+                regularisation=self.regularisation,
             )
             # JITting the loss function improves the performance
             if self._jit:
@@ -577,26 +551,6 @@ class Slisemap:
                     self._loss, (self._X[:1], self._Y[:1], self._B[:1], self._Z[:1])
                 )
         return self._loss
-
-    def get_loss_fn(
-        self, individual: bool = False
-    ) -> Callable[
-        [torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor
-    ]:
-        """Returns the Slisemap loss function.
-        This function JITs and caches the loss function for efficiency. **DEPRECATED**
-
-        Args:
-            individual: Make a loss function for individual losses. Defaults to False.
-
-        Returns:
-            Loss function: `f(X, Y, B, Z) -> loss`.
-
-        Deprecated:
-            1.2: The functions has been renamed, use `_get_loss_fn` instead!
-        """
-        _deprecated(Slisemap.get_loss_fn, Slisemap._get_loss_fn)
-        return self._get_loss_fn(individual)
 
     def _as_new_X(
         self, X: Union[None, np.ndarray, torch.Tensor] = None
@@ -644,7 +598,7 @@ class Slisemap:
             numpy: Return the matrix as a numpy (True) or pytorch (False) matrix. Defaults to True.
 
         Returns:
-           : The `Z` matrix.
+           The `Z` matrix.
         """
         self._normalise()
         if scale and self.radius > 0:
@@ -662,7 +616,7 @@ class Slisemap:
             numpy: Return the matrix as a numpy (True) or pytorch (False) matrix. Defaults to True.
 
         Returns:
-           : The `B` matrix.
+           The `B` matrix.
         """
         return tonp(self._B) if numpy else self._B
 
@@ -673,7 +627,7 @@ class Slisemap:
             numpy: Return the matrix as a numpy (True) or pytorch (False) matrix. Defaults to True.
 
         Returns:
-           : The `D` matrix.
+           The `D` matrix.
         """
         Z = self.get_Z(rotate=False, scale=True, numpy=False)
         D = self._distance(Z, Z)
@@ -693,11 +647,11 @@ class Slisemap:
             numpy: Return the matrix as a numpy (True) or pytorch (False) matrix. Defaults to True.
 
         Returns:
-           : The `L` matrix.
+           The `L` matrix.
         """
         X = self._as_new_X(X)
         Y = self._as_new_Y(Y, X.shape[0])
-        L = self.local_loss(self.local_model(X, self._B), Y, self._B)
+        L = self.local_loss(self.local_model(X, self._B), Y)
         return tonp(L) if numpy else L
 
     def get_W(self, numpy: bool = True) -> Union[np.ndarray, torch.Tensor]:
@@ -707,7 +661,7 @@ class Slisemap:
             numpy: Return the matrix as a numpy.ndarray instead of a torch.Tensor. Defaults to True.
 
         Returns:
-           : The `W` matrix.
+           The `W` matrix.
         """
         W = self.kernel(self.get_D(numpy=False))
         return tonp(W) if numpy else W
@@ -722,7 +676,7 @@ class Slisemap:
             intercept: Include the intercept column (if `self.intercept == True`). Defaults to True.
 
         Returns:
-           : The `X` matrix.
+           The `X` matrix.
         """
         X = self._X if intercept or not self._intercept else self._X[:, :-1]
         return tonp(X) if numpy else X
@@ -737,7 +691,7 @@ class Slisemap:
             ravel: Remove the second dimension if it is singular (i.e. turn it into a vector). Defaults to False.
 
         Returns:
-           : The `Y` matrix.
+           The `Y` matrix.
         """
         Y = self._Y.ravel() if ravel else self._Y
         return tonp(Y) if numpy else Y
@@ -848,6 +802,7 @@ class Slisemap:
         force_move: bool = True,
         escape_fn: Callable = escape_neighbourhood,
         noise: float = 0.0,
+        random_state: int = 42,
     ):
         """Try to escape a local optimum by moving the items (embedding and local model) to the neighbourhoods best suited for them.
         This is done by finding another item (in the optimal neighbourhood) and copying its values for Z and B.
@@ -856,6 +811,7 @@ class Slisemap:
             force_move: Do not allow the items to pair with themselves. Defaults to True.
             escape_fn: Escape function (see [slisemap.escape][]). Defaults to [escape_neighbourhood][slisemap.escape.escape_neighbourhood].
             noise: Scale of the noise added to the embedding matrix if it looses rank after an escape (recommended for gradient based optimisers). Defaults to 0.0.
+            random_state: Seed for the random generator if `noise > 0.0`. Defaults to 42.
         """
         self._B, self._Z = escape_fn(
             X=self._X,
@@ -873,7 +829,8 @@ class Slisemap:
         if noise > 0.0:
             rank = torch.linalg.matrix_rank(self._Z - torch.mean(self._Z, 0, True))
             if rank.item() < min(*self._Z.shape):
-                self._Z = torch.normal(self._Z, noise, generator=self._random_state)
+                generator = torch.Generator(self._Z.device).manual_seed(random_state)
+                self._Z = torch.normal(self._Z, noise, generator=generator)
         self._normalise()
 
     def _normalise(self):
@@ -925,7 +882,7 @@ class Slisemap:
             return loss[0]
         cc = CheckConvergence(patience, max_escapes)
         while not cc.has_converged(loss, self.copy, verbose=verbose > 1):
-            self.escape(escape_fn=escape_fn, noise=noise)
+            self.escape(escape_fn=escape_fn, noise=noise, random_state=cc.iter)
             loss[1] = self.value()
             if verbose:
                 print(f"Slisemap.optimise Escape {i:2d}: {loss[1]:.2f}")
@@ -1092,14 +1049,16 @@ class Slisemap:
         B: Union[None, np.ndarray, torch.Tensor] = None,
         Z: Union[None, np.ndarray, torch.Tensor] = None,
         numpy: bool = True,
-        *_,
+        *,
         Xnew=None,
         Znew=None,
         **kwargs: Any,
     ) -> np.ndarray:
         """Predict new outcomes when the data and embedding or local model is known.
 
-        If the local models are known they are used, otherwise the embeddings are used to find new local models.
+        If the local models `B` are known they are used.
+        If the embeddings `Z` are known they are used to find new local models.
+        Ohterwise the closest training X gives the `B`.
 
         Args:
             X: Data matrix (set to None to use the training data). Defaults to None.
@@ -1113,7 +1072,7 @@ class Slisemap:
             Prediction matrix.
 
         Deprecated:
-            1.4: Renamed Xnew, Znew to X, Z and added optional B.
+            1.4: Renamed Xnew, Znew to X, Z.
         """
         if Xnew is not None:
             X = Xnew
@@ -1127,30 +1086,19 @@ class Slisemap:
                 "Parameter 'Znew' in Slisemap.predict",
                 "parameter 'Z' in Slisemap.predict",
             )
-        if X is None and B is None and Z is None:
+        if X is None:
             X = self._X
-            B = self._B
-        _assert(
-            B is not None or Z is not None,
-            "Either B or Z must be given",
-            Slisemap.predict,
-        )
-        X = self._as_new_X(X)
-        if B is not None:
-            B = torch.atleast_2d(to_tensor(B, **self.tensorargs)[0])
-            if B.shape[0] == 1:
-                yhat = self.local_model(X, B)[0, ...]
-            else:
-                _assert(
-                    X.shape[0] == B.shape[0],
-                    f"X and B must have the same number of rows: {X.shape[0]} != {B.shape[0]}",
-                    Slisemap.predict,
-                )
-                yhat = local_predict(X, B, self.local_model)
+            if B is None and Z is None:
+                B = self._B
         else:
+            X = self._as_new_X(X)
+            if B is None and Z is None:
+                D = torch.cdist(X, self._X)
+                B = self._B[D.argmin(1), :]
+        if B is None:
             Z = torch.atleast_2d(to_tensor(Z, **self.tensorargs)[0])
             _assert(
-                Z.shape == (X.shape[0], self.d),
+                (Z.shape[0] in (1, X.shape[0])) and (Z.shape[1] == self.d),
                 f"Z has the wrong shape {Z.shape} != {(X.shape[0], self.d)}",
                 Slisemap.predict,
             )
@@ -1158,12 +1106,19 @@ class Slisemap:
             W = self.kernel(D)
             B = self._B[torch.argmin(D, 1)].clone().requires_grad_(True)
             yhat = lambda: (
-                torch.sum(W * self.local_loss(self.local_model(self._X, B), self._Y, B))
+                torch.sum(W * self.local_loss(self.local_model(self._X, B), self._Y))
                 + self.lasso * torch.sum(torch.abs(B))
                 + self.ridge * torch.sum(B**2)
             )
             LBFGS(yhat, [B], **kwargs)
-            yhat = local_predict(X, B, self.local_model)
+        else:
+            B = torch.atleast_2d(to_tensor(B, **self.tensorargs)[0])
+            _assert(
+                (B.shape[0] in (1, X.shape[0])) and (B.shape[1] == self.q),
+                f"B has the wrong shape {B.shape} != {(X.shape[0], self.q)}",
+                Slisemap.predict,
+            )
+        yhat = local_predict(X, B, self.local_model)
         return tonp(yhat) if numpy else yhat
 
     def copy(self) -> "Slisemap":
@@ -1179,10 +1134,14 @@ class Slisemap:
         return other
 
     def restore(self):
-        """Reset B and Z (and random_state) to their initial values B0 and Z0 (and _rs0)."""
+        """Reset B and Z to their initial values B0 and Z0.
+
+        Deprecated:
+            1.6: Use `Slisemap.copy` before any optimisation instead.
+        """
+        _deprecated(Slisemap.restore, Slisemap.copy)
         self._Z = self._Z0.clone().detach()
         self._B = self._B0.clone().detach()
-        self.random_state = self._rs0
 
     def save(
         self,
@@ -1239,6 +1198,7 @@ class Slisemap:
         cls,
         f: Union[str, PathLike, BinaryIO],
         device: Union[None, str, torch.device] = None,
+        *,
         map_location: Optional[Any] = None,
         **kwargs: Any,
     ) -> "Slisemap":
@@ -1256,8 +1216,8 @@ class Slisemap:
         Args:
             f: Either a Path-like object or a (readable) File-like object.
             device: Device to load the tensors to (or the original if None). Defaults to None.
-            map_location: The same as `device` (this is the name used by `torch.load`). Defaults to None.
         Keyword Args:
+            map_location: The same as `device` (this is the name used by `torch.load`). Defaults to None.
             **kwargs: Parameters forwarded to `torch.load`.
 
         Returns:
@@ -1269,13 +1229,24 @@ class Slisemap:
             with lzma.open(f, "rb") as f2:
                 sm = torch.load(f2, map_location=device, **kwargs)
         except lzma.LZMAError:
-            sm = torch.load(f, map_location=device, **kwargs)
-        sm.random_state = sm._rs0
-        try:  # Backwards compatibility
-            sm.metadata.root = sm
-        except AttributeError:
-            sm.metadata = Metadata(sm)
+            sm: Slisemap = torch.load(f, map_location=device, **kwargs)
         return sm
+
+    def __setstate__(self, data):
+        # Handling loading of Slisemap objects from older versions
+        if not isinstance(data, dict):
+            data = next(d for d in data if isinstance(d, dict))
+        for k, v in data.items():
+            try:
+                setattr(self, k, v)
+            except AttributeError as e:
+                _warn(e, Slisemap.__setstate__)
+        if isinstance(getattr(self, "metadata", {}), Metadata):
+            self.metadata.root = self
+        else:
+            self.metadata = Metadata(self, **getattr(self, "metadata", {}))
+        if not hasattr(self, "_regularisation"):
+            self._regularisation = ALocalModel.regularisation
 
     def get_model_clusters(
         self,
@@ -1309,32 +1280,33 @@ class Slisemap:
     def plot(
         self,
         title: str = "",
-        variables: Optional[Sequence[str]] = None,
-        targets: Union[None, str, Sequence[str]] = None,
         clusters: Union[None, int, np.ndarray] = None,
-        bars: Union[bool, int, Sequence[str]] = False,
+        bars: Union[bool, int, Sequence[str]] = True,
         jitter: Union[float, np.ndarray] = 0.0,
-        B: Optional[np.ndarray] = None,
-        Z: Optional[np.ndarray] = None,
         show: bool = True,
         bar: Union[None, bool, int] = None,
+        *,
+        B: Optional[np.ndarray] = None,
+        Z: Optional[np.ndarray] = None,
+        variables: Optional[Sequence[str]] = None,
+        targets: Union[None, str, Sequence[str]] = None,
         **kwargs: Any,
     ) -> Optional[Figure]:
         """Plot the Slisemap solution using seaborn.
 
         Args:
             title: Title of the plot. Defaults to "".
-            variables: List of variable names. Defaults to None. **DEPRECATED**
-            targets: Target name(s). Defaults to None. **DEPRECATED**
             clusters: Can be None (plot individual losses), an int (plot k-means clusters of B), or an array of known cluster id:s. Defaults to None.
-            bars: Plot the local models in a bar plot. Either an int (to only plot the most influential variables), a list of variables, or a bool. Defaults to False.
+            bars: Plot the local models in a bar plot. Either an int (to only plot the most influential variables), a list of variables, or a bool. Defaults to True.
             jitter: Add random (normal) noise to the embedding, or a matrix with pre-generated noise matching Z. Defaults to 0.0.
-            B: Override self.get_B() in the plot. Defaults to None. **DEPRECATED**
-            Z: Override self.get_Z() in the plot. Defaults to None. **DEPRECATED**
             show: Show the plot. Defaults to True.
             bar: Alternative spelling for `bars`. Defaults to None.
         Keyword Args:
-            **kwargs: Additional arguments to `plt.subplots`.
+            B: Override self.get_B() in the plot. Defaults to None. **DEPRECATED**
+            Z: Override self.get_Z() in the plot. Defaults to None. **DEPRECATED**
+            variables: List of variable names. Defaults to None. **DEPRECATED**
+            targets: Target name(s). Defaults to None. **DEPRECATED**
+            **kwargs: Additional arguments to [plot_solution][slisemap.plot.plot_solution] and `plt.subplots`.
 
         Returns:
             `matplotlib.figure.Figure` if `show=False`.
@@ -1355,7 +1327,7 @@ class Slisemap:
             B = self.get_B()
         else:
             _deprecated("Parameter 'B' in Slisemap.plot")
-        Z_names = self.metadata.get_dimensions(long=True)
+        dimensions = self.metadata.get_dimensions(long=True)
         if variables is not None:
             _deprecated(
                 "Parameter 'variables' in 'Slisemap.plot'",
@@ -1372,52 +1344,32 @@ class Slisemap:
                 "'Slisemap.metadata.set_targets'",
             )
 
-        kwargs.setdefault("figsize", (12, 6))
-        fig, (ax1, ax2) = plt.subplots(1, 2, **kwargs)
-        if not np.iterable(clusters) and not clusters:
-            _assert(not bars, "`bars!=False` requires `clusters`", Slisemap.plot)
+        loss = None
+        centers = None
+        if clusters is None:
             if Z.shape[0] == self._Z.shape[0]:
-                yhat = self.predict(numpy=False)
-                L = tonp(self.local_loss(yhat, self._Y, self._B)).ravel()
-            else:
-                L = None
-            plot_embedding(
-                Z,
-                Z_names,
-                jitter=jitter,
-                color=L,
-                color_name=None if L is None else "Local loss",
-                color_norm=None if L is None else tuple(np.quantile(L, (0.0, 0.95))),
-                ax=ax1,
-            )
-            B = B[np.argsort(Z[:, 0])]
-            plot_matrix(B, coefficients, ax=ax2)
+                loss = tonp(self.local_loss(self.predict(numpy=False), self._Y))
         else:
             if isinstance(clusters, int):
                 clusters, centers = self.get_model_clusters(clusters, B, Z)
-                cl = np.arange(np.max(clusters))
             else:
-                if isinstance(clusters, (list, tuple)):
-                    clusters = np.asarray(clusters)
-                cl = np.unique(clusters)
-                centers = np.zeros((len(cl), B.shape[1]))
-                for i, c in enumerate(cl):
-                    centers[i, :] = np.mean(B[clusters == c, :], 0)
-            plot_embedding(Z, Z_names, jitter=jitter, clusters=clusters, ax=ax1)
-            if bars:
-                plot_barmodels(B, clusters, centers, coefficients, bars=bars, ax=ax2)
-            else:
-                plot_matrix(
-                    centers,
-                    coefficients,
-                    title="Cluster mean models",
-                    xlabel="Cluster",
-                    items=cl,
-                    ax=ax2,
+                clusters = np.asarray(clusters)
+                centers = np.stack(
+                    [np.mean(B[clusters == c, :], 0) for c in np.unique(clusters)], 0
                 )
-        sns.despine(fig)
-        plt.suptitle(title)
-        plt.tight_layout()
+        fig = plot_solution(
+            Z=Z,
+            B=B,
+            loss=loss,
+            clusters=clusters,
+            centers=centers,
+            coefficients=coefficients,
+            dimensions=dimensions,
+            title=title,
+            bars=bars,
+            jitter=jitter,
+            **kwargs,
+        )
         if show:
             plt.show()
         else:
@@ -1430,11 +1382,11 @@ class Slisemap:
         index: Union[None, int, Sequence[int]] = None,
         title: str = "",
         jitter: Union[float, np.ndarray] = 0.0,
-        col_wrap: int = 4,
         selection: bool = True,
         legend_inside: bool = True,
-        Z: Optional[np.ndarray] = None,
         show: bool = True,
+        *,
+        Z: Optional[np.ndarray] = None,
         **kwargs: Any,
     ) -> Optional[sns.FacetGrid]:
         """Plot local losses for alternative locations for the selected item(s).
@@ -1446,12 +1398,11 @@ class Slisemap:
             index: Index/indices of the selected data item(s). Defaults to None.
             title: Title of the plot. Defaults to "".
             jitter: Add random (normal) noise to the embedding, or a matrix with pre-generated noise matching Z. Defaults to 0.0.
-            col_wrap: Maximum number of columns. Defaults to 4.
             selection: Mark the selected data item(s), if index is given. Defaults to True.
             legend_inside: Move the legend inside the grid (if there is an empty cell). Defaults to True.
-            Z: Override `self.get_Z()` in the plot. Defaults to None. **DEPRECATED**
             show: Show the plot. Defaults to True.
         Keyword Args:
+            Z: Override `self.get_Z()` in the plot. Defaults to None. **DEPRECATED**
             **kwargs: Additional arguments to `seaborn.relplot`.
 
         Returns:
@@ -1470,29 +1421,20 @@ class Slisemap:
                 "Either index or X and Y must be given",
                 Slisemap.plot_position,
             )
-            L = self.get_L(X, Y)
+            L = self.get_L(X=X, Y=Y)
         else:
             if isinstance(index, int):
                 index = [index]
             L = self.get_L()[:, index]
-        kwargs.setdefault("palette", "crest")
-        hue_norm = tuple(np.quantile(L, (0.0, 0.95)))
-        g = plot_embedding_facet(
-            self.get_Z(rotate=True),
-            self.metadata.get_dimensions(long=True),
-            L,
-            range(L.shape[1]),
-            legend_title="Local loss",
-            hue_norm=hue_norm,
+        g = plot_position(
+            Z=Z,
+            L=L,
+            Zs=Z[index, :] if selection and index is not None else None,
+            dimensions=self.metadata.get_dimensions(long=True),
+            title=title,
             jitter=jitter,
-            col_wrap=min(col_wrap, L.shape[1]),
-            legend=False,
+            legend_inside=legend_inside,
             **kwargs,
-        )
-        g.set_titles("")
-        plt.suptitle(title)
-        plot_position_legend(
-            g, index if selection else None, hue_norm, legend_inside, kwargs["palette"]
         )
         if show:
             plt.show()
@@ -1502,37 +1444,36 @@ class Slisemap:
     def plot_dist(
         self,
         title: str = "",
-        X: Optional[np.ndarray] = None,
-        Y: Optional[np.ndarray] = None,
-        variables: Optional[List[str]] = None,
-        targets: Union[None, str, Sequence[str]] = None,
         clusters: Union[None, int, np.ndarray] = None,
         unscale: bool = True,
         scatter: bool = False,
         jitter: float = 0.0,
-        col_wrap: int = 4,
         legend_inside: bool = True,
-        B: Optional[np.ndarray] = None,
         show: bool = True,
+        *,
+        X: Optional[np.ndarray] = None,
+        Y: Optional[np.ndarray] = None,
+        B: Optional[np.ndarray] = None,
+        variables: Optional[List[str]] = None,
+        targets: Union[None, str, Sequence[str]] = None,
         **kwargs: Any,
     ) -> Optional[sns.FacetGrid]:
         """Plot the distribution of the variables, either as density plots (with clusters) or as scatterplots.
 
         Args:
             title: Title of the plot. Defaults to "".
-            X: Override self.get_X(). Defaults to None. **DEPRECATED**
-            Y: Override self.get_Y(). Defaults to None. **DEPRECATED**
-            variables: List of variable names. Defaults to None. **DEPRECATED**
-            targets: Target name(s). Defaults to None. **DEPRECATED**
             clusters: Number of cluster or vector of cluster labels. Defaults to None.
             scatter: Use scatterplots instead of density plots (clusters are ignored). Defaults to False.
             unscale: Unscale `X` and `Y` if scaling metadata has been given (see `Slisemap.metadata.set_scale_X`). Defaults to True.
             jitter: Add jitter to the scatterplots. Defaults to 0.0.
-            col_wrap: Maximum number of columns. Defaults to 4.
             legend_inside: Move the legend inside the grid (if there is an empty cell). Defaults to True.
-            B: Override self.get_B() when finding the clusters (only used if clusters is an int). Defaults to None. **DEPRECATED**
             show: Show the plot. Defaults to True.
         Keyword Args:
+            X: Override self.get_X(). Defaults to None. **DEPRECATED**
+            Y: Override self.get_Y(). Defaults to None. **DEPRECATED**
+            B: Override self.get_B() when finding the clusters (only used if clusters is an int). Defaults to None. **DEPRECATED**
+            variables: List of variable names. Defaults to None. **DEPRECATED**
+            targets: Target name(s). Defaults to None. **DEPRECATED**
             **kwargs: Additional arguments to `seaborn.relplot` or `seaborn.scatterplot`.
 
         Returns:
@@ -1579,38 +1520,25 @@ class Slisemap:
             targets = self.metadata.get_targets()
         if B is not None:
             _deprecated("Parameter 'B' in Slisemap.plot_dist")
+        if isinstance(clusters, int):
+            clusters, _ = self.get_model_clusters(clusters, B)
+        loss = tonp(self.local_loss(self.predict(numpy=False), self._Y))
 
-        data = np.concatenate((X, Y), 1)
-        labels = self.metadata.get_variables(False) + self.metadata.get_targets()
-        if X.shape[0] == self.n:
-            loss = tonp(self.local_loss(self.predict(numpy=False), self._Y, self._B))
-            data = np.concatenate((data, loss[:, None]), 1)
-            labels.append("Local loss")
-        if scatter:
-            g = plot_embedding_facet(
-                self.get_Z(rotate=True),
-                self.metadata.get_dimensions(long=True),
-                data,
-                labels,
-                jitter=jitter,
-                col_wrap=col_wrap,
-                share_hue=False,
-                **kwargs,
-            )
-            legend_inside = False
-        else:
-            if isinstance(clusters, int):
-                clusters, _ = self.get_model_clusters(clusters, B)
-            elif clusters is None:
-                legend_inside = False
-            g = plot_density_facet(
-                data, labels, clusters=clusters, col_wrap=col_wrap, **kwargs
-            )
-        plt.suptitle(title)
-        if legend_inside:
-            legend_inside_facet(g)
-        else:
-            g.tight_layout()
+        g = plot_dist(
+            X=X,
+            Y=Y,
+            Z=self.get_Z(),
+            loss=loss,
+            variables=self.metadata.get_variables(False),
+            targets=self.metadata.get_targets(),
+            dimensions=self.metadata.get_dimensions(long=True),
+            title=title,
+            clusters=clusters,
+            scatter=scatter,
+            jitter=jitter,
+            legend_inside=legend_inside,
+            **kwargs,
+        )
         if show:
             plt.show()
         else:

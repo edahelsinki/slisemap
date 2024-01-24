@@ -3,78 +3,14 @@ This module contains the built-in alternatives for local white box models.
 These can also be used as templates for implementing your own.
 """
 
-from abc import ABC
-from typing import Optional, Union, Sequence, Tuple, Callable, Any
+from abc import ABC, abstractmethod
+from typing import Optional, Type, Union, Sequence, Tuple, Callable
 
 import numpy as np
 import torch
 from torch.nn.functional import softmax
 
-from slisemap.utils import _assert, _deprecated, _warn
-
-
-def identify_local_model(
-    local_model: Any,
-    local_loss: Optional[Callable] = None,
-    coefficients: Union[None, int, Callable] = None,
-) -> Tuple[Callable, Callable, Callable]:
-    """Identify the "predict", "loss", and "coefficients" functions for a local model.
-
-    Args:
-        local_model: A instance/subclass of `ALocalModel`, a predict function, or a sequence of functions.
-        local_loss: A loss function or None if it is part of `local_model`. Defaults to None.
-        coefficients: The number of coefficients, or a function giving that number, or None (`X.shape[1] * Y.shape[1]` if it is not given by `local_model`). Defaults to None.
-
-    Returns:
-        predict: "prediction" function (takes X and B and returns predicted Y for every X and B combination).
-        loss: "loss" function (takes predicted Y, real Y, and B and returns the loss) or None.
-        coefficients: "coefficients" function (takes X and Y and returns the number of coefficients for B) or None
-    """
-    if isinstance(coefficients, int):
-        i_coef = coefficients
-        coefficients = lambda X, Y: i_coef
-    if isinstance(local_model, ALocalModel) or (
-        isinstance(local_model, type) and issubclass(local_model, ALocalModel)
-    ):
-        pred_fn = local_model.predict
-        loss_fn = local_model.loss
-        coef_fn = local_model.coefficients
-    elif callable(local_model):
-        pred_fn = local_model
-        if (
-            local_model == linear_regression
-            or local_model == multiple_linear_regression
-        ):
-            loss_fn = linear_regression_loss
-            coef_fn = linear_regression_coefficients
-        elif local_model == logistic_regression:
-            loss_fn = logistic_regression_loss
-            coef_fn = logistic_regression_coefficients
-        elif local_model == logistic_regression_log:
-            loss_fn = logistic_regression_log_loss
-            coef_fn = logistic_regression_coefficients
-        else:
-            loss_fn = local_loss
-            coef_fn = coefficients
-    elif isinstance(local_model, Sequence) and all(callable(o) for o in local_model):
-        pred_fn = local_model[0]
-        loss_fn = local_model[1] if len(local_model) > 1 else local_loss
-        coef_fn = local_model[2] if len(local_model) > 2 else coefficients
-    else:
-        _warn(
-            "Could not identity the local model, assuming it is `ALocalModel`-like...",
-            identify_local_model,
-        )
-        pred_fn = local_model.predict
-        loss_fn = local_model.loss
-        coef_fn = local_model.coefficients
-    if local_loss is not None:
-        loss_fn = local_loss
-    if coefficients is not None:
-        coef_fn = coefficients
-    if coef_fn is None:
-        coef_fn = lambda X, Y: X.shape[1] * Y.shape[1]
-    return pred_fn, loss_fn, coef_fn
+from slisemap.utils import CallableLike, _assert, _assert_no_trace, _deprecated, _warn
 
 
 def local_predict(
@@ -103,21 +39,36 @@ def local_predict(
 
 
 class ALocalModel(ABC):
-    """Abstract class for gathering all the functions needed for local model (predict, loss, coefficients)."""
+    """Abstract class for gathering all the functions needed for a local model (predict, loss, coefficients)."""
 
     @staticmethod
+    @abstractmethod
     def predict(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
-        pass
+        raise NotImplemented
 
     @staticmethod
-    def loss(
-        Ytilde: torch.Tensor, Y: torch.Tensor, B: Optional[torch.Tensor] = None
+    @abstractmethod
+    def loss(Ytilde: torch.Tensor, Y: torch.Tensor) -> torch.Tensor:
+        raise NotImplemented
+
+    @staticmethod
+    @abstractmethod
+    def coefficients(
+        X: Union[torch.Tensor, np.ndarray],
+        Y: Union[torch.Tensor, np.ndarray],
+        intercept: bool,
+    ) -> int:
+        raise NotImplemented
+
+    @staticmethod
+    def regularisation(
+        X: torch.Tensor,
+        Y: torch.Tensor,
+        B: torch.Tensor,
+        Z: torch.Tensor,
+        Ytilde: torch.Tensor,
     ) -> torch.Tensor:
-        pass
-
-    @staticmethod
-    def coefficients(X: torch.Tensor, Y: torch.Tensor) -> int:
-        pass
+        return 0.0
 
 
 def linear_regression(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
@@ -159,10 +110,13 @@ def linear_regression_loss(
     Args:
         Ytilde: Predicted values [n_b, n_x, p].
         Y: Ground truth values [n_x, p].
-        B: Coefficient matrix (not used, the regularisation is part of Slisemap). Defaults to None.
+        B: Coefficient matrix. **Deprecated**. Defaults to None.
 
     Returns:
         Loss values [n_b, n_x].
+
+    Deprecated:
+        1.6: B
     """
     return ((Ytilde - Y.expand(Ytilde.shape)) ** 2).sum(dim=-1)
 
@@ -190,6 +144,33 @@ class LinearRegression(ALocalModel):
 
     predict = linear_regression
     loss = linear_regression_loss
+    coefficients = linear_regression_coefficients
+
+
+def absolute_error(
+    Ytilde: torch.Tensor, Y: torch.Tensor, B: Optional[torch.Tensor] = None
+) -> torch.Tensor:
+    """Absolute error function for (multiple) linear regresson.
+
+    Args:
+        Ytilde: Predicted values [n_b, n_x, p].
+        Y: Ground truth values [n_x, p].
+        B: Coefficient matrix. **Deprecated**. Defaults to None.
+
+    Returns:
+        Loss values [n_b, n_x].
+
+    Deprecated:
+        1.6: B
+    """
+    return torch.abs(Ytilde - Y.expand(Ytilde.shape)).sum(dim=-1)
+
+
+class LinearAbsoluteRegression(ALocalModel):
+    """A class that contains all the functions needed for linear regression with absolute errors."""
+
+    predict = linear_regression
+    loss = absolute_error
     coefficients = linear_regression_coefficients
 
 
@@ -221,11 +202,21 @@ def logistic_regression_loss(
     Args:
         Ytilde: Predicted values [n_b, n_x, p].
         Y: Ground truth values [n_x, p].
-        B: Coefficient matrix (not used, the regularisation is part of Slisemap). Defaults to None.
+        B: Coefficient matrix. **Deprecated**. Defaults to None.
 
     Returns:
         Loss values [n_b, n_x].
+
+    Deprecated:
+        1.6: B
     """
+    _assert_no_trace(
+        lambda: (
+            Ytilde.shape[-1] <= Y.shape[-1],
+            f"Too few columns in Y: {Y.shape[-1]} < {Ytilde.shape[-1]}",
+        ),
+        logistic_regression_loss,
+    )
     return ((Ytilde.sqrt() - Y.sqrt().expand(Ytilde.shape)) ** 2).sum(dim=-1) * 0.5
 
 
@@ -284,11 +275,21 @@ def logistic_regression_log_loss(
     Args:
         Ytilde: Predicted logits [n_b, n_x, p].
         Y: Ground truth values [n_x, p].
-        B: Coefficient matrix (not used, the regularisation is part of Slisemap). Defaults to None.
+        B: Coefficient matrix. **Deprecated**. Defaults to None.
 
     Returns:
         Loss values [n_b, n_x].
+
+    Deprecated:
+        1.6: B
     """
+    _assert_no_trace(
+        lambda: (
+            Ytilde.shape[-1] <= Y.shape[-1],
+            f"Too few columns in Y: {Y.shape[-1]} < {Ytilde.shape[-1]}",
+        ),
+        logistic_regression_loss,
+    )
     return torch.sum(-Y * Ytilde - (1 - Y) * torch.log1p(-torch.exp(Ytilde)), -1)
 
 
@@ -301,3 +302,88 @@ class LogisticLogRegression(ALocalModel):
     predict = logistic_regression_log
     loss = logistic_regression_log_loss
     coefficients = logistic_regression_coefficients
+
+
+LocalModelCollection = Union[
+    ALocalModel,
+    Type[ALocalModel],
+    Tuple[
+        CallableLike[ALocalModel.predict],
+        CallableLike[ALocalModel.loss],
+        Union[None, int, CallableLike[ALocalModel.coefficients]],
+        Union[None, CallableLike[ALocalModel.regularisation]],
+    ],
+    linear_regression,
+    logistic_regression,
+    logistic_regression_log,
+]
+
+
+def identify_local_model(
+    local_model: Union[LocalModelCollection, CallableLike[ALocalModel.predict]],
+    local_loss: Optional[CallableLike[ALocalModel.loss]] = None,
+    coefficients: Union[None, int, CallableLike[ALocalModel.coefficients]] = None,
+    regularisation: Union[None, CallableLike[ALocalModel.regularisation]] = None,
+) -> Tuple[Callable, Callable, Callable]:
+    """Identify the "predict", "loss", and "coefficients" functions for a local model.
+
+    Args:
+        local_model: A instance/subclass of `ALocalModel`, a predict function, or a tuple of functions.
+        local_loss: A loss function or None if it is part of `local_model`. Defaults to None.
+        coefficients: The number of coefficients, or a function giving that number, or None if it is part of `local_model`. Defaults to None.
+        coefficients: Additional regularisation function. Defaults to None.
+
+    Returns:
+        predict: "prediction" function (takes X and B and returns predicted Y for every X and B combination).
+        loss: "loss" function (takes predicted Y and real Y and returns the loss).
+        coefficients: "coefficients" function (takes X and Y and returns the number of coefficients for B).
+        regularisation: "regularisation" function (takes X, Y, B, Z, and, Ytilde and returns an additional loss scalar).
+    """
+    pred_fn = None
+    loss_fn = None
+    coef_fn = lambda X, Y: X.shape[1] * Y.shape[1]
+    regu_fn = ALocalModel.regularisation
+    if isinstance(local_model, ALocalModel) or (
+        isinstance(local_model, type) and issubclass(local_model, ALocalModel)
+    ):
+        pred_fn = local_model.predict
+        loss_fn = local_model.loss
+        coef_fn = local_model.coefficients
+        regu_fn = local_model.regularisation
+    elif callable(local_model):
+        pred_fn = local_model
+        if (
+            local_model == linear_regression
+            or local_model == multiple_linear_regression
+        ):
+            loss_fn = linear_regression_loss
+            coef_fn = linear_regression_coefficients
+        elif local_model == logistic_regression:
+            loss_fn = logistic_regression_loss
+            coef_fn = logistic_regression_coefficients
+        elif local_model == logistic_regression_log:
+            loss_fn = logistic_regression_log_loss
+            coef_fn = logistic_regression_coefficients
+        else:
+            loss_fn = local_loss
+            coef_fn = coefficients
+    elif isinstance(local_model, Sequence):
+        pred_fn = local_model[0]
+        loss_fn = local_model[1] if len(local_model) > 1 else loss_fn
+        coef_fn = local_model[2] if len(local_model) > 2 else coef_fn
+        regu_fn = local_model[3] if len(local_model) > 3 else regu_fn
+    else:
+        _warn("Could not identity the local model", identify_local_model)
+        pred_fn = local_model
+    if local_loss is not None:
+        loss_fn = local_loss
+    if coefficients is not None:
+        coef_fn = coefficients
+    if regularisation is not None:
+        regu_fn = regularisation
+    if isinstance(coef_fn, int):
+        i_coef = coef_fn
+        coef_fn = lambda X, Y: i_coef
+    _assert(pred_fn is not None, "`local_model` function missing")
+    _assert(loss_fn is not None, "`local_loss` function missing")
+    return pred_fn, loss_fn, coef_fn, regu_fn

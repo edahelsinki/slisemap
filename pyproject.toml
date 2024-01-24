@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "slisemap"
-version = "1.5.2"
+version = "1.6.0"
 authors = [
     { name = "Anton Björklund", email = "anton.bjorklund@helsinki.fi" },
     { name = "Jarmo Mäkelä", email = "jarmo.makela@helsinki.fi" },
@@ -12,7 +12,7 @@ authors = [
 ]
 description = "SLISEMAP: Combine local explanations with supervised dimensionality reduction"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 keywords = [
     "Explainable AI",
     "Local explanation",
@@ -35,6 +35,9 @@ dependencies = [
     "seaborn >= 0.11",
 ]
 
+[project.optional-dependencies]
+tuning = ["scikit-optimize >= 0.9"]
+
 [project.urls]
 homepage = "https://github.com/edahelsinki/slisemap"
 documentation = "https://edahelsinki.github.io/slisemap"
@@ -55,4 +58,3 @@ exclude_also = [
     "ImportError",
     "_warn",
 ]
-omit = ["slisemap/guide*.py"]

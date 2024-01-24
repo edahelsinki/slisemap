@@ -167,12 +167,18 @@ def get_neighbours(
     """
     if neighbours is None:
         if full_if_none:
-            n = sm.n if isinstance(sm, Slisemap) else sm.shape[0]
+            try:
+                n = sm.n
+            except AttributeError:
+                n = sm.shape[0]
             return lambda i: torch.arange(n)
         else:
             return lambda i: torch.LongTensor([i])
     if callable(neighbours):
-        D = sm.get_D(numpy=False) if isinstance(sm, Slisemap) else torch.cdist(sm, sm)
+        try:
+            D = sm.get_D(numpy=False)
+        except AttributeError:
+            D = torch.cdist(sm, sm)
         return lambda i: neighbours(D, i, **kwargs)
     else:
         neighbours = torch.as_tensor(neighbours)
@@ -205,7 +211,7 @@ def entropy(
     Returns:
         The entropy.
     """
-    W = sm.get_W(False)
+    W = sm.get_W(numpy=False)
     entropy = -(W * W.log()).sum(dim=1)
     if aggregate:
         entropy = entropy.mean().exp() / sm.n
@@ -290,7 +296,7 @@ def coverage(
     Returns:
         The mean fraction of items within the error bound.
     """
-    if torch.all(torch.isnan(sm._B.sum(1))).cpu().item():
+    if torch.all(torch.isnan(sm.get_B(numpy=False).sum(1))).cpu().item():
         return np.nan
     neighbours = get_neighbours(sm, neighbours, full_if_none=True, **kwargs)
     results = np.zeros(sm.n)
@@ -366,7 +372,7 @@ def coherence(
         sm, neighbours, full_if_none=True, include_self=False, **kwargs
     )
     results = np.zeros(sm.n)
-    P = sm.local_model(sm._X, sm._B)
+    P = sm.local_model(sm._X, sm.get_B(numpy=False))
     for i in range(len(results)):
         ni = neighbours(i)
         if ni.numel() == 0:
@@ -405,13 +411,15 @@ def stability(
         sm, neighbours, full_if_none=True, include_self=False, **kwargs
     )
     results = np.zeros(sm.n)
+    B = sm.get_B(numpy=False)
+    X = sm.get_X(numpy=False)
     for i in range(len(results)):
         ni = neighbours(i)
         if ni.numel() == 0:
             results[i] = np.nan
         else:
-            dB = torch.sum((sm._B[None, i, :] - sm._B[ni, :]) ** 2, 1)
-            dX = torch.sum((sm._X[None, i, :] - sm._X[ni, :]) ** 2, 1) + 1e-8
+            dB = torch.sum((B[None, i, :] - B[ni, :]) ** 2, 1)
+            dX = torch.sum((X[None, i, :] - X[ni, :]) ** 2, 1) + 1e-8
             results[i] = torch.sqrt(torch.max(dB / dX))
     return nanmean(results)
 
@@ -474,11 +482,9 @@ def cluster_purity(
     Returns:
         The mean number of items sharing cluster that are neighbours.
     """
-    if isinstance(sm, Slisemap):
+    try:
         Z = sm.get_Z(numpy=False)
-    elif isinstance(sm, torch.Tensor):
-        Z = sm
-    else:
+    except AttributeError:
         Z = torch.as_tensor(sm)
     if isinstance(clusters, np.ndarray):
         clusters = torch.as_tensor(clusters, device=Z.device)
@@ -598,8 +604,9 @@ def relevance(sm: Slisemap, pred_fn: Callable, change: float) -> float:
         The mean number of mutated variables required to cause a large enough change in the prediction.
     """
     rel = np.ones(sm.n) * sm.m
+    B = sm.get_B(numpy=False)
     for i in range(len(rel)):
-        b = sm._B[i, :]
+        b = B[i, :]
         x = sm._X[i, :]
         y = sm._Y[i, 0]
         xmax = torch.max(sm._X, 0)[0]
@@ -622,6 +629,7 @@ def accuracy(
     Y: Union[None, np.ndarray, torch.Tensor] = None,
     fidelity: bool = True,
     optimise: bool = False,
+    fit_new: bool = False,
     **kwargs: Any,
 ) -> float:
     """Evaluate a SLISEMAP solution by checking how well the fitted models work on new points
@@ -631,20 +639,37 @@ def accuracy(
         X: New data matrix (uses the training data if None). Defaults to None.
         Y: New target matrix (uses the training data if None). Defaults to None.
         fidelity: Return the mean local loss (fidelity) instead of the mean embedding weighted loss. Defaults to True.
+        fit_new: Use `[Slisemap.fit_new][slisemap.slisemap.Slisemap.fit_new]` instead of `[Slisemap.predict][slisemap.slisemap.Slisemap.predict]` (if `fidelity=True`). Defaults to True.
     Keyword Args:
-        **kwargs: Optional keyword arguments to [Slisemap.fit_new][slisemap.slisemap.Slisemap.fit_new].
+        **kwargs: Optional keyword arguments to [Slisemap.predict][slisemap.slisemap.Slisemap.predict].
 
     Returns:
         Mean loss for the new points.
+
+    Deprecated:
+        1.6: `fit_new`, `fidelity`, `optimise`.
     """
     if X is None or Y is None:
         X = sm.get_X(intercept=False, numpy=False)
         Y = sm.get_Y(numpy=False)
+    if fit_new:
+        _deprecated("accuracy(..., fit_new=True)")
+    if not fidelity:
+        _deprecated("accuracy(..., fidelity=False)")
+    if optimise:
+        _deprecated("accuracy(..., optimise=True)")
     if not fidelity:
         loss = sm.fit_new(X, Y, loss=True, optimise=optimise, numpy=False, **kwargs)[2]
         return loss.mean().cpu().item()
     else:
         X = sm._as_new_X(X)
         Y = sm._as_new_Y(Y, X.shape[0])
-        B, _ = sm.fit_new(X, Y, loss=False, optimise=optimise, numpy=False, **kwargs)
-        return sm.local_loss(sm.predict(X, B, numpy=False), Y, B).mean().cpu().item()
+        if fit_new:
+            B, _ = sm.fit_new(
+                X, Y, loss=False, optimise=optimise, numpy=False, **kwargs
+            )
+            return sm.local_loss(sm.predict(X, B, numpy=False), Y).mean().cpu().item()
+        else:
+            loss = sm.local_loss(sm.predict(X, **kwargs, numpy=False), Y)
+            assert loss.shape == X.shape[:1]
+            return loss.mean().cpu().item()

@@ -5,14 +5,151 @@ But the local search dynamics might be less exhaustive.
 """
 
 import gc
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, Union
+from functools import cache
 
 import numpy as np
 import torch
 
 from slisemap.metrics import accuracy
 from slisemap.slisemap import Slisemap
-from slisemap.utils import CheckConvergence, _warn, tonp
+from slisemap.slipmap import Slipmap
+from slisemap.utils import CheckConvergence, ToTensor, _assert, _warn, tonp
+
+
+def hyperparameter_tune(
+    method: Union[Type[Slisemap], Type[Slipmap]],
+    X: ToTensor,
+    y: ToTensor,
+    X_test: ToTensor,
+    y_test: ToTensor,
+    lasso: Union[float, Tuple[float, float]] = (0.001, 10.0),
+    ridge: Union[float, Tuple[float, float]] = (0.0001, 1.0),
+    radius: Union[float, Tuple[float, float]] = (1.5, 4.0),
+    *args,
+    model: bool = True,
+    n_calls: int = 15,
+    verbose: bool = False,
+    random_state: int = 42,
+    predict_kws: Dict[str, object] = {},
+    optim_kws: Dict[str, object] = {},
+    gp_kws: Dict[str, object] = {},
+    **kwargs,
+) -> Union[Slisemap, Slipmap, Dict[str, float]]:
+    """Tune the `lasso`, `ridge`, and `radius` hyperparameters using Bayesian optimisation.
+    This function requires "scikit-optimize" to be installed.
+
+    The search space is configured through the `lasso`/`ridge`/`radius` arguments as follows:
+        - float: Skip the tuning of that hyperparameter.
+        - tuple: tune the parameters limited to the space of `(lowerbound, upperbound)`.
+
+    This function selects a candidate set of hyperparameters using `skopt.gp_minimize`.
+    For a given set of hyperparameters, a Slisemap/Slipmap model is trained on `X` and `y`.
+    Then the solution is evaluated using `X_test` and `y_test`.
+    This procedure is repeated for `n_calls` iterations before the best result is returned.
+
+    Args:
+        method: Method to tune, either `Slisemap` or `Slipmap`.
+        X: Data matrix.
+        y: target matrix.
+        X_test: New data for evaluation.
+        y_test: New data for evaluation.
+        lasso: Limits for the `lasso` parameter. Defaults to (0.001, 10.0).
+        ridge: Limits for the `ridge` parameter. Defaults to (0.0001, 1.0).
+        radius: Limits for the `radius` parameter. Defaults to (1.5, 4.0).
+        *args: Arguments forwarded to `method`.
+    Keyword Args:
+        model: Return a trained model instead of a dictionary with tuned parameters. Defaults to True.
+        n_calls: Number of parameter evaluations. Defaults to 15.
+        verbose: Print status messages. Defaults to False.
+        random_state: Random seed. Defaults to 42.
+        predict_kws: Keyword arguments forwarded to `sm.predict`.
+        optim_kws: Keyword arguments forwarded to `sm.optimise`.
+        gp_kws: Keyword arguments forwarded to `skopt.gp_minimize`.
+        **kwargs: Keyword arguments forwarded to `method`.
+
+    Raises:
+        ImportError: If `scikit-optimize` is not installed.
+
+    Returns:
+        Dictionary with hyperparameter values or a Slisemap/Slipmap model trained on those (see the `model` argument).
+    """
+    try:
+        import skopt
+    except ImportError:
+        raise ImportError(
+            "Hyperparameter tuning requires `scikit-optimize` to be installed"
+        )
+
+    space = []
+    params = {}
+
+    def make_space(grid, name, prior):
+        if isinstance(grid, (float, int)):
+            params[name] = grid
+        else:
+            _assert(
+                len(grid) == 2,
+                f"Wrong size `len({name}) = {len(grid)} != 2`",
+                hyperparameter_tune,
+            )
+            space.append(skopt.space.Real(*grid, prior=prior, name=name))
+            params[name] = (grid[0] * grid[1]) ** 0.5
+
+    make_space(lasso, "lasso", "log-uniform")
+    make_space(ridge, "ridge", "log-uniform")
+    make_space(radius, "radius", "uniform")
+    if len(space) == 0:
+        _warn("No hyperparameters to tune", hyperparameter_tune)
+        if model:
+            sm = method(X, y, radius=radius, lasso=lasso, ridge=ridge, *args, **kwargs)
+            sm.optimise(**optim_kws)
+            return sm
+        else:
+            return params
+
+    if model:
+        best_loss = np.inf
+        best_sm = None
+
+    @skopt.utils.use_named_args(space)
+    @cache
+    def objective(
+        lasso=params["lasso"], ridge=params["ridge"], radius=params["radius"]
+    ):
+        sm = method(X, y, radius=radius, lasso=lasso, ridge=ridge, *args, **kwargs)
+        sm.optimise(**optim_kws)
+        Xt = sm._as_new_X(X_test)
+        Yt = sm._as_new_Y(y_test, Xt.shape[0])
+        P = sm.predict(Xt, **predict_kws, numpy=False)
+        l = sm.local_loss(Yt, P).mean().cpu().item()
+        if verbose:
+            print(f"Loss with {dict(lasso=lasso, ridge=ridge, radius=radius)}: {l}")
+        if model:
+            nonlocal best_loss, best_sm
+            if l < best_loss:
+                best_sm = sm
+                best_loss = l
+        del sm
+        return l
+
+    res = skopt.gp_minimize(
+        objective,
+        space,
+        n_initial_points=min(10, max(3, (n_calls - 1) // 3 + 1)),
+        n_calls=n_calls,
+        random_state=random_state,
+        **gp_kws,
+    )
+    for s, v in zip(space, res.x):
+        params[s.name] = v
+    if verbose:
+        print(f"Final parameter values:", params)
+
+    if model:
+        return best_sm
+    else:
+        return params
 
 
 def _hyper_grid(
@@ -24,7 +161,7 @@ def _hyper_grid(
 ):
     # Do a local random search over hyperparameters
     sm.lbfgs(only_B=True, **kwargs)
-    sm2 = sm.copy()
+    B0 = sm._B.detach().clone()
     rnd = torch.empty(search_size + 1, **sm.tensorargs)
     rnd.uniform_(-1, 1, generator=sm._random_state) * np.log(max(1.0, lasso_grid))
     lasso_grid = tonp(torch.exp(rnd) * sm.lasso)
@@ -36,11 +173,11 @@ def _hyper_grid(
         if np.allclose(lasso, sm.lasso) and np.allclose(ridge, sm.ridge):
             yield sm
         else:
-            sm2._B[...] = sm._B
-            sm2.lasso = lasso
-            sm2.ridge = ridge
-            sm2.lbfgs(only_B=True, **kwargs)
-            yield sm2
+            sm._B[...] = B0
+            sm.lasso = lasso
+            sm.ridge = ridge
+            sm.lbfgs(only_B=True, **kwargs)
+            yield sm
 
 
 def _hyper_select(

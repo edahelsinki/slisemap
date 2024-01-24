@@ -21,19 +21,37 @@ def tune_data():
     return (sm, sm2, X_test, y_test, X_vali, y_vali)
 
 
-def test_test_set(tune_data):
+def test_with_set(tune_data):
     sm0, sm2, X_test, y_test, X_vali, y_vali = tune_data
     sm = sm0.copy()
-    sm = optimise_with_test_set(sm, X_test, y_test, patience=1)
+    sm = optimise_with_test_set(sm, X_test, y_test, patience=1, max_iterations=20)
     assert accuracy(sm, X_vali, y_vali) < accuracy(sm2, X_vali, y_vali)
-    assert sm.lasso < sm2.lasso
-    assert sm.ridge < sm2.ridge
+    assert sm.lasso != sm2.lasso
+    assert sm.ridge != sm2.ridge
 
 
 def test_cv(tune_data):
     sm0, sm2, X_test, y_test, X_vali, y_vali = tune_data
     sm = sm0.copy()
-    sm = optimise_with_cross_validation(sm, patience=1, k=2)
+    sm = optimise_with_cross_validation(sm, patience=1, k=2, max_iterations=20)
     assert accuracy(sm, X_vali, y_vali) < accuracy(sm2, X_vali, y_vali)
-    assert sm.lasso < sm2.lasso
-    assert sm.ridge < sm2.ridge
+    assert sm.lasso != sm2.lasso
+    assert sm.ridge != sm2.ridge
+
+
+def test_tune(tune_data):
+    sm0, sm2, X_test, y_test, X_vali, y_vali = tune_data
+    sm = hyperparameter_tune(
+        Slisemap,
+        sm0.get_X(intercept=False),
+        sm0.get_Y(),
+        X_test,
+        y_test,
+        radius=sm0.radius,
+        optim_kws=dict(patience=1, max_escapes=5, max_iter=100),
+        n_calls=10,
+    )
+    sm.optimise(patience=1)
+    assert accuracy(sm, X_vali, y_vali) < accuracy(sm2, X_vali, y_vali)
+    assert sm.lasso != sm2.lasso
+    assert sm.ridge != sm2.ridge

@@ -10,7 +10,7 @@ from .utils import *
 
 
 def test_save_load(tmp_path):
-    sm = get_slisemap(30, 4, randomB=True, random_state=3459453)
+    sm = get_slisemap(30, 4, randomB=True, seed=3459453)
     sm.save(tmp_path / "tmp.sm")
     sm2 = Slisemap.load(tmp_path / "tmp.sm")
     assert_allclose(sm.get_L(), sm2.get_L())
@@ -35,7 +35,7 @@ def test_anonymous_function_fail(tmp_path):
 
 
 def test_compression(tmp_path):
-    sm = get_slisemap(30, 4, randomB=True, random_state=3459453)
+    sm = get_slisemap(30, 4, randomB=True, seed=3459453)
     b = tmp_path / "tmp.sm"
     sm.save(b, compress=True)
     assert_allclose(sm.get_Y(), Slisemap.load(b).get_Y())

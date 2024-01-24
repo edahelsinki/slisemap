@@ -2,7 +2,7 @@
 This module contains the SLISEMAP loss functions.
 """
 
-from typing import Callable, Tuple
+from typing import Callable, Optional, Tuple
 
 import torch
 
@@ -33,6 +33,19 @@ def softmax_column_kernel(D: torch.Tensor) -> torch.Tensor:
     return torch.softmax(-D, 0)
 
 
+def squared_distance(A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
+    """Distance function that returns the squared euclidean distances.
+
+    Args:
+        A: The first matrix [n1, d].
+        B: The second matrix [n2, d].
+
+    Returns:
+        Distance matrix [n1, n2].
+    """
+    return torch.sum((A[:, None, ...] - B[None, ...]) ** 2, -1)
+
+
 def softmax_kernel(D: torch.Tensor) -> torch.Tensor:
     _deprecated(softmax_kernel, softmax_row_kernel)
     return softmax_row_kernel(D)
@@ -40,7 +53,7 @@ def softmax_kernel(D: torch.Tensor) -> torch.Tensor:
 
 def make_loss(
     local_model: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
-    local_loss: Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor],
+    local_loss: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
     distance: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] = torch.cdist,
     kernel: Callable[[torch.Tensor], torch.Tensor] = softmax_row_kernel,
     radius: float = 3.5,
@@ -48,6 +61,7 @@ def make_loss(
     ridge: float = 0.0,
     z_norm: float = 1.0,
     individual: bool = False,
+    regularisation: Optional[Callable] = None,
 ) -> Callable[[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor,], torch.Tensor,]:
     """Create a loss function for Slisemap to optimise
 
@@ -61,6 +75,7 @@ def make_loss(
         ridge: Ridge-regularisation coefficient for B ($\\lambda_{ridge} * ||B||_2$). Defaults to 0.0.
         z_norm: Z normalisation regularisation coefficient ($\\lambda_{norm} * (sum(Z^2)-n)^2$). Defaults to 1.0.
         individual: Return individual (row-wise) losses. Defaults to False.
+        regularisation: Additional loss function. Defaults to None.
 
     Returns:
         Loss function for SLISEMAP
@@ -72,7 +87,7 @@ def make_loss(
             make_loss,
         )
 
-    def loss(
+    def loss_fn(
         X: torch.Tensor,
         Y: torch.Tensor,
         B: torch.Tensor,
@@ -93,17 +108,20 @@ def make_loss(
             Zss = torch.sum(Z**2)
             Z = Z * (radius / (torch.sqrt(Zss / Z.shape[0]) + 1e-8))
         D = distance(Z, Z)
-        L = local_loss(local_model(X, B), Y, B)
-        a = torch.sum(kernel(D) * L, dim=dim)
+        Ytilde = local_model(X, B)
+        L = local_loss(Ytilde, Y)
+        loss = torch.sum(kernel(D) * L, dim=dim)
         if lasso > 0:
-            a += lasso * torch.sum(B.abs(), dim=dim)
+            loss += lasso * torch.sum(B.abs(), dim=dim)
         if ridge > 0:
-            a += ridge * torch.sum(B**2, dim=dim)
+            loss += ridge * torch.sum(B**2, dim=dim)
         if z_norm > 0 and radius > 0:
-            a += z_norm * (Zss - Z.shape[0]) ** 2
-        return a
+            loss += z_norm * (Zss - Z.shape[0]) ** 2
+        if regularisation is not None:
+            loss += regularisation(X, Y, B, Z, Ytilde)
+        return loss
 
-    return loss
+    return loss_fn
 
 
 def make_marginal_loss(
@@ -114,7 +132,7 @@ def make_marginal_loss(
     Xnew: torch.Tensor,
     Ynew: torch.Tensor,
     local_model: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
-    local_loss: Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor],
+    local_loss: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
     distance: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] = torch.cdist,
     kernel: Callable[[torch.Tensor], torch.Tensor] = softmax_row_kernel,
     radius: float = 3.5,
@@ -150,7 +168,7 @@ def make_marginal_loss(
     Xcomb = torch.cat((X, Xnew), 0)
     Ycomb = torch.cat((Y, Ynew), 0)
     Nold = X.shape[0]
-    L0 = local_loss(local_model(Xcomb, B), Ycomb, B)  # Nold x Ncomb
+    L0 = local_loss(local_model(Xcomb, B), Ycomb)  # Nold x Ncomb
     D0 = distance(Z, Z)  # Nold x Nold
 
     def set_new(Xnew: torch.Tensor, Ynew: torch.Tensor):
@@ -163,7 +181,7 @@ def make_marginal_loss(
         nonlocal Xcomb, Ycomb, L0
         Xcomb[Nold:] = Xnew
         Ycomb[Nold:] = Ynew
-        L0[:, Nold:] = local_loss(local_model(Xnew, B), Ynew, B)
+        L0[:, Nold:] = local_loss(local_model(Xnew, B), Ynew)
 
     if radius > 0:
         Zss0 = torch.sum(Z**2)
@@ -178,7 +196,7 @@ def make_marginal_loss(
         Returns:
             The marginal loss value.
         """
-        L1 = local_loss(local_model(Xcomb, Bnew), Ycomb, Bnew)  # Nnew x Ncomb
+        L1 = local_loss(local_model(Xcomb, Bnew), Ycomb)  # Nnew x Ncomb
         L = torch.cat((L0, L1), 0)  # Ncomb x Ncomb
 
         D1 = distance(Znew, Z)  # Nnew x Nold

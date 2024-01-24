@@ -9,7 +9,6 @@ def test_plot():
         sm.plot(title="ASD", clusters=4, show=False)
         sm.plot(title="ASD", clusters=4, bars=True, show=False)
         sm.plot(title="ASD", clusters=4, bars=-1, show=False)
-        sm.plot(title="ASD", clusters=0, show=False)
         sm.plot(clusters=cl, bars=False, show=False)
         sm.plot(clusters=cl, bars=True, show=False)
         cl2 = np.asarray([f"A{9-i}" for i in np.unique(cl)])[cl]

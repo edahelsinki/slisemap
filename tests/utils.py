@@ -58,18 +58,19 @@ def get_slisemap2(
         y = 1 / (1 + np.exp(-y))
         sm = Slisemap(
             X,
-            y,
+            np.stack((y, 1 - y), -1),
             local_model=LogisticLogRegression,
             lasso=lasso * 10,
-            random_state=seed,
             **kwargs,
         )
     else:
-        sm = Slisemap(X, y, lasso=lasso, random_state=seed, **kwargs)
+        sm = Slisemap(X, y, lasso=lasso, **kwargs)
     if randomB:
-        sm._B = torch.normal(
-            0, 1, sm._B.shape, **sm.tensorargs, generator=sm._random_state
-        )
+        if seed is not None:
+            generator = torch.Generator(sm._B.device).manual_seed(seed)
+            sm._B = torch.normal(sm._B * 0.0, 1.0, generator=generator)
+        else:
+            sm._B = torch.normal(sm._B * 0.0, 1.0)
     if cheat:
         angles = 2 * np.pi * cl / 3  # Assume k=3, d=2
         Z = np.stack((np.sin(angles), np.cos(angles)), 1)

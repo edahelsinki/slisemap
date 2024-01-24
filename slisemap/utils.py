@@ -4,7 +4,19 @@ This module contains various useful functions.
 
 import warnings
 from timeit import default_timer as timer
-from typing import Any, Callable, Dict, Iterator, List, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 import numpy as np
 import torch
@@ -26,6 +38,14 @@ def _assert(condition: bool, message: str, method: Optional[Callable] = None):
             raise SlisemapException(f"AssertionError: {message}")
         else:
             raise SlisemapException(f"AssertionError, {method.__qualname__}: {message}")
+
+
+def _assert_no_trace(
+    condition: Callable[[], Tuple[bool, str]], method: Optional[Callable] = None
+):
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=torch.jit.TracerWarning)
+        _assert(*condition(), method)
 
 
 def _deprecated(
@@ -61,6 +81,17 @@ def _warn(warning: str, method: Optional[Callable] = None):
         warnings.warn(f"{method.__qualname__}: {warning}", SlisemapWarning, 2)
 
 
+_F = TypeVar("_F", bound=Callable[..., Any])
+
+
+class CallableLike(Generic[_F]):
+    """Type annotation for a function matching the signature of an existing function"""
+
+    @staticmethod
+    def __class_getitem__(fn: _F) -> _F:
+        return fn
+
+
 def tonp(x: Union[torch.Tensor, Any]) -> np.ndarray:
     """Convert a `torch.Tensor` to a `numpy.ndarray`.
     If `x` is not a `torch.Tensor` then `np.asarray` is used instead.
@@ -77,9 +108,6 @@ def tonp(x: Union[torch.Tensor, Any]) -> np.ndarray:
         return np.asarray(x)
 
 
-_tonp = tonp
-
-
 class CheckConvergence:
     """An object that tries to estimate when an optimisation has converged.
     Use it for, e.g., escape+optimisation cycles in Slisemap.
@@ -87,6 +115,7 @@ class CheckConvergence:
     Args:
         patience: How long should the optimisation continue without improvement. Defaults to 3.
         max_iter: The maximum number of iterations. Defaults to `2**20`.
+        rel: Minimum relative error change that is considered an improvement. Defaults to `1e-4`.
     """
 
     __slots__ = {
@@ -97,9 +126,10 @@ class CheckConvergence:
         "optimal": "Cache for storing the state that produced the best loss value.",
         "max_iter": "The maximum number of iterations.",
         "iter": "The current number of iterations.",
+        "rel": "Minimum relative error for convergence check",
     }
 
-    def __init__(self, patience: float = 3, max_iter: int = 1 << 20):
+    def __init__(self, patience: float = 3, max_iter: int = 1 << 20, rel: float = 1e-4):
         self.current = np.inf
         self.best = np.asarray(np.inf)
         self.counter = 0.0
@@ -107,10 +137,11 @@ class CheckConvergence:
         self.optimal = None
         self.max_iter = max_iter
         self.iter = 0
+        self.rel = rel
 
     def has_converged(
         self,
-        loss: Union[float, Sequence[float]],
+        loss: Union[float, Sequence[float], np.ndarray],
         store: Optional[Callable[[], Any]] = None,
         verbose: bool = False,
     ) -> bool:
@@ -132,7 +163,7 @@ class CheckConvergence:
         if np.any(np.isnan(loss)):
             _warn("Loss is `nan`", CheckConvergence.has_converged)
             return True
-        if np.any(loss < self.best):
+        if np.any(loss + np.abs(loss) * self.rel < self.best):
             self.counter = 0.0  # Reset the counter if a new best
             if store is not None and loss.item(0) < self.best.item(0):
                 self.optimal = store()
@@ -295,7 +326,7 @@ def global_model(
     B = torch.zeros(shape, dtype=X.dtype, device=X.device).requires_grad_(True)
 
     def loss():
-        l = local_loss(local_model(X, B), Y, B).mean()
+        l = local_loss(local_model(X, B), Y).mean()
         if lasso > 0:
             l += lasso * torch.sum(B.abs())
         if ridge > 0:
@@ -364,10 +395,20 @@ def dict_concat(
     return df
 
 
+ToTensor = Union[np.ndarray, torch.Tensor, Dict[str, Sequence[float]], Sequence[float]]
+try:
+    import pandas as pd
+
+    ToTensor = Union[ToTensor, pd.DataFrame]
+    _range_types = (range, pd.RangeIndex)
+except ImportError:
+    _range_types = range
+
+
 def to_tensor(
-    input: Union[np.ndarray, torch.Tensor, Dict[str, Any], Sequence[Any], Any],
+    input: ToTensor,
     **tensorargs: Any,
-) -> Tuple[torch.Tensor, Optional[Sequence[Any]], Optional[Sequence[Any]]]:
+) -> Tuple[torch.Tensor, Optional[Sequence[object]], Optional[Sequence[object]]]:
     """Convert the input into a `torch.Tensor` (via `numpy.ndarray` if necessary).
     This function wrapps `torch.as_tensor` (and `numpy.asarray`) and tries to extract row and column names.
     This function can handle arbitrary objects (such as `pandas.DataFrame`) if they implement `.to_numpy()` and, optionally, `.index` and `.columns`.
@@ -397,7 +438,10 @@ def to_tensor(
             try:
                 output = torch.as_tensor(input.numpy(), **tensorargs)
             except (AttributeError, TypeError):
-                output = torch.as_tensor(np.asarray(input), **tensorargs)
+                try:
+                    output = torch.as_tensor(input, **tensorargs)
+                except (TypeError, RuntimeError):
+                    output = torch.as_tensor(np.asarray(input), **tensorargs)
         try:
             columns = input.columns if len(input.columns) == output.shape[1] else None
         except (AttributeError, TypeError):
@@ -415,24 +459,29 @@ class Metadata(dict):
     But other arbitrary information can also be stored in this dictionary (The main Slisemap class has predefined "slots").
     """
 
-    def __init__(self, root: "Slisemap"):
-        super().__init__()
+    def __init__(self, root: "Slisemap", **kwargs):
+        super().__init__(**kwargs)
         self.root = root
 
-    def set_rows(self, *rows: Optional[Sequence[Any]]):
-        """Set the row names with checks.
+    def set_rows(self, *rows: Optional[Sequence[object]]):
+        """Set the row names with checks to avoid saving ranges.
 
         Args:
             *rows: row names
         """
         for row in rows:
             if row is not None:
+                if isinstance(row, _range_types):
+                    if row.start == 0 and row.step == 1 and row.stop == self.root.n:
+                        continue
                 _assert(
                     len(row) == self.root.n,
                     f"Wrong number of row names {len(row)} != {self.root.n}",
                     Metadata.set_rows,
                 )
-                self["rows"] = row
+                if all(i == j for i, j in enumerate(row)):
+                    continue
+                self["rows"] = list(row)
                 break
 
     def set_variables(
@@ -449,8 +498,9 @@ class Metadata(dict):
         if add_intercept is None:
             add_intercept = self.root.intercept
         if variables is not None:
+            variables = list(variables)
             if add_intercept:
-                variables = list(variables) + ["Intercept"]
+                variables.append("Intercept")
             _assert(
                 len(variables) == self.root.m,
                 f"Wrong number of variables {len(variables)} != {self.root.m}",
@@ -467,6 +517,8 @@ class Metadata(dict):
         if targets is not None:
             if isinstance(targets, str):
                 targets = [targets]
+            else:
+                targets = list(targets)
             _assert(
                 len(targets) == self.root.o,
                 f"Wrong number of targets {len(targets)} != {self.root.o}",
@@ -486,7 +538,7 @@ class Metadata(dict):
                 f"Wrong number of targets {len(coefficients)} != {self.root.q}",
                 Metadata.set_coefficients,
             )
-            self["coefficients"] = coefficients
+            self["coefficients"] = list(coefficients)
 
     def set_dimensions(self, dimensions: Optional[Sequence[Any]] = None):
         """Set the dimension names with checks.
@@ -500,7 +552,7 @@ class Metadata(dict):
                 f"Wrong number of targets {len(dimensions)} != {self.root.d}",
                 Metadata.set_dimensions,
             )
-            self["dimensions"] = dimensions
+            self["dimensions"] = list(dimensions)
 
     def get_coefficients(self, fallback: bool = True) -> Optional[List[str]]:
         """Get a list of coefficient names
@@ -586,7 +638,8 @@ class Metadata(dict):
             return self["dimensions"]
         elif fallback:
             if long:
-                return [f"SLISEMAP {i+1}" for i in range(self.root.d)]
+                cls = "Slisemap" if self.root is None else type(self.root).__name__
+                return [f"{cls} {i+1}" for i in range(self.root.d)]
             else:
                 return [f"Z_{i}" for i in range(self.root.d)]
         else:
@@ -687,3 +740,65 @@ class Metadata(dict):
         if "Y_center" in self:
             Y = Y + self["Y_center"][None, :]
         return Y
+
+
+def make_grid(num: int = 50, d: int = 2, hex: bool = True) -> np.ndarray:
+    """Create a circular grid of points with radius 1.0.
+
+    Args:
+        num: The approximate number of points. Defaults to 50.
+        d: The number of dimensions. Defaults to 2.
+        hex: If ``d == 2`` produce a hexagonal grid instead of a rectangular grid. Defaults to True.
+
+    Returns:
+        A matrix of coordinates `[num, d]`.
+    """
+    _assert(d > 0, "The number of dimensions must be positive", make_grid)
+    if d == 1:
+        return np.linspace(-1, 1, num)[:, None]
+    elif d == 2 and hex:
+        return make_hex_grid(num)
+    else:
+        nball_frac = np.pi ** (d / 2) / np.math.gamma(d / 2 + 1) / 2**d
+        if 4**d * nball_frac > num:
+            _warn(
+                "Too few grid points per dimension. Try reducing the number of dimensions or increase the number of points in the grid.",
+                make_grid,
+            )
+        proto_1d = int(np.ceil((num / nball_frac) ** (1 / d))) // 2 * 2 + 2
+        grid_1d = np.linspace(-0.9999, 0.9999, proto_1d)
+        grid = np.stack(np.meshgrid(*(grid_1d for _ in range(d))), -1).reshape((-1, d))
+        dist = np.sum(grid**2, 1)
+        q = np.quantile(dist, num / len(dist)) + np.finfo(dist.dtype).eps ** 0.5
+        grid = grid[dist <= q]
+        return grid / np.quantile(grid, 0.99)
+
+
+def make_hex_grid(num: int = 52) -> np.ndarray:
+    """Create a circular grid of 2D points with a hexagon pattern and radius 1.0.
+
+    Args:
+        num: The approximate number of points. Defaults to 52.
+
+    Returns:
+        A matrix of coordinates `[num, 2]`.
+    """
+    num_h = int(np.ceil(np.sqrt(num * 4 / np.pi))) // 2 * 2 + 3
+    grid_h, height = np.linspace(-0.9999, 0.9999, num_h, retstep=True)
+    width = height * 2 / 3 * np.sqrt(3)
+    num_w = int(np.ceil(1.0 / width))
+    grid_w = np.arange(-num_w, num_w + 1) * width
+    grid = np.stack(np.meshgrid(grid_w, grid_h), -1)
+    grid[(1 - num_h // 2 % 2) :: 2, :, 0] += width / 2
+    grid = grid.reshape((-1, 2))
+    best = None
+    for origo in (0.0, 0.5 * width):
+        if origo != 0.0:
+            grid[:, 0] += origo
+        dist = np.sum(grid**2, 1)
+        q = np.quantile(dist, num / len(dist))
+        for epsilon in (-1e-4, 1e-4):
+            grid2 = grid[dist <= q + epsilon]
+            if best is None or abs(best.shape[0] - num) > abs(grid2.shape[0] - num):
+                best = grid2.copy()
+    return best / np.quantile(best, 0.99)

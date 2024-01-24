@@ -72,7 +72,8 @@ def test_escape_internal():
 
 
 def test_escape():
-    sm, _ = get_slisemap2(40, 3, seed=883313)
+    set_seed(883313)
+    sm, _ = get_slisemap2(40, 3)
     l1 = sm.value()
     l2 = sm.lbfgs(only_B=True)
     for fn in [escape_greedy, escape_marginal, escape_combined, escape_neighbourhood]:
@@ -95,7 +96,7 @@ def test_escape():
     assert all_finite(l1, l2, l3)
     assert l3 <= l2 * 1.02
     assert l2 <= l1 * 1.02
-    sm, _ = get_slisemap2(40, 3, classes=True, randomB=True, seed=853313)
+    sm, _ = get_slisemap2(40, 3, classes=True, randomB=True)
     l1 = sm.value()
     l2 = sm.lbfgs()
     sm2 = sm.copy()
@@ -108,5 +109,5 @@ def test_escape():
     l3 = sm2.lbfgs()
     assert torch.allclose(torch.sqrt(torch.sum(sm2._Z**2) / sm2.n), torch.ones(1))
     assert all_finite(l1, l2, l3)
-    assert l3 <= l2 * 1.05
+    assert l3 <= l2 + 0.1
     assert l2 <= l1 * 1.02

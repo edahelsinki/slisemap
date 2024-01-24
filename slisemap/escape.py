@@ -16,7 +16,7 @@ def escape_neighbourhood(
     B: torch.Tensor,
     Z: torch.Tensor,
     local_model: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
-    local_loss: Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor],
+    local_loss: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
     distance: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
     kernel: Callable[[torch.Tensor], torch.Tensor],
     radius: float = 3.5,
@@ -43,7 +43,7 @@ def escape_neighbourhood(
         B: Escaped `B`.
         Z: Escaped `Z`.
     """
-    L = local_loss(local_model(X, B), Y, B)
+    L = local_loss(local_model(X, B), Y)
     if radius > 0:
         Z2 = Z * (radius / (torch.sqrt(torch.sum(Z**2) / Z.shape[0]) + 1e-8))
         D = distance(Z2, Z2)
@@ -72,7 +72,7 @@ def escape_greedy(
     B: torch.Tensor,
     Z: torch.Tensor,
     local_model: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
-    local_loss: Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor],
+    local_loss: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
     distance: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
     kernel: Callable[[torch.Tensor], torch.Tensor],
     radius: float = 3.5,
@@ -99,7 +99,7 @@ def escape_greedy(
         B: Escaped `B`.
         Z: Escaped `Z`.
     """
-    L = local_loss(local_model(X, B), Y, B)
+    L = local_loss(local_model(X, B), Y)
     if force_move:
         _assert(
             L.shape[0] == L.shape[1],
@@ -117,7 +117,7 @@ def escape_combined(
     B: torch.Tensor,
     Z: torch.Tensor,
     local_model: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
-    local_loss: Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor],
+    local_loss: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
     distance: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
     kernel: Callable[[torch.Tensor], torch.Tensor],
     radius: float = 3.5,
@@ -146,7 +146,7 @@ def escape_combined(
         B: Escaped `B`.
         Z: Escaped `Z`.
     """
-    L = local_loss(local_model(X, B), Y, B)
+    L = local_loss(local_model(X, B), Y)
     if radius > 0:
         Z2 = Z * (radius / (torch.sqrt(torch.sum(Z**2) / Z.shape[0]) + 1e-8))
         D = distance(Z2, Z2)
@@ -171,7 +171,7 @@ def escape_marginal(
     B: torch.Tensor,
     Z: torch.Tensor,
     local_model: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
-    local_loss: Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor],
+    local_loss: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
     distance: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
     kernel: Callable[[torch.Tensor], torch.Tensor],
     radius: float = 3.5,

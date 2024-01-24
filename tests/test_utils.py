@@ -112,7 +112,8 @@ def test_to_tensor():
 
     test(X)
     test(X2)
-    test(X3)
+    with pytest.warns(UserWarning, match="extremely slow"):
+        test(X3)
     test(X4)
 
     try:
