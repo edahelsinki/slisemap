@@ -6,8 +6,8 @@ prototypes, where each prototype has a local model. This improves the scaling
 from quadratic to linear.
 """
 
-from copy import copy
 import lzma
+from copy import copy
 from os import PathLike
 from typing import (
     Any,
@@ -31,29 +31,25 @@ from sklearn.cluster import KMeans
 from slisemap.local_models import (
     ALocalModel,
     LinearRegression,
-    local_predict,
     LocalModelCollection,
     identify_local_model,
+    local_predict,
 )
-from slisemap.loss import softmax_column_kernel, squared_distance
+from slisemap.plot import plot_dist, plot_position, plot_prototypes, plot_solution
 from slisemap.slisemap import Slisemap
-from slisemap.plot import (
-    plot_dist,
-    plot_position,
-    plot_prototypes,
-    plot_solution,
-)
 from slisemap.utils import (
     LBFGS,
-    CheckConvergence,
     CallableLike,
+    CheckConvergence,
+    Metadata,
     PCA_rotation,
     _assert,
     _warn,
     global_model,
-    tonp,
-    Metadata,
     make_grid,
+    softmax_column_kernel,
+    squared_distance,
+    tonp,
 )
 
 
@@ -148,8 +144,8 @@ class Slipmap:
             local_loss: Local model loss function (see [slisemap.local_models.identify_local_model][]). Defaults to None.
             coefficients: The number of local model coefficients (see [slisemap.local_models.identify_local_model][]). Defaults to None.
             regularisation: Additional regularisation method (see [slisemap.local_models.identify_local_model][]). Defaults to None.
-            distance: Distance function. Defaults to [squared_distance][slisemap.loss.squared_distance].
-            kernel: Kernel function. Defaults to [softmax_column_kernel][slisemap.loss.softmax_column_kernel].
+            distance: Distance function. Defaults to [squared_distance][slisemap.utils.squared_distance].
+            kernel: Kernel function. Defaults to [softmax_column_kernel][slisemap.utils.softmax_column_kernel].
             Z0: Initial embedding for the data. Defaults to PCA.
             Bp0: Initial coefficients for the local models. Defaults to None.
             Zp0: Initial embedding for the prototypes. Defaults to `[make_grid][slisemap.utils.make_grid](prototypes)`.

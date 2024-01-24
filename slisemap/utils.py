@@ -22,6 +22,43 @@ import numpy as np
 import torch
 
 
+def softmax_row_kernel(D: torch.Tensor) -> torch.Tensor:
+    """Kernel function that applies softmax on the rows.
+
+    Args:
+        D: Distance matrix.
+
+    Returns:
+        Weight matrix.
+    """
+    return torch.softmax(-D, 1)
+
+
+def softmax_column_kernel(D: torch.Tensor) -> torch.Tensor:
+    """Kernel function that applies softmax on the columns.
+
+    Args:
+        D: Distance matrix.
+
+    Returns:
+        Weight matrix.
+    """
+    return torch.softmax(-D, 0)
+
+
+def squared_distance(A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
+    """Distance function that returns the squared euclidean distances.
+
+    Args:
+        A: The first matrix [n1, d].
+        B: The second matrix [n2, d].
+
+    Returns:
+        Distance matrix [n1, n2].
+    """
+    return torch.sum((A[:, None, ...] - B[None, ...]) ** 2, -1)
+
+
 class SlisemapException(Exception):
     # Custom Exception type (for filtering)
     pass

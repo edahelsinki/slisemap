@@ -43,7 +43,6 @@ nav:
       - slisemap.local_models: slisemap.local_models.md
       - slisemap.utils: slisemap.utils.md
       - slisemap.metrics: slisemap.plot.md
-      - slisemap.loss: slisemap.loss.md
       - slisemap.escape: slisemap.escape.md
       - slisemap.tuning: slisemap.tuning.md
       - slisemap.metrics: slisemap.metrics.md
