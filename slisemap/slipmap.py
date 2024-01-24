@@ -61,7 +61,7 @@ class Slipmap:
     """__Slipmap__: Faster and more robust `[Slisemap][slisemap.slisemap.Slisemap]`.
 
     This class contains the data and the parameters needed for finding a Slipmap solution.
-    It also contains the solution (remember to [optimise()][slisemap.slipmap.Slipmap.optimise] first) in the form of an embedding matrix, see [get_Z()][slisemap.slipmap.Slipmap.get_Z], and a matrix of coefficients for the local model, see [get_Bp()][slisemap.slipmap.Slipmap.get_Bp].
+    It also contains the solution (remember to [optimise()][slisemap.slipmap.Slipmap.optimize] first) in the form of an embedding matrix, see [get_Z()][slisemap.slipmap.Slipmap.get_Z], and a matrix of coefficients for the local model, see [get_Bp()][slisemap.slipmap.Slipmap.get_Bp].
     Other methods of note are the various plotting methods, the [save()][slisemap.slipmap.Slipmap.save] method, and the [predict()][slisemap.slipmap.Slipmap.predict] method.
 
     The use of some regularisation is highly recommended. Slipmap comes with built-in lasso/L1 and ridge/L2 regularisation (if these are used it is also a good idea to normalise the data in advance).
@@ -1007,7 +1007,7 @@ class Slipmap:
         verbose: Literal[0, 1, 2] = 0,
         **kwargs,
     ) -> float:
-        """Optimise Slipmap by alternating between Slipmap.lbfgs and Slipmap.escape until convergence.
+        """Optimise Slipmap by alternating between [Slipmap.lbfgs][slisemap.slipmap.Slipmap.lbfgs] and [Slipmap.escape][slisemap.slipmap.Slipmap.escape] until convergence.
 
         Args:
             patience: Number of escapes without improvement before stopping. Defaults to 2.
@@ -1179,6 +1179,7 @@ class Slipmap:
         Y: Union[None, float, np.ndarray, torch.Tensor] = None,
         index: Union[None, int, Sequence[int]] = None,
         title: str = "",
+        jitter: Union[float, np.ndarray] = 0.0,
         legend_inside: bool = True,
         show: bool = True,
         **kwargs: Any,
@@ -1217,6 +1218,7 @@ class Slipmap:
             Zs=self.get_Z()[index, :] if index is not None else None,
             dimensions=self.metadata.get_dimensions(long=True),
             title=title,
+            jitter=jitter,
             legend_inside=legend_inside,
             marker_size=6.0,
             **kwargs,

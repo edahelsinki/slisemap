@@ -17,7 +17,7 @@ the [documentation](https://edahelsinki.github.io/slisemap/slisemap), or the
 This module also includes the faster SLIPMAP variant, that uses "prototypes" to speed up
 the calculations (linear time and memory complexity instead of quadratic).
 SLIPMAP is largely compatible with SLISEMAP, just change the class name (`Slisemap` to `Slipmap`).
-For more information, see the sources above and the [paper][TODO].
+For more information, see the sources above and the [paper](TODO).
 
 Documentation
 -------------

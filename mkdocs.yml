@@ -27,33 +27,37 @@ theme:
   features:
     - navigation.tracking
     - navigation.sections
-    - navigation.indexes
+    # - navigation.indexes
 
 nav:
-  - Home: "index.md"
+  - Get started:
+      - Introduction: index.md
+      - Examples: https://github.com/edahelsinki/slisemap/tree/main/examples
+      - Presentation:
+          - Video: https://youtu.be/zvcFYItwRlQ
+          - Slides: https://github.com/edahelsinki/slisemap/blob/main/examples/demo_presentation.pdf
   - Documentation:
       - slisemap: slisemap.md
       - slisemap.slisemap: slisemap.slisemap.md
+      - slisemap.slipmap: slisemap.slipmap.md
       - slisemap.local_models: slisemap.local_models.md
+      - slisemap.utils: slisemap.utils.md
+      - slisemap.metrics: slisemap.plot.md
       - slisemap.loss: slisemap.loss.md
       - slisemap.escape: slisemap.escape.md
-      - slisemap.utils: slisemap.utils.md
       - slisemap.tuning: slisemap.tuning.md
       - slisemap.metrics: slisemap.metrics.md
       - slisemap.diagnostics: slisemap.diagnostics.md
   - Links:
       - GitHub: https://github.com/edahelsinki/slisemap
       - PyPI: https://pypi.org/project/slisemap/
-      - Paper: https://doi.org/10.1007/s10994-022-06261-1
-      - arXiv: https://arxiv.org/abs/2201.04455
-      - Demo Video: https://youtu.be/zvcFYItwRlQ
-      - Demo Paper: https://github.com/edahelsinki/slisemap/blob/main/examples/demo_paper.pdf
-      - Presentation: https://github.com/edahelsinki/slisemap/blob/main/examples/demo_presentation.pdf
-      - Examples: https://github.com/edahelsinki/slisemap/tree/main/examples
+      - Paper (Slisemap): https://doi.org/10.1007/s10994-022-06261-1
+      - Demo Paper: https://doi.org/10.1007/978-3-031-26422-1_41
 
 plugins:
   # - offline
   - search
+  - privacy
   - mkdocstrings:
       handlers:
         python:

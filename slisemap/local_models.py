@@ -44,11 +44,29 @@ class ALocalModel(ABC):
     @staticmethod
     @abstractmethod
     def predict(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
+        """Prediction function
+
+        Args:
+            X: Data matrix.
+            B: Coefficient matrix.
+
+        Returns:
+            Y: Prediction matrix.
+        """
         raise NotImplemented
 
     @staticmethod
     @abstractmethod
     def loss(Ytilde: torch.Tensor, Y: torch.Tensor) -> torch.Tensor:
+        """Loss function.
+
+        Args:
+            Ytilde: Prediction matrix.
+            Y: Target matrix
+
+        Returns:
+            L: Loss matrix.
+        """
         raise NotImplemented
 
     @staticmethod
@@ -58,6 +76,16 @@ class ALocalModel(ABC):
         Y: Union[torch.Tensor, np.ndarray],
         intercept: bool,
     ) -> int:
+        """Function for the number of columns of B.
+
+        Args:
+            X: Data matrix.
+            Y: Target matrix.
+            intercept: Add intercept.
+
+        Returns:
+            Number of columns.
+        """
         raise NotImplemented
 
     @staticmethod
@@ -68,6 +96,18 @@ class ALocalModel(ABC):
         Z: torch.Tensor,
         Ytilde: torch.Tensor,
     ) -> torch.Tensor:
+        """Regularisation function.
+
+        Args:
+            X: Data matrix.
+            Y: Target matrix.
+            B: Coefficient matrix.
+            Z: Embedding matrix.
+            Ytilde: Prediction matrix.
+
+        Returns:
+            Additional loss term.
+        """
         return 0.0
 
 
@@ -324,7 +364,7 @@ def identify_local_model(
     local_loss: Optional[CallableLike[ALocalModel.loss]] = None,
     coefficients: Union[None, int, CallableLike[ALocalModel.coefficients]] = None,
     regularisation: Union[None, CallableLike[ALocalModel.regularisation]] = None,
-) -> Tuple[Callable, Callable, Callable]:
+) -> Tuple[Callable, Callable, Callable, Callable]:
     """Identify the "predict", "loss", and "coefficients" functions for a local model.
 
     Args:

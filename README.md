@@ -7,16 +7,28 @@
 [![DOI](https://img.shields.io/badge/DOI-10.1007%2Fs10994--022--06261--1-%23fcb426)](https://doi.org/10.1007/s10994-022-06261-1)
 # SLISEMAP: Combine supervised dimensionality reduction with local explanations
 
-SLISEMAP is a supervised dimensionality reduction method, that takes data, in the form of vectors, and predictions from a *black box* regression or classification model as input. SLISEMAP then simultaneously finds local explanations for all data items and builds a (typically) two-dimensional global visualisation of the black box model such that data items with similar local explanations are projected nearby. The explanations consist of *white box* models that locally approximate the *black box* model.
+SLISEMAP is a supervised dimensionality reduction method, that takes data, in the form of vectors, and predictions from a "black box" regression or classification model as input. SLISEMAP then simultaneously finds local explanations for all data items and builds a (typically) two-dimensional global visualisation of the black box model such that data items with similar local explanations are projected nearby. The explanations consists of interpretable models that locally approximate the "black box" model.
 
-SLISEMAP is implemented in *Python* using *PyTorch* for efficient optimisation, and optional GPU-acceleration. For more information see the [full paper](https://doi.org/10.1007/s10994-022-06261-1) ([arXiv](https://arxiv.org/abs/2201.04455)), the [demo paper](https://github.com/edahelsinki/slisemap/blob/main/examples/demo_paper.pdf), the [demo video](https://youtu.be/zvcFYItwRlQ) ([slides](https://github.com/edahelsinki/slisemap/blob/main/examples/demo_presentation.pdf)), the [examples](https://github.com/edahelsinki/slisemap/tree/main/examples), or the [documentation](https://edahelsinki.github.io/slisemap/slisemap).
+SLISEMAP is implemented in *Python* using *PyTorch* for efficient optimisation, and optional GPU-acceleration. For more information see the [paper](https://doi.org/10.1007/s10994-022-06261-1) ([arXiv](https://arxiv.org/abs/2201.04455)), the [demo paper](hhttps://doi.org/10.1007/978-3-031-26422-1_41) ([video](https://youtu.be/zvcFYItwRlQ) and [slides](https://github.com/edahelsinki/slisemap/blob/main/examples/demo_presentation.pdf)), the [examples](https://github.com/edahelsinki/slisemap/tree/main/examples), or the [documentation](https://edahelsinki.github.io/slisemap/slisemap).
 
 
-## Citation
+This library also includes the faster SLIPMAP variant, that uses "prototypes" to speed up
+the calculations (linear time and memory complexity instead of quadratic).
+SLIPMAP is largely compatible with SLISEMAP, just change the class name (`Slisemap` to `Slipmap`, see example below).
+
+
+## Citations
 
 > *Björklund, A., Mäkelä, J. & Puolamäki, K. (2023).*  
 > **SLISEMAP: Supervised dimensionality reduction through local explanations.**  
 > Machine Learning 112, 1-43. [DOI: 10.1007/s10994-022-06261-1](https://doi.org/10.1007/s10994-022-06261-1)  
+
+
+> *Björklund, A., Seppäläinen, L., & Puolamäki, K. (2024).*  
+> **SLIPMAP: Fast and Robust Manifold Visualisation for Explainable AI**  
+> To appear in: Advances in Intelligent Data Analysis XXII. IDA 2024. Lecture Notes in Computer Science.  
+
+Supplements for the papers (source code for the experiments and intermediate results) can be found [here](https://github.com/edahelsinki/slisemap/tree/data).
 
 ## Installation
 
@@ -50,5 +62,11 @@ sm.optimise()
 sm.plot(clusters=5, bars=5)
 ```
 ![Example plot of the results from using SLISEMAP on the *Auto MPG* dataset](docs/autompg.webp)
+
+To use the faster SLIPMAP variant just replace the relevant lines: 
+```python
+from slisemap import Slipmap
+sm = Slipmap(X, y, radius=2.0, lasso=0.01)
+```
 
 See the [examples](https://github.com/edahelsinki/slisemap/tree/main/examples) for more detailed examples, and the [documentation](https://edahelsinki.github.io/slisemap/slisemap.html) for more detailed instructions.
