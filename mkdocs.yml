@@ -56,7 +56,8 @@ nav:
 plugins:
   # - offline
   - search
-  - privacy
+  - privacy:
+      assets: false
   - mkdocstrings:
       handlers:
         python:

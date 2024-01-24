@@ -28,7 +28,8 @@ SLIPMAP is largely compatible with SLISEMAP, just change the class name (`Slisem
 > **SLIPMAP: Fast and Robust Manifold Visualisation for Explainable AI**  
 > To appear in: Advances in Intelligent Data Analysis XXII. IDA 2024. Lecture Notes in Computer Science.  
 
-Supplements for the papers (source code for the experiments and intermediate results) can be found [here](https://github.com/edahelsinki/slisemap/tree/data).
+Supplementary material for the papers (source code and results for the experiments) can be found [here](https://github.com/edahelsinki/slisemap/tree/data).
+
 
 ## Installation
 
@@ -63,7 +64,8 @@ sm.plot(clusters=5, bars=5)
 ```
 ![Example plot of the results from using SLISEMAP on the *Auto MPG* dataset](docs/autompg.webp)
 
-To use the faster SLIPMAP variant just replace the relevant lines: 
+To use the faster SLIPMAP variant just replace the relevant lines:
+
 ```python
 from slisemap import Slipmap
 sm = Slipmap(X, y, radius=2.0, lasso=0.01)
