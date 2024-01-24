@@ -37,6 +37,7 @@ dependencies = [
 
 [project.optional-dependencies]
 tuning = ["scikit-optimize >= 0.9"]
+dev = ["pytest", "pytest-cov", "black[jupyter]", "pylint", "jupyter", "IPython"]
 
 [project.urls]
 homepage = "https://github.com/edahelsinki/slisemap"
