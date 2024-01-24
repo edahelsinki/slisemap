@@ -42,3 +42,17 @@ repository = "https://github.com/edahelsinki/slisemap.git"
 
 [tool.setuptools]
 packages = ["slisemap"]
+
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+exclude_also = [
+    "_deprecated",
+    "print",
+    "plt.show",
+    "if verbose",
+    "ImportError",
+    "_warn",
+]
+omit = ["slisemap/guide*.py"]
