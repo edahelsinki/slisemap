@@ -668,21 +668,21 @@ class Slipmap:
 
         Args:
             sm: Slisemap object.
-            keep_kernel: Use the kernel from the Slisemap object. Defaults to False.
+            keep_kernel: Use the kernel and distance functions from the Slisemap object. Defaults to False.
             **kwargs: Other parameters forwarded to Slipmap.
 
         Returns:
             Slipmap object for the same data as the Slisemap object.
         """
         if keep_kernel:
-            kwargs["kernel"] = sm.kernel
+            kwargs.setdefault("kernel", sm.kernel)
+            kwargs.setdefault("distance", sm.distance)
         kwargs.setdefault("radius", sm.radius)
         kwargs.setdefault("d", sm.d)
         kwargs.setdefault("lasso", sm.lasso)
         kwargs.setdefault("ridge", sm.ridge)
         kwargs.setdefault("intercept", sm.intercept)
         kwargs.setdefault("local_model", (sm.local_model, sm.local_loss, sm.q))
-        kwargs.setdefault("distance", sm.distance)
         kwargs.setdefault("Z0", sm.get_Z(scale=False, rotate=True, numpy=False))
         kwargs.setdefault("jit", sm.jit)
         B = sm.get_B(False)
@@ -1007,7 +1007,7 @@ class Slipmap:
 
         Args:
             patience: Number of escapes without improvement before stopping. Defaults to 2.
-            max_escapes: Maximum number of escapes. Defaults to 100.
+            max_escapes: aximum numbers optimisation rounds. Defaults to 100.
             max_iter: Maximum number of LBFGS iterations per round. Defaults to 500.
             only_B: Only optimise the local models, not the embedding. Defaults to False.
             lerp: Linear interpolation when escaping (see `Slipmap.escape`). Defaults to 0.9.

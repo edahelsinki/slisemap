@@ -855,7 +855,7 @@ class Slisemap:
 
         Args:
             patience: Number of escapes without improvement before stopping. Defaults to 2.
-            max_escapes: Maximum number of escapes. Defaults to 100.
+            max_escapes: Maximum numbers optimisation rounds. Defaults to 100.
             max_iter: Maximum number of LBFGS iterations per round. Defaults to 500.
             escape_fn: Escape function (see [slisemap.escape][]). Defaults to [escape_neighbourhood][slisemap.escape.escape_neighbourhood].
             verbose: Print status messages (0: no, 1: some, 2: all). Defaults to 0.
