@@ -1,6 +1,8 @@
 from timeit import default_timer as timer
 
 import pytest
+
+from slisemap import Slipmap
 from slisemap.utils import *
 
 from .utils import *
@@ -123,6 +125,8 @@ def test_to_tensor():
         test(pandas.DataFrame(X4))
         rows = [1, 4, 2, 0, 3]
         assert_allclose(rows, to_tensor(pandas.DataFrame(X4).iloc[rows])[1])
+        Slisemap(X=pandas.DataFrame(X4), y=X3[1], lasso=0.1)
+        Slipmap(X=pandas.DataFrame(X4), y=X3[1], lasso=0.1)
     except ImportError:
         pass
 

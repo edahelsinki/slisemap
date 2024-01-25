@@ -4,7 +4,7 @@ This module used to contain the SLISEMAP loss functions.
 
 import torch
 
-from slisemap.slipmap import make_loss, make_marginal_loss
+from slisemap.slisemap import make_loss, make_marginal_loss
 from slisemap.utils import (
     _deprecated,
     _warn,

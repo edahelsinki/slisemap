@@ -77,6 +77,19 @@ def _assert(condition: bool, message: str, method: Optional[Callable] = None):
             raise SlisemapException(f"AssertionError, {method.__qualname__}: {message}")
 
 
+def _assert_shape(
+    tensor: Union[np.ndarray, torch.tensor],
+    shape: Tuple[int],
+    name: str,
+    method: Optional[Callable] = None,
+):
+    _assert(
+        tensor.shape == shape,
+        f"{name} has the wrong shape: {tensor.shape} != {shape}",
+        method,
+    )
+
+
 def _assert_no_trace(
     condition: Callable[[], Tuple[bool, str]], method: Optional[Callable] = None
 ):
@@ -540,7 +553,7 @@ class Metadata(dict):
                 variables.append("Intercept")
             _assert(
                 len(variables) == self.root.m,
-                f"Wrong number of variables {len(variables)} != {self.root.m}",
+                f"Wrong number of variables {len(variables)} != {self.root.m} ({variables})",
                 Metadata.set_variables,
             )
             self["variables"] = variables

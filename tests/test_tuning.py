@@ -27,6 +27,7 @@ def tune_data():
     return (sm, sp, X_test, y_test, X_vali, y_vali)
 
 
+@pytest.hookimpl(trylast=True)
 def test_with_set(tune_data):
     sm0, sp0, X_test, y_test, X_vali, y_vali = tune_data
     for sm in (sm0, sp0):
@@ -38,6 +39,7 @@ def test_with_set(tune_data):
         assert sm2.lasso != sm.lasso or sm2.ridge != sm.ridge or sm2.radius != sm.radius
 
 
+@pytest.hookimpl(trylast=True)
 def test_with_cv(tune_data):
     sm0, sp0, X_test, y_test, X_vali, y_vali = tune_data
     for sm in (sm0, sp0):
@@ -47,6 +49,7 @@ def test_with_cv(tune_data):
         assert sm2.lasso != sm.lasso or sm2.ridge != sm.ridge or sm2.radius != sm.radius
 
 
+@pytest.hookimpl(trylast=True)
 def test_tune(tune_data):
     sm0, sp0, X_test, y_test, X_vali, y_vali = tune_data
     for sm in (sm0, sp0):

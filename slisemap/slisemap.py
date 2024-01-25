@@ -45,7 +45,9 @@ from slisemap.utils import (
     CheckConvergence,
     Metadata,
     PCA_rotation,
+    ToTensor,
     _assert,
+    _assert_shape,
     _deprecated,
     _warn,
     global_model,
@@ -110,8 +112,8 @@ class Slisemap:
 
     def __init__(
         self,
-        X: Union[np.ndarray, torch.Tensor, Sequence[Any]],
-        y: Union[np.ndarray, torch.Tensor, Sequence[Any]],
+        X: ToTensor,
+        y: ToTensor,
         radius: float = 3.5,
         d: int = 2,
         lasso: Optional[float] = None,
@@ -126,8 +128,8 @@ class Slisemap:
         regularisation: Union[None, CallableLike[ALocalModel.regularisation]] = None,
         distance: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] = torch.cdist,
         kernel: Callable[[torch.Tensor], torch.Tensor] = softmax_row_kernel,
-        B0: Union[None, np.ndarray, torch.Tensor, Sequence[Any]] = None,
-        Z0: Union[None, np.ndarray, torch.Tensor, Sequence[Any]] = None,
+        B0: Optional[ToTensor] = None,
+        Z0: Optional[ToTensor] = None,
         jit: bool = True,
         random_state: Optional[int] = None,
         dtype: torch.dtype = torch.float32,
@@ -207,19 +209,9 @@ class Slisemap:
 
         self._Y, Y_rows, Y_columns = to_tensor(y, **tensorargs)
         self.metadata.set_targets(Y_columns)
-        _assert(
-            self._Y.shape[0] == n,
-            f"The length of y must match X: {self._Y.shape[0]} != {n}",
-            Slisemap,
-        )
         if len(self._Y.shape) == 1:
             self._Y = self._Y[:, None]
-
-        if device is None and cuda is None:
-            if self.n**2 * self.m * self.o > 1_000_000 and torch.cuda.is_available():
-                tensorargs["device"] = torch.device("cuda")
-                self._X = self._X.cuda()
-                self._Y = self._Y.cuda()
+        _assert_shape(self._Y, (n, self._Y.shape[1]), "Y", Slisemap)
 
         if random_state is not None:
             self.random_state = random_state
@@ -237,45 +229,47 @@ class Slisemap:
         else:
             self._Z0, Z_rows, Z_columns = to_tensor(Z0, **tensorargs)
             self.metadata.set_dimensions(Z_columns)
-            _assert(
-                self._Z0.shape == (n, d),
-                f"Z0 has the wrong shape: {self._Z0.shape} != ({n}, {d})",
-                Slisemap,
-            )
+            _assert_shape(self._Z0, (n, d), "Z0", Slisemap)
         if radius > 0:
             norm = 1 / (torch.sqrt(torch.sum(self._Z0**2) / self._Z0.shape[0]) + 1e-8)
             self._Z0 = self._Z0 * norm
         self._Z = self._Z0.detach().clone()
 
+        if callable(coefficients):
+            coefficients = coefficients(self._X, self._Y)
         if B0 is None:
             B0 = global_model(
                 X=self._X,
                 Y=self._Y,
                 local_model=self.local_model,
                 local_loss=self.local_loss,
-                coefficients=coefficients(self._X, self._Y),
+                coefficients=coefficients,
                 lasso=self.lasso,
                 ridge=self.ridge,
-            )
+            ).detach()
             if not torch.all(torch.isfinite(B0)):
                 _warn(
                     "Optimising a global model as initialisation resulted in non-finite values. Consider using stronger regularisation (increase `lasso` or `ridge`).",
                     Slisemap,
                 )
                 B0 = torch.zeros_like(B0)
-            self._B0 = B0.expand((n, B0.shape[1]))
+            self._B0 = B0.expand((n, coefficients))
             B_rows = None
         else:
             self._B0, B_rows, B_columns = to_tensor(B0, **tensorargs)
+            if self._B0.shape[0] == 1:
+                self._B0 = self._B0.expand((self.n, coefficients))
+            _assert_shape(self._B0, (n, coefficients), "B0", Slisemap)
             self.metadata.set_coefficients(B_columns)
-            _assert(
-                self._B0.shape == (n, B0.shape[1]),
-                f"B0 has the wrong shape: {self._B0.shape} != ({n}, {coefficients(self._X, self._Y)})",
-                Slisemap,
-            )
-        self._B = self._B0.detach().clone()
-
+        self._B = self._B0.clone()
         self.metadata.set_rows(X_rows, Y_rows, B_rows, Z_rows)
+
+        if (
+            device is None
+            and self.n**2 * self.m * self.o > 1_000_000
+            and torch.cuda.is_available()
+        ):
+            self.cuda()
 
     @property
     def n(self) -> int:
@@ -561,30 +555,16 @@ class Slisemap:
         X = torch.atleast_2d(to_tensor(X, **tensorargs)[0])
         if self._intercept and X.shape[1] == self.m - 1:
             X = torch.cat([X, torch.ones((X.shape[0], 1), **tensorargs)], 1)
-        _assert(
-            X.shape[1] == self.m,
-            f"X has the wrong shape {X.shape} != {(X.shape[0], self.m)}",
-            Slisemap._as_new_X,
-        )
+        _assert_shape(X, (X.shape[0], self.m), "X", Slisemap._as_new_X)
         return X
 
-    def _as_new_Y(
-        self,
-        Y: Union[None, float, np.ndarray, torch.Tensor] = None,
-        n: Optional[int] = None,
-    ) -> torch.Tensor:
+    def _as_new_Y(self, Y: Optional[ToTensor] = None, n: int = -1) -> torch.Tensor:
         if Y is None:
             return self._Y
         Y = to_tensor(Y, **self.tensorargs)[0]
         if len(Y.shape) < 2:
-            Y = torch.reshape(Y, (-1, self.o))
-        if n is None:
-            n = Y.shape[0]
-        _assert(
-            Y.shape == (n, self.o),
-            f"Y has the wrong shape {Y.shape} != {(n, self.o)}",
-            Slisemap._as_new_Y,
-        )
+            Y = torch.reshape(Y, (n, self.o))
+        _assert_shape(Y, (n if n > 0 else Y.shape[0], self.o), "Y", Slisemap._as_new_Y)
         return Y
 
     def get_Z(
@@ -1097,11 +1077,7 @@ class Slisemap:
                 B = self._B[D.argmin(1), :]
         if B is None:
             Z = torch.atleast_2d(to_tensor(Z, **self.tensorargs)[0])
-            _assert(
-                (Z.shape[0] in (1, X.shape[0])) and (Z.shape[1] == self.d),
-                f"Z has the wrong shape {Z.shape} != {(X.shape[0], self.d)}",
-                Slisemap.predict,
-            )
+            _assert_shape(Z, (X.shape[0], self.d), "Z", Slisemap.predict)
             D = self._distance(Z, self._Z)
             W = self.kernel(D)
             B = self._B[torch.argmin(D, 1)].clone().requires_grad_(True)
@@ -1113,11 +1089,7 @@ class Slisemap:
             LBFGS(yhat, [B], **kwargs)
         else:
             B = torch.atleast_2d(to_tensor(B, **self.tensorargs)[0])
-            _assert(
-                (B.shape[0] in (1, X.shape[0])) and (B.shape[1] == self.q),
-                f"B has the wrong shape {B.shape} != {(X.shape[0], self.q)}",
-                Slisemap.predict,
-            )
+            _assert_shape(B, (X.shape[0], self.q), "B", Slisemap.predict)
         yhat = local_predict(X, B, self.local_model)
         return tonp(yhat) if numpy else yhat
 

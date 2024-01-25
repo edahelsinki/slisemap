@@ -81,6 +81,8 @@ def test_median_loss(metrics_data):
 
 def test_stability(metrics_data):
     for sm1, sm2 in zip(metrics_data[::2], metrics_data[1::2]):
+        if isinstance(sm1, Slipmap):
+            continue  # Slipmap.get_B is not smooth
         for neighbours in (
             None,
             partial(euclidean_nearest_neighbours, k=10),
@@ -96,8 +98,10 @@ def test_stability(metrics_data):
 
 def test_coherence(metrics_data):
     for sm1, sm2 in zip(metrics_data[::2], metrics_data[1::2]):
+        if isinstance(sm1, Slipmap):
+            continue  # Slipmap.get_B is not smooth
         for neighbours in (
-            # None,
+            None,
             partial(euclidean_nearest_neighbours, k=10),
             kernel_neighbours,
             radius_neighbours,

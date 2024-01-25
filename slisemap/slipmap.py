@@ -44,12 +44,15 @@ from slisemap.utils import (
     Metadata,
     PCA_rotation,
     _assert,
+    _assert_shape,
     _warn,
     global_model,
     make_grid,
     softmax_column_kernel,
     squared_distance,
+    to_tensor,
     tonp,
+    ToTensor,
 )
 
 
@@ -105,8 +108,8 @@ class Slipmap:
 
     def __init__(
         self,
-        X: Union[np.ndarray, torch.Tensor],
-        y: Union[np.ndarray, torch.Tensor],
+        X: ToTensor,
+        y: ToTensor,
         radius: float = 2.0,
         d: int = 2,
         lasso: Optional[float] = None,
@@ -122,9 +125,9 @@ class Slipmap:
             [torch.Tensor, torch.Tensor], torch.Tensor
         ] = squared_distance,
         kernel: Callable[[torch.Tensor], torch.Tensor] = softmax_column_kernel,
-        Z0: Union[None, np.ndarray, torch.Tensor] = None,
-        Bp0: Union[None, np.ndarray, torch.Tensor] = None,
-        Zp0: Union[None, np.ndarray, torch.Tensor] = None,
+        Z0: Optional[ToTensor] = None,
+        Bp0: Optional[ToTensor] = None,
+        Zp0: Optional[ToTensor] = None,
         prototypes: Union[int, float] = 1.0,
         jit: bool = True,
         dtype: torch.dtype = torch.float32,
@@ -178,61 +181,48 @@ class Slipmap:
         self._radius = radius
         self._intercept = intercept
         self._jit = jit
+        self.metadata = Metadata(self)
+
+        if device is None and isinstance(X, torch.Tensor):
+            device = X.device
+        tensorargs = {"device": device, "dtype": dtype}
 
         if Zp0 is None:
             if prototypes < 6.0:
                 # Interpret prototypes as a density (prototypes per unit square)
                 prototypes = radius**2 * 2 * np.pi * prototypes
-            Zp0 = make_grid(prototypes, d=d)
-        o = Zp0.shape[0]
-        _assert(
-            Zp0.shape == (o, d),
-            f"Zp0 has the wrong shape: {Zp0.shape} != ({o}, {d})",
-            Slipmap,
-        )
+            self._Zp = torch.as_tensor(make_grid(prototypes, d=d), **tensorargs)
+        else:
+            self._Zp = to_tensor(Zp0, **tensorargs)[0]
+        _assert_shape(self._Zp, (self._Zp.shape[0], d), "Zp0", Slipmap)
 
-        if device is None:
-            if isinstance(X, torch.Tensor):
-                device = X.device
-            else:
-                scale = X.shape[0] * X.shape[1] * Zp0.shape[0]
-                scale *= 1 if len(y.shape) < 2 else y.shape[1]
-                cuda = scale > 500_000 and torch.cuda.is_available()
-                device = torch.device("cuda" if cuda else "cpu")
-        tensorargs = {"device": device, "dtype": dtype}
-
-        self._X = torch.as_tensor(X, **tensorargs)
+        self._X, X_rows, X_columns = to_tensor(X, **tensorargs)
         if intercept:
             self._X = torch.cat((self._X, torch.ones_like(self._X[:, :1])), 1)
         n, m = self._X.shape
+        self.metadata.set_variables(X_columns, intercept)
 
-        self._Y = torch.as_tensor(y, **tensorargs)
-        _assert(
-            self._Y.shape[0] == n,
-            f"The length of y must match X: {self._Y.shape[0]} != {n}",
-            Slipmap,
-        )
+        self._Y, Y_rows, Y_columns = to_tensor(y, **tensorargs)
+        self.metadata.set_targets(Y_columns)
         if len(self._Y.shape) == 1:
             self._Y = self._Y[:, None]
+        _assert_shape(self._Y, (n, self._Y.shape[1]), "Y", Slipmap)
 
         if Z0 is None:
-            Z0 = self._X @ PCA_rotation(self._X, d)
-            if Z0.shape[1] < d:
+            self._Z = self._X @ PCA_rotation(self._X, d)
+            if self._Z.shape[1] < d:
                 _warn(
                     "The number of embedding dimensions is larger than the number of data dimensions",
-                    Slipmap,
+                    Slisemap,
                 )
-                Z0fill = torch.zeros(size=[n, d - Z0.shape[1]], **tensorargs)
-                Z0 = torch.cat((Z0, Z0fill), 1)
+                Z0fill = torch.zeros(size=[n, d - self._Z.shape[1]], **tensorargs)
+                self._Z = torch.cat((self._Z, Z0fill), 1)
+            Z_rows = None
         else:
-            Z0 = torch.as_tensor(Z0, **tensorargs)
-            _assert(
-                Z0.shape == (n, d),
-                f"Z0 has the wrong shape: {Z0.shape} != ({n}, {d})",
-                Slipmap,
-            )
-        self._Z = Z0
-        self._Zp = torch.as_tensor(Zp0, **tensorargs)
+            self._Z, Z_rows, Z_columns = to_tensor(Z0, **tensorargs)
+            self.metadata.set_dimensions(Z_columns)
+
+            _assert_shape(self._Z, (n, d), "Z0", Slipmap)
         self._normalise(True)
 
         if callable(coefficients):
@@ -253,22 +243,21 @@ class Slipmap:
                     Slipmap,
                 )
                 Bp0 = torch.zeros_like(Bp0)
-            Bp0 = Bp0.expand((o, coefficients)).clone()
+            self._Bp = Bp0.expand((self.p, coefficients)).clone()
+            B_rows = None
         else:
-            Bp0 = torch.as_tensor(Bp0, **tensorargs)
-            _assert(
-                len(Bp0.shape) > 1, "Bp0 must have more than one dimension", Slipmap
-            )
-            if Bp0.shape[0] == 1:
-                Bp0 = Bp0.expand((o, coefficients)).clone()
-            else:
-                _assert(
-                    Bp0.shape == (o, coefficients),
-                    f"Bp0 has the wrong shape: {Bp0.shape} != ({o}, {coefficients})",
-                    Slipmap,
-                )
-        self._Bp = Bp0
-        self.metadata = Metadata(self)
+            self._Bp, B_rows, B_columns = to_tensor(Bp0, **tensorargs)
+            if self._Bp.shape[0] == 1:
+                self._Bp = self._Bp.expand((self.p, coefficients)).clone()
+            _assert_shape(self._Bp, (self.p, coefficients), "Bp0", Slipmap)
+            self.metadata.set_coefficients(B_columns)
+        self.metadata.set_rows(X_rows, Y_rows, B_rows, Z_rows)
+        if (
+            device is None
+            and self.n * self.m * self.p * self.o > 500_000
+            and torch.cuda.is_available()
+        ):
+            self.cuda()
 
     @property
     def n(self) -> int:
@@ -593,26 +582,16 @@ class Slipmap:
         X = torch.atleast_2d(torch.as_tensor(X, **tensorargs))
         if self._intercept and X.shape[1] == self.m - 1:
             X = torch.cat([X, torch.ones((X.shape[0], 1), **tensorargs)], 1)
-        _assert(
-            X.shape[1] == self.m,
-            f"X has the wrong shape {X.shape} != {(X.shape[0], self.m)}",
-            Slipmap._as_new_X,
-        )
+        _assert_shape(X, (X.shape[0], self.m), "X", Slipmap._as_new_X)
         return X
 
-    def _as_new_Y(
-        self, Y: Union[None, float, np.ndarray, torch.Tensor] = None, n: int = -1
-    ) -> torch.Tensor:
+    def _as_new_Y(self, Y: Optional[ToTensor] = None, n: int = -1) -> torch.Tensor:
         if Y is None:
             return self._Y
-        Y = torch.as_tensor(Y, **self.tensorargs)
+        Y = to_tensor(Y, **self.tensorargs)[0]
         if len(Y.shape) < 2:
             Y = torch.reshape(Y, (n, self.o))
-        _assert(
-            Y.shape[1] == self.o,
-            f"Y has the wrong shape {Y.shape} != {(Y.shape[0], self.o)}",
-            Slipmap._as_new_Y,
-        )
+        _assert_shape(Y, (n if n > 0 else Y.shape[0], self.o), "Y", Slipmap._as_new_Y)
         return Y
 
     @property
