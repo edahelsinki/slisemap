@@ -158,13 +158,6 @@ def _hyper_init(
     radius_grid: float,
     search_size: int,
 ) -> Tuple[Slisemap, Dict[str, Any], Optional[Dict[str, Any]]]:
-    # Initialise kwargs
-    hs_kws = {
-        "lasso_grid": max(1, lasso_grid),
-        "ridge_grid": max(1, ridge_grid),
-        "n_calls": max(0, search_size),
-    }
-    kwargs.setdefault("increase_tolerance", True)
     # Check the search space
     _assert(search_size > 1, "No hyperparameter optimisation", method)
     if sm.lasso <= 0.0 and lasso_grid > 1.0:
@@ -179,6 +172,14 @@ def _hyper_init(
     if lasso_grid <= 1.0 and ridge_grid <= 1.0 and radius_grid <= 1.0:
         _warn("Empty hyperparameter search space.", method)
         hs_kws = None
+    # Initialise kwargs
+    hs_kws = {
+        "lasso_grid": max(1, lasso_grid),
+        "ridge_grid": max(1, ridge_grid),
+        "radius_grid": max(1, radius_grid),
+        "n_calls": max(0, search_size),
+    }
+    kwargs.setdefault("increase_tolerance", True)
     return kwargs, hs_kws
 
 
@@ -186,10 +187,10 @@ def _hyper_tune(
     sm: Union[Slisemap, Slipmap],
     X_test: torch.Tensor,
     y_test: torch.Tensor,
-    test: Callable[[Slisemap, torch.Tensor, torch.Tensor], float] = accuracy,
-    lasso_grid: float = 3.0,
-    ridge_grid: float = 3.0,
-    radius_grid: float = 1.5,
+    test: Callable[[Slisemap, torch.Tensor, torch.Tensor], float],
+    lasso_grid: float,
+    ridge_grid: float,
+    radius_grid: float,
     n_calls: int = 6,
     random_state: int = 42,
     gp_kws: Dict[str, object] = {},
@@ -270,7 +271,7 @@ def optimise_with_test(
     y_test: Union[np.ndarray, torch.Tensor],
     lasso_grid: float = 3.0,
     ridge_grid: float = 3.0,
-    radius_grid: float = 1.5,
+    radius_grid: float = 1.1,
     search_size: int = 6,
     test: Callable[[Slisemap, torch.Tensor, torch.Tensor], float] = accuracy,
     patience: int = 2,
@@ -371,7 +372,7 @@ def optimise_with_cv(
     k: int = 5,
     lasso_grid: float = 3.0,
     ridge_grid: float = 3.0,
-    radius_grid: float = 1.5,
+    radius_grid: float = 1.1,
     search_size: int = 6,
     lerp: float = 0.3,
     test: Callable[[Slisemap, torch.Tensor, torch.Tensor], float] = accuracy,

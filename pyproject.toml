@@ -36,7 +36,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-tuning = ["scikit-optimize >= 0.9"]
+tuning = ["scikit-optimize >= 0.9", "scipy >= 0.17"]
 dev = ["pytest", "pytest-cov", "black[jupyter]", "pylint", "jupyter", "IPython"]
 
 [project.urls]
