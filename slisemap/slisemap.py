@@ -546,15 +546,12 @@ class Slisemap:
                 )
         return self._loss
 
-    def _as_new_X(
-        self, X: Union[None, np.ndarray, torch.Tensor] = None
-    ) -> torch.Tensor:
+    def _as_new_X(self, X: Optional[ToTensor] = None) -> torch.Tensor:
         if X is None:
             return self._X
-        tensorargs = self.tensorargs
-        X = torch.atleast_2d(to_tensor(X, **tensorargs)[0])
+        X = torch.atleast_2d(to_tensor(X, **self.tensorargs)[0])
         if self._intercept and X.shape[1] == self.m - 1:
-            X = torch.cat([X, torch.ones((X.shape[0], 1), **tensorargs)], 1)
+            X = torch.cat((X, torch.ones_like(X[:, :1])), 1)
         _assert_shape(X, (X.shape[0], self.m), "X", Slisemap._as_new_X)
         return X
 
@@ -615,8 +612,8 @@ class Slisemap:
 
     def get_L(
         self,
-        X: Union[None, np.ndarray, torch.Tensor] = None,
-        Y: Union[None, float, np.ndarray, torch.Tensor] = None,
+        X: Optional[ToTensor] = None,
+        Y: Optional[ToTensor] = None,
         numpy: bool = True,
     ) -> Union[np.ndarray, torch.Tensor]:
         """Get the loss matrix: [B.shape[0], X.shape[0]].
@@ -891,8 +888,8 @@ class Slisemap:
 
     def fit_new(
         self,
-        Xnew: Union[np.ndarray, torch.Tensor],
-        ynew: Union[float, np.ndarray, torch.Tensor],
+        Xnew: ToTensor,
+        ynew: ToTensor,
         optimise: bool = True,
         between: bool = True,
         escape_fn: Callable = escape_neighbourhood,
@@ -1025,9 +1022,9 @@ class Slisemap:
 
     def predict(
         self,
-        X: Union[None, np.ndarray, torch.Tensor] = None,
-        B: Union[None, np.ndarray, torch.Tensor] = None,
-        Z: Union[None, np.ndarray, torch.Tensor] = None,
+        X: Optional[ToTensor] = None,
+        B: Optional[ToTensor] = None,
+        Z: Optional[ToTensor] = None,
         numpy: bool = True,
         *,
         Xnew=None,
@@ -1349,8 +1346,8 @@ class Slisemap:
 
     def plot_position(
         self,
-        X: Union[None, np.ndarray, torch.Tensor] = None,
-        Y: Union[None, float, np.ndarray, torch.Tensor] = None,
+        X: Optional[ToTensor] = None,
+        Y: Optional[ToTensor] = None,
         index: Union[None, int, Sequence[int]] = None,
         title: str = "",
         jitter: Union[float, np.ndarray] = 0.0,

@@ -121,10 +121,8 @@ class Slipmap:
         local_loss: Optional[CallableLike[ALocalModel.loss]] = None,
         coefficients: Union[None, int, CallableLike[ALocalModel.coefficients]] = None,
         regularisation: Union[None, CallableLike[ALocalModel.regularisation]] = None,
-        distance: Callable[
-            [torch.Tensor, torch.Tensor], torch.Tensor
-        ] = squared_distance,
-        kernel: Callable[[torch.Tensor], torch.Tensor] = softmax_column_kernel,
+        distance: CallableLike[squared_distance] = squared_distance,
+        kernel: CallableLike[softmax_column_kernel] = softmax_column_kernel,
         Z0: Optional[ToTensor] = None,
         Bp0: Optional[ToTensor] = None,
         Zp0: Optional[ToTensor] = None,
@@ -538,8 +536,8 @@ class Slipmap:
 
     def get_L(
         self,
-        X: Union[None, np.ndarray, torch.Tensor] = None,
-        Y: Union[None, float, np.ndarray, torch.Tensor] = None,
+        X: Optional[ToTensor] = None,
+        Y: Optional[ToTensor] = None,
         numpy: bool = True,
     ) -> Union[np.ndarray, torch.Tensor]:
         """Get the loss matrix.
@@ -573,15 +571,12 @@ class Slipmap:
         index = torch.argmin(D, 0)
         return tonp(index) if numpy else index
 
-    def _as_new_X(
-        self, X: Union[None, np.ndarray, torch.Tensor] = None
-    ) -> torch.Tensor:
+    def _as_new_X(self, X: Optional[ToTensor] = None) -> torch.Tensor:
         if X is None:
             return self._X
-        tensorargs = self.tensorargs
-        X = torch.atleast_2d(torch.as_tensor(X, **tensorargs))
+        X = torch.atleast_2d(to_tensor(X, **self.tensorargs)[0])
         if self._intercept and X.shape[1] == self.m - 1:
-            X = torch.cat([X, torch.ones((X.shape[0], 1), **tensorargs)], 1)
+            X = torch.cat((X, torch.ones_like(X[:, :1])), 1)
         _assert_shape(X, (X.shape[0], self.m), "X", Slipmap._as_new_X)
         return X
 
@@ -805,12 +800,7 @@ class Slipmap:
         if not hasattr(self, "_regularisation"):
             self._regularisation = ALocalModel.regularisation
 
-    def _get_loss_fn(
-        self, individual: bool = False
-    ) -> Callable[
-        [torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor],
-        torch.Tensor,
-    ]:
+    def _get_loss_fn(self, individual: bool = False) -> CallableLike[ALocalModel.loss]:
         """Returns the Slipmap loss function.
         This function JITs and caches the loss function for efficiency.
 
@@ -1034,7 +1024,7 @@ class Slipmap:
 
     def predict(
         self,
-        Xnew: Union[np.ndarray, torch.Tensor],
+        Xnew: ToTensor,
         weighted: bool = True,
         numpy: bool = True,
     ) -> Union[np.ndarray, torch.Tensor]:
@@ -1150,8 +1140,8 @@ class Slipmap:
 
     def plot_position(
         self,
-        X: Union[None, np.ndarray, torch.Tensor] = None,
-        Y: Union[None, float, np.ndarray, torch.Tensor] = None,
+        X: Optional[ToTensor] = None,
+        Y: Optional[ToTensor] = None,
         index: Union[None, int, Sequence[int]] = None,
         title: str = "",
         jitter: Union[float, np.ndarray] = 0.0,

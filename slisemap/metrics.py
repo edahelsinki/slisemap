@@ -11,7 +11,7 @@ import torch
 from sklearn.cluster import KMeans
 
 from slisemap.slisemap import Slisemap
-from slisemap.utils import _deprecated, tonp
+from slisemap.utils import ToTensor, _deprecated, to_tensor, tonp
 
 
 def _non_crashing_median(x: torch.Tensor) -> float:
@@ -136,24 +136,32 @@ def radius_neighbours(
         return torch.where(mask)[0]
 
 
-def get_neighbours(
-    sm: Union[Slisemap, torch.Tensor],
-    neighbours: Union[
-        None,
-        np.ndarray,
-        torch.LongTensor,
-        Callable[[torch.Tensor, int], torch.LongTensor],
-    ],
-    full_if_none: bool = False,
-    **kwargs: Any,
-) -> Callable[[int], torch.LongTensor]:
-    """Create a function that takes the index of an item and returns the indices of its neighbours.
+Neighbours = Union[
+    None,
+    np.ndarray,
+    torch.LongTensor,
+    Callable[[torch.Tensor, int], torch.LongTensor],
+]
+"""Type annotation for specifying neighbouring items.
+Used in the [get_neighbours][slisemap.metrics.get_neighbours] function.
 
-    The neighbours parameter is primarily one of:
+- If None, every item is or is not a neighbour.
+- If a vector of cluster id:s, take neighbours from the same cluter.
+- Or a function that gives neighbours (that takes a distance matrix and an index), primarily:
      - euclidean_nearest_neighbours
      - kernel_neighbours
      - cluster_neighbours
      - radius_neighbours
+"""
+
+
+def get_neighbours(
+    sm: Union[Slisemap, torch.Tensor],
+    neighbours: Neighbours,
+    full_if_none: bool = False,
+    **kwargs: Any,
+) -> Callable[[int], torch.LongTensor]:
+    """Create a function that takes the index of an item and returns the indices of its neighbours.
 
     Args:
         sm: Trained Slisemap solution or an embedding vector (like Slisemap.Z).
@@ -236,16 +244,7 @@ def slisemap_entropy(sm: Slisemap) -> float:
     return entropy(sm, aggregate=True, numpy=True)
 
 
-def fidelity(
-    sm: Slisemap,
-    neighbours: Union[
-        None,
-        np.ndarray,
-        torch.LongTensor,
-        Callable[[torch.Tensor, int], torch.LongTensor],
-    ] = None,
-    **kwargs: Any,
-) -> float:
+def fidelity(sm: Slisemap, neighbours: Neighbours = None, **kwargs: Any) -> float:
     """Evaluate a SLISEMAP solution by calculating the fidelity (loss per item/neighbourhood).
 
     Smaller is better.
@@ -272,15 +271,7 @@ def fidelity(
 
 
 def coverage(
-    sm: Slisemap,
-    max_loss: float,
-    neighbours: Union[
-        None,
-        np.ndarray,
-        torch.LongTensor,
-        Callable[[torch.Tensor, int], torch.LongTensor],
-    ] = None,
-    **kwargs: Any,
+    sm: Slisemap, max_loss: float, neighbours: Neighbours = None, **kwargs: Any
 ) -> float:
     """Evaluate a SLISEMAP solution by calculating the coverage.
 
@@ -310,16 +301,7 @@ def coverage(
     return nanmean(results)
 
 
-def median_loss(
-    sm: Slisemap,
-    neighbours: Union[
-        None,
-        np.ndarray,
-        torch.LongTensor,
-        Callable[[torch.Tensor, int], torch.LongTensor],
-    ] = None,
-    **kwargs: Any,
-) -> float:
+def median_loss(sm: Slisemap, neighbours: Neighbours = None, **kwargs: Any) -> float:
     """Evaluate a SLISEMAP solution by calculating the median loss.
 
     Smaller is better.
@@ -345,16 +327,7 @@ def median_loss(
     return nanmean(results)
 
 
-def coherence(
-    sm: Slisemap,
-    neighbours: Union[
-        None,
-        np.ndarray,
-        torch.LongTensor,
-        Callable[[torch.Tensor, int], torch.LongTensor],
-    ] = None,
-    **kwargs: Any,
-) -> float:
+def coherence(sm: Slisemap, neighbours: Neighbours = None, **kwargs: Any) -> float:
     """Evaluate a SLISEMAP solution by calculating the coherence (max change in prediction divided by the change in variable values).
 
     Smaller is better.
@@ -384,16 +357,7 @@ def coherence(
     return nanmean(results)
 
 
-def stability(
-    sm: Slisemap,
-    neighbours: Union[
-        None,
-        np.ndarray,
-        torch.LongTensor,
-        Callable[[torch.Tensor, int], torch.LongTensor],
-    ] = None,
-    **kwargs: Any,
-) -> float:
+def stability(sm: Slisemap, neighbours: Neighbours = None, **kwargs: Any) -> float:
     """Evaluate a SLISEMAP solution by calculating the stability (max change in the local model divided by the change in variable values).
 
     Smaller is better.
@@ -468,8 +432,7 @@ def kmeans_matching(
 
 
 def cluster_purity(
-    sm: Union[Slisemap, torch.Tensor, np.ndarray],
-    clusters: Union[np.ndarray, torch.LongTensor],
+    sm: Union[Slisemap, ToTensor], clusters: Union[np.ndarray, torch.LongTensor]
 ) -> float:
     """Evaluate a SLISEMAP solution by calculating how many items in the same cluster are neighbours.
 
@@ -485,7 +448,7 @@ def cluster_purity(
     try:
         Z = sm.get_Z(numpy=False)
     except AttributeError:
-        Z = torch.as_tensor(sm)
+        Z = to_tensor(sm)
     if isinstance(clusters, np.ndarray):
         clusters = torch.as_tensor(clusters, device=Z.device)
     res = np.zeros(Z.shape[0])
@@ -625,8 +588,8 @@ def relevance(sm: Slisemap, pred_fn: Callable, change: float) -> float:
 
 def accuracy(
     sm: Slisemap,
-    X: Union[None, np.ndarray, torch.Tensor] = None,
-    Y: Union[None, np.ndarray, torch.Tensor] = None,
+    X: Optional[ToTensor] = None,
+    Y: Optional[ToTensor] = None,
     fidelity: bool = True,
     optimise: bool = False,
     fit_new: bool = False,

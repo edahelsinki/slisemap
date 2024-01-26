@@ -135,7 +135,7 @@ _F = TypeVar("_F", bound=Callable[..., Any])
 
 
 class CallableLike(Generic[_F]):
-    """Type annotation for a function matching the signature of an existing function"""
+    """Type annotation for functions matching the signature of a given function"""
 
     @staticmethod
     def __class_getitem__(fn: _F) -> _F:
@@ -445,14 +445,15 @@ def dict_concat(
     return df
 
 
-ToTensor = Union[np.ndarray, torch.Tensor, Dict[str, Sequence[float]], Sequence[float]]
-try:
-    import pandas as pd
-
-    ToTensor = Union[ToTensor, pd.DataFrame]
-    _range_types = (range, pd.RangeIndex)
-except ImportError:
-    _range_types = range
+ToTensor = Union[
+    float,
+    np.ndarray,
+    torch.Tensor,
+    "pandas.DataFrame",
+    Dict[str, Sequence[float]],
+    Sequence[float],
+]
+"""Type annotations for objects that can be turned into a `torch.Tensor` with the [to_tensor][slisemap.utils.to_tensor] function."""
 
 
 def to_tensor(
@@ -521,9 +522,12 @@ class Metadata(dict):
         """
         for row in rows:
             if row is not None:
-                if isinstance(row, _range_types):
+                try:
+                    # Check if row is `range(0, self.root.n, 1)`-like (duck typing)
                     if row.start == 0 and row.step == 1 and row.stop == self.root.n:
                         continue
+                except AttributeError:
+                    pass
                 _assert(
                     len(row) == self.root.n,
                     f"Wrong number of row names {len(row)} != {self.root.n}",
