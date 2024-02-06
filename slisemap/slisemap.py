@@ -5,6 +5,7 @@ This module contains the `Slisemap` class.
 import lzma
 from copy import copy
 from os import PathLike
+from timeit import default_timer as timer
 from typing import (
     Any,
     BinaryIO,
@@ -778,6 +779,7 @@ class Slisemap:
         self,
         force_move: bool = True,
         escape_fn: Callable = escape_neighbourhood,
+        lerp: float = 0.95,
         noise: float = 0.0,
         random_state: int = 42,
     ):
@@ -787,10 +789,14 @@ class Slisemap:
         Args:
             force_move: Do not allow the items to pair with themselves. Defaults to True.
             escape_fn: Escape function (see [slisemap.escape][]). Defaults to [escape_neighbourhood][slisemap.escape.escape_neighbourhood].
-            noise: Scale of the noise added to the embedding matrix if it looses rank after an escape (recommended for gradient based optimisers). Defaults to 0.0.
+            lerp: Linear interpolation between the old (0.0) and the new (1.0) embedding position. Defaults to 0.95.
+            noise: Scale of the noise added to the embedding matrix if it looses rank after an escape (recommended for gradient based optimisers). Defaults to 1e-4.
             random_state: Seed for the random generator if `noise > 0.0`. Defaults to 42.
         """
-        self._B, self._Z = escape_fn(
+        if lerp <= 0.0:
+            _warn("Escaping with `lerp <= 0` does nothing!", Slisemap.escape)
+            return
+        B, Z = escape_fn(
             X=self._X,
             Y=self._Y,
             B=self._B,
@@ -803,6 +809,11 @@ class Slisemap:
             force_move=force_move,
             jit=self.jit,
         )
+        if lerp >= 1.0:
+            self._B, self._Z = B, Z
+        else:
+            self._B = (1.0 - lerp) * self._B + lerp * B
+            self._Z = (1.0 - lerp) * self._Z + lerp * Z
         if noise > 0.0:
             rank = torch.linalg.matrix_rank(self._Z - torch.mean(self._Z, 0, True))
             if rank.item() < min(*self._Z.shape):
@@ -822,29 +833,51 @@ class Slisemap:
         patience: int = 2,
         max_escapes: int = 100,
         max_iter: int = 500,
-        escape_fn: Callable = escape_neighbourhood,
         verbose: Literal[0, 1, 2] = 0,
-        noise: float = 1e-4,
         only_B: bool = False,
+        escape_kws: Dict[str, object] = {},
+        *,
+        escape_fn: Optional[CallableLike[escape_neighbourhood]] = None,
+        noise: Optional[float] = None,
         **kwargs: Any,
     ) -> float:
         """Optimise Slisemap by alternating between [self.lbfgs()][slisemap.slisemap.Slisemap.lbfgs] and [self.escape()][slisemap.slisemap.Slisemap.escape] until convergence.
+
+        Statistics for the optimisation can be found in `self.metadata["optimize_time"]` and `self.metadata["optimize_loss"]`.
 
         Args:
             patience: Number of escapes without improvement before stopping. Defaults to 2.
             max_escapes: Maximum numbers optimisation rounds. Defaults to 100.
             max_iter: Maximum number of LBFGS iterations per round. Defaults to 500.
-            escape_fn: Escape function (see [slisemap.escape][]). Defaults to [escape_neighbourhood][slisemap.escape.escape_neighbourhood].
             verbose: Print status messages (0: no, 1: some, 2: all). Defaults to 0.
-            noise: Scale of the noise added to the embedding matrix if it looses rank after an escape. Defaults to 1e-4.
             only_B: Only optimise the local models, not the embedding. Defaults to False.
+            escape_kws: Optional keyword arguments to [self.escape()][slisemap.slisemap.Slisemap.escape]. Defaults to {}.
         Keyword Args:
+            escape_fn: Escape function (see [slisemap.escape][]). Defaults to [escape_neighbourhood][slisemap.escape.escape_neighbourhood].
+            noise: Scale of the noise added to the embedding matrix if it looses rank after an escape.
             **kwargs: Optional keyword arguments to Slisemap.lbfgs.
 
         Returns:
             The loss value.
+
+        Deprecated:
+            1.6: The `noise` argument, use `escape_kws={"noise": noise}` instead.
+            1.6: The `escape_fn` argument, use `escape_kws={"escape_fn": escape_fn}` instead.
         """
+        if noise is not None:
+            _deprecated(
+                "Slisemap.optimise(noise=noise, ...)",
+                'Slisemap.optimise(escape_kws={"noise":noise}, ...)',
+            )
+            escape_kws.setdefault("noise", noise)
+        if escape_fn is not None:
+            _deprecated(
+                "Slisemap.optimise(escape_fn=escape_fn, ...)",
+                'Slisemap.optimise(escape_kws={"escape_fn":escape_fn}, ...)',
+            )
+            escape_kws.setdefault("escape_fn", escape_fn)
         loss = np.repeat(np.inf, 2)
+        time = timer()
         loss[0] = self.lbfgs(
             max_iter=max_iter,
             only_B=True,
@@ -852,14 +885,17 @@ class Slisemap:
             verbose=verbose > 1,
             **kwargs,
         )
+        history = [loss[0]]
         if verbose:
             i = 0
             print(f"Slisemap.optimise LBFGS  {i:2d}: {loss[0]:.2f}")
         if only_B:
+            self.metadata["optimize_time"] = timer() - time
+            self.metadata["optimize_loss"] = history
             return loss[0]
         cc = CheckConvergence(patience, max_escapes)
         while not cc.has_converged(loss, self.copy, verbose=verbose > 1):
-            self.escape(escape_fn=escape_fn, noise=noise, random_state=cc.iter)
+            self.escape(random_state=cc.iter, **escape_kws)
             loss[1] = self.value()
             if verbose:
                 print(f"Slisemap.optimise Escape {i:2d}: {loss[1]:.2f}")
@@ -869,6 +905,8 @@ class Slisemap:
                 verbose=verbose > 1,
                 **kwargs,
             )
+            history.append(loss[1])
+            history.append(loss[0])
             if verbose:
                 i += 1
                 print(f"Slisemap.optimise LBFGS  {i:2d}: {loss[0]:.2f}")
@@ -880,6 +918,9 @@ class Slisemap:
             verbose=verbose > 1,
             **kwargs,
         )
+        history.append(loss)
+        self.metadata["optimize_time"] = timer() - time
+        self.metadata["optimize_loss"] = history
         if verbose:
             print(f"Slisemap.optimise Final    : {loss:.2f}")
         return loss

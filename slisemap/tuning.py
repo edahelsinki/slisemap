@@ -329,7 +329,7 @@ def optimise_with_test(
     )
     if hs_kws is None:
         kwargs["increase_tolerance"] = False
-        sm.optimise(verbose=verbose, **escape_kws, **kwargs)
+        sm.optimise(verbose=verbose, escape_kws=escape_kws, **kwargs)
         return sm
 
     X_test = sm._as_new_X(X_test)
@@ -433,7 +433,7 @@ def optimise_with_cv(
     )
     if hs_kws is None:
         kwargs["increase_tolerance"] = False
-        sm.optimise(verbose=verbose, **escape_kws, **kwargs)
+        sm.optimise(verbose=verbose, escape_kws=escape_kws, **kwargs)
         return sm
 
     # Create k folds

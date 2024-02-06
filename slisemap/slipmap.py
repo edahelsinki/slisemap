@@ -9,6 +9,7 @@ from quadratic to linear.
 import lzma
 from copy import copy
 from os import PathLike
+from timeit import default_timer as timer
 from typing import (
     Any,
     BinaryIO,
@@ -935,11 +936,11 @@ class Slipmap:
                 print("Slipmap.lbfgs: No improvement found")
             return pre_loss
 
-    def escape(self, lerp: float = 1.0, outliers: bool = True, B_iter: int = 10):
+    def escape(self, lerp: float = 0.9, outliers: bool = True, B_iter: int = 10):
         """Escape from a local optimum by moving each data item embedding towards the most suitable prototype embedding.
 
         Args:
-            lerp: Linear interpolation between the old (0.0) and the new (1.0) embedding position. Defaults to 1.0.
+            lerp: Linear interpolation between the old (0.0) and the new (1.0) embedding position. Defaults to 0.9.
             outliers: Check for and reset embeddings outside the prototype grid. Defaults to True.
             B_iter: Optimise B for `B_iter` number of LBFGS iterations. Set `B_iter=0` to disable. Defaults to 10.
         """
@@ -968,11 +969,13 @@ class Slipmap:
         max_escapes: int = 100,
         max_iter: int = 500,
         only_B: bool = False,
-        lerp: float = 0.9,
         verbose: Literal[0, 1, 2] = 0,
+        escape_kws: Dict[str, object] = {},
         **kwargs,
     ) -> float:
         """Optimise Slipmap by alternating between [Slipmap.lbfgs][slisemap.slipmap.Slipmap.lbfgs] and [Slipmap.escape][slisemap.slipmap.Slipmap.escape] until convergence.
+
+        Statistics for the optimisation can be found in `self.metadata["optimize_time"]` and `self.metadata["optimize_loss"]`.
 
         Args:
             patience: Number of escapes without improvement before stopping. Defaults to 2.
@@ -981,12 +984,14 @@ class Slipmap:
             only_B: Only optimise the local models, not the embedding. Defaults to False.
             lerp: Linear interpolation when escaping (see `Slipmap.escape`). Defaults to 0.9.
             verbose: Print status messages (0: no, 1: some, 2: all). Defaults to 0.
+            escape_kws: Optional keyword arguments to `Slipmap.escape`. Defaults to {}.
             **kwargs: Optional keyword arguments to `Slipmap.lbfgs`.
 
         Returns:
             The loss value.
         """
         loss = np.repeat(np.inf, 2)
+        time = timer()
         loss[0] = self.lbfgs(
             max_iter=max_iter,
             only_B=True,
@@ -994,20 +999,25 @@ class Slipmap:
             verbose=verbose > 1,
             **kwargs,
         )
+        history = [loss[0]]
         if verbose:
             i = 0
             print(f"Slipmap.optimise LBFGS  {0:2d}: {loss[0]:.2f}")
         if only_B:
+            self.metadata["optimize_time"] = timer() - time
+            self.metadata["optimize_loss"] = history
             return loss[0]
         cc = CheckConvergence(patience, max_escapes)
         while not cc.has_converged(loss, self.copy, verbose=verbose > 1):
-            self.escape(lerp=lerp)
+            self.escape(**escape_kws)
             loss[1] = self.value()
             if verbose:
                 print(f"Slipmap.optimise Escape {i:2d}: {loss[1]:.2f}")
             loss[0] = self.lbfgs(
                 max_iter, increase_tolerance=True, verbose=verbose > 1, **kwargs
             )
+            history.append(loss[1])
+            history.append(loss[0])
             if verbose:
                 i += 1
                 print(f"Slipmap.optimise LBFGS  {i:2d}: {loss[0]:.2f}")
@@ -1016,6 +1026,9 @@ class Slipmap:
         loss = self.lbfgs(
             max_iter * 2, increase_tolerance=False, verbose=verbose > 1, **kwargs
         )
+        history.append(loss)
+        self.metadata["optimize_time"] = timer() - time
+        self.metadata["optimize_loss"] = history
         if verbose:
             print(f"Slipmap.optimise Final    : {loss:.2f}")
         return loss
