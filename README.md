@@ -1,10 +1,6 @@
-[![PyPI](https://img.shields.io/pypi/v/slisemap)](https://pypi.org/project/slisemap/)
-[![Documentation](https://github.com/edahelsinki/slisemap/actions/workflows/python-docs.yml/badge.svg)](https://edahelsinki.github.io/slisemap/slisemap/)
-[![Tests](https://github.com/edahelsinki/slisemap/actions/workflows/python-pytest.yml/badge.svg)](https://github.com/edahelsinki/slisemap/actions/workflows/python-pytest.yml)
-[![Licence: MIT](https://img.shields.io/github/license/edahelsinki/slisemap)](https://github.com/edahelsinki/slisemap/blob/master/LICENSE)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/edahelsinki/slisemap/HEAD?labpath=examples)
-[![DOI](https://img.shields.io/badge/DOI-10.1007%2Fs10994--022--06261--1-%23fcb426)](https://doi.org/10.1007/s10994-022-06261-1)
+|*This branch is frozen at version 1.6.0 and contains the experiments (and results) for the Slipmap paper in the [experiments](experiments/) directory!*|
+|---|
+
 # SLISEMAP: Combine supervised dimensionality reduction with local explanations
 
 SLISEMAP is a supervised dimensionality reduction method, that takes data, in the form of vectors, and predictions from a "black box" regression or classification model as input. SLISEMAP then simultaneously finds local explanations for all data items and builds a (typically) two-dimensional global visualisation of the black box model such that data items with similar local explanations are projected nearby. The explanations consists of interpretable models that locally approximate the "black box" model.
