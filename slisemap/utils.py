@@ -240,7 +240,7 @@ def LBFGS(
     verbose: bool = False,
     **kwargs: Any,
 ) -> torch.optim.LBFGS:
-    """Optimise a function using LBFGS.
+    """Optimise a function using [LBFGS](https://en.wikipedia.org/wiki/Limited-memory_BFGS).
 
     Args:
         loss_fn: Function that returns a value to be minimised.
@@ -252,7 +252,7 @@ def LBFGS(
         increase_tolerance: Increase the tolerances for convergence checking. Defaults to False.
         verbose: Print status messages. Defaults to False.
     Keyword Args:
-        **kwargs: Argumemts passed to `torch.optim.LBFGS`.
+        **kwargs: Arguments forwarded to [`torch.optim.LBFGS`](https://pytorch.org/docs/stable/generated/torch.optim.LBFGS.html).
 
     Returns:
         The LBFGS optimiser.

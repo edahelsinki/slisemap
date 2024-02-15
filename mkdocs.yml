@@ -33,9 +33,6 @@ nav:
   - Get started:
       - Introduction: index.md
       - Examples: https://github.com/edahelsinki/slisemap/tree/main/examples
-      - Presentation:
-          - Video: https://youtu.be/zvcFYItwRlQ
-          - Slides: https://github.com/edahelsinki/slisemap/blob/main/examples/demo_presentation.pdf
   - Documentation:
       - slisemap: slisemap.md
       - slisemap.slisemap: slisemap.slisemap.md
@@ -51,7 +48,9 @@ nav:
       - GitHub: https://github.com/edahelsinki/slisemap
       - PyPI: https://pypi.org/project/slisemap/
       - Paper (Slisemap): https://doi.org/10.1007/s10994-022-06261-1
-      - Demo Paper: https://doi.org/10.1007/978-3-031-26422-1_41
+      - Paper (Demo): https://doi.org/10.1007/978-3-031-26422-1_41
+      - Presentation (Video): https://youtu.be/zvcFYItwRlQ
+      - Presentation (Slides): https://github.com/edahelsinki/slisemap/blob/main/examples/demo_presentation.pdf
 
 plugins:
   # - offline

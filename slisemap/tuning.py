@@ -2,7 +2,7 @@
 Find optimal hyper-parameters for Slisemap and Slipmap.
 """
 
-from functools import cache
+from functools import lru_cache
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, Union
 
 import numpy as np
@@ -30,7 +30,7 @@ def hyperparameter_tune(
     lasso: Union[float, Tuple[float, float]] = (0.001, 10.0),
     ridge: Union[float, Tuple[float, float]] = (0.0001, 1.0),
     radius: Union[float, Tuple[float, float]] = (1.5, 4.0),
-    *args,
+    *args: Any,
     model: bool = True,
     n_calls: int = 15,
     verbose: bool = False,
@@ -38,7 +38,7 @@ def hyperparameter_tune(
     predict_kws: Dict[str, object] = {},
     optim_kws: Dict[str, object] = {},
     gp_kws: Dict[str, object] = {},
-    **kwargs,
+    **kwargs: Any,
 ) -> Union[Slisemap, Slipmap, Dict[str, float]]:
     """Tune the `lasso`, `ridge`, and `radius` hyperparameters using Bayesian optimisation.
     This function requires "scikit-optimize" to be installed.
@@ -110,7 +110,7 @@ def hyperparameter_tune(
         best_sm = None
 
     @skopt.utils.use_named_args(space)
-    @cache
+    @lru_cache
     def objective(
         lasso=params["lasso"], ridge=params["ridge"], radius=params["radius"]
     ):
@@ -210,7 +210,7 @@ def _hyper_tune(
     best_sm = sm
 
     @skopt.utils.use_named_args(space)
-    @cache
+    @lru_cache
     def objective(lasso=sm.lasso, ridge=sm.ridge, radius=sm.radius):
         sm2 = sm.copy()
         sm2.lasso = lasso
