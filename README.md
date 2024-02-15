@@ -9,7 +9,7 @@
 
 SLISEMAP is a supervised dimensionality reduction method, that takes data, in the form of vectors, and predictions from a "black box" regression or classification model as input. SLISEMAP then simultaneously finds local explanations for all data items and builds a (typically) two-dimensional global visualisation of the black box model such that data items with similar local explanations are projected nearby. The explanations consists of interpretable models that locally approximate the "black box" model.
 
-SLISEMAP is implemented in *Python* using *PyTorch* for efficient optimisation, and optional GPU-acceleration. For more information see the [papers](#citations), the [examples](examples/), or the [documentation](https://edahelsinki.github.io/slisemap/slisemap).
+SLISEMAP is implemented in *Python* using *PyTorch* for efficient optimisation, and optional GPU-acceleration. For more information see the [papers](#citations), the [examples](https://github.com/edahelsinki/slisemap/tree/main/examples), or the [documentation](https://edahelsinki.github.io/slisemap/slisemap).
 
 *This library also includes the faster SLIPMAP variant, that uses "prototypes" to speed up
 the calculations (linear time and memory complexity instead of quadratic).

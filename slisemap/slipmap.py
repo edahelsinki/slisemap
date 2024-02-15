@@ -595,11 +595,11 @@ class Slipmap:
         # When creating a new `torch.Tensor` add these keyword arguments to match the `dtype` and `device` of this Slisemap object.
         return dict(device=self._X.device, dtype=self._X.dtype)
 
-    def cuda(self, **kwargs):
+    def cuda(self, **kwargs: Any):
         """Move the tensors to CUDA memory (and run the calculations there).
         Note that this resets the random state.
 
-        Args:
+        Keyword Args:
             **kwargs: Optional arguments to ``torch.Tensor.cuda``
         """
         X = self._X.cuda(**kwargs)
@@ -610,11 +610,11 @@ class Slipmap:
         self._Zp = self._Zp.cuda(**kwargs)
         self._loss = None  # invalidate cached loss function
 
-    def cpu(self, **kwargs):
+    def cpu(self, **kwargs: Any):
         """Move the tensors to CPU memory (and run the calculations there).
         Note that this resets the random state.
 
-        Args:
+        Keyword Args:
             **kwargs: Optional arguments to ``torch.Tensor.cpu``
         """
         X = self._X.cpu(**kwargs)
@@ -638,13 +638,16 @@ class Slipmap:
         return other
 
     @classmethod
-    def convert(cls, sm: Slisemap, keep_kernel: bool = False, **kwargs) -> "Slipmap":
+    def convert(
+        cls, sm: Slisemap, keep_kernel: bool = False, **kwargs: Any
+    ) -> "Slipmap":
         """Converts a Slisemap object into a Slipmap object.
 
         Args:
             sm: Slisemap object.
             keep_kernel: Use the kernel and distance functions from the Slisemap object. Defaults to False.
-            **kwargs: Other parameters forwarded to Slipmap.
+        Keyword Args:
+            **kwargs: Other parameters forwarded (overriding) to Slipmap.
 
         Returns:
             Slipmap object for the same data as the Slisemap object.
@@ -707,7 +710,7 @@ class Slipmap:
         f: Union[str, PathLike, BinaryIO],
         any_extension: bool = False,
         compress: Union[bool, int] = True,
-        **kwargs,
+        **kwargs: Any,
     ):
         """Save the Slipmap object to a file.
 
@@ -721,6 +724,7 @@ class Slipmap:
         Args:
             f: Either a Path-like object or a (writable) File-like object.
             any_extension: Do not check the file extension. Defaults to False.
+        Keyword Args:
             **kwargs: Parameters forwarded to ``torch.save``.
         """
         if not any_extension and isinstance(f, (str, PathLike)):
@@ -753,7 +757,7 @@ class Slipmap:
         f: Union[str, PathLike, BinaryIO],
         device: Union[None, str, torch.device] = None,
         map_location: Optional[Any] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> "Slipmap":
         """Load a Slipmap object from a file.
 
@@ -893,7 +897,7 @@ class Slipmap:
         *,
         only_B: bool = False,
         only_Z: bool = False,
-        **kwargs,
+        **kwargs: Any,
     ) -> float:
         """Optimise Slipmap using LBFGS.
 
@@ -902,7 +906,8 @@ class Slipmap:
             verbose: Print status messages. Defaults to False.
             only_B: Only optimise Bp. Defaults to False.
             only_Z: Only optimise Z. Defaults to False.
-            **kwargs: Optional keyword arguments to LBFGS.
+        Keyword Args:
+            **kwargs: Keyword arguments forwarded to [LBFGS][slisemap.utils.LBFGS].
 
         Returns:
             The loss value.
@@ -971,7 +976,7 @@ class Slipmap:
         only_B: bool = False,
         verbose: Literal[0, 1, 2] = 0,
         escape_kws: Dict[str, object] = {},
-        **kwargs,
+        **kwargs: Any,
     ) -> float:
         """Optimise Slipmap by alternating between [Slipmap.lbfgs][slisemap.slipmap.Slipmap.lbfgs] and [Slipmap.escape][slisemap.slipmap.Slipmap.escape] until convergence.
 
@@ -982,10 +987,10 @@ class Slipmap:
             max_escapes: aximum numbers optimisation rounds. Defaults to 100.
             max_iter: Maximum number of LBFGS iterations per round. Defaults to 500.
             only_B: Only optimise the local models, not the embedding. Defaults to False.
-            lerp: Linear interpolation when escaping (see `Slipmap.escape`). Defaults to 0.9.
             verbose: Print status messages (0: no, 1: some, 2: all). Defaults to 0.
             escape_kws: Optional keyword arguments to `Slipmap.escape`. Defaults to {}.
-            **kwargs: Optional keyword arguments to `Slipmap.lbfgs`.
+        Keyword Args:
+            **kwargs: Keyword arguments forwaded to `Slipmap.lbfgs`.
 
         Returns:
             The loss value.
@@ -1099,7 +1104,7 @@ class Slipmap:
         jitter: Union[float, np.ndarray] = 0.0,
         show: bool = True,
         bar: Union[None, bool, int] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> Optional[Figure]:
         """Plot the Slipmap solution using seaborn.
 
@@ -1110,6 +1115,7 @@ class Slipmap:
             jitter: Add random (normal) noise to the embedding, or a matrix with pre-generated noise matching Z. Defaults to 0.0.
             show: Show the plot. Defaults to True.
             bar: Alternative spelling for `bars`. Defaults to None.
+        Keyword Args:
             **kwargs: Additional arguments to [plot_solution][slisemap.plot.plot_solution] and `plt.subplots`.
 
         Returns:

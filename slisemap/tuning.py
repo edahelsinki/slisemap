@@ -30,7 +30,7 @@ def hyperparameter_tune(
     lasso: Union[float, Tuple[float, float]] = (0.001, 10.0),
     ridge: Union[float, Tuple[float, float]] = (0.0001, 1.0),
     radius: Union[float, Tuple[float, float]] = (1.5, 4.0),
-    *args,
+    *args: Any,
     model: bool = True,
     n_calls: int = 15,
     verbose: bool = False,
@@ -38,7 +38,7 @@ def hyperparameter_tune(
     predict_kws: Dict[str, object] = {},
     optim_kws: Dict[str, object] = {},
     gp_kws: Dict[str, object] = {},
-    **kwargs,
+    **kwargs: Any,
 ) -> Union[Slisemap, Slipmap, Dict[str, float]]:
     """Tune the `lasso`, `ridge`, and `radius` hyperparameters using Bayesian optimisation.
     This function requires "scikit-optimize" to be installed.

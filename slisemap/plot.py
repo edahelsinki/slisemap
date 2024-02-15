@@ -165,7 +165,7 @@ def plot_matrix(
     palette: str = "RdBu",
     xlabel: str = "Data items sorted left to right",
     items: Optional[Sequence[str]] = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> plt.Axes:
     """Plot local models in a heatmap.
 
@@ -368,7 +368,7 @@ def plot_prototypes(Zp: np.ndarray, *axs: plt.Axes):
 
     Args:
         Zp: Prototype coordinates.
-        *args: Axes to draw on.
+        *axs: Axes to draw on.
     """
     Zp, _ = _prepare_Z(Zp, range(2), 0.0, plot_prototypes)
     for ax in axs:
@@ -388,7 +388,7 @@ def plot_solution(
     jitter: Union[float, np.ndarray] = 0.0,
     left_kwargs: Dict[str, object] = {},
     right_kwargs: Dict[str, object] = {},
-    **kwargs,
+    **kwargs: Any,
 ) -> figure.Figure:
     """Plot a Slisemap solution
 
@@ -459,7 +459,7 @@ def plot_position(
     jitter: Union[float, np.ndarray] = 0.0,
     legend_inside: bool = True,
     marker_size: float = 1.0,
-    **kwargs,
+    **kwargs: Any,
 ) -> sns.FacetGrid:
     """Plot local losses for alternative locations for the selected item(s).
 
@@ -549,7 +549,7 @@ def plot_dist(
     scatter: bool = False,
     jitter: Union[float, np.ndarray] = 0.0,
     legend_inside: bool = True,
-    **kwargs,
+    **kwargs: Any,
 ) -> sns.FacetGrid:
     """Plot the distribution of the variables, either as density plots (with clusters) or as scatterplots.
 
