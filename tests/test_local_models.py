@@ -1,12 +1,12 @@
-from statistics import LinearRegression, linear_regression
-
 import numpy as np
 import pytest
 import torch
 
 from slisemap.local_models import (
     ALocalModel,
+    LinearRegression,
     identify_local_model,
+    linear_regression,
     linear_regression_coefficients,
     linear_regression_loss,
     local_predict,
