@@ -57,7 +57,7 @@ def squared_distance(A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
     return torch.sum((A[:, None, ...] - B[None, ...]) ** 2, -1)
 
 
-class SlisemapException(Exception):
+class SlisemapException(Exception):  # noqa: N818
     """Custom Exception type (for filtering)."""
 
     pass
