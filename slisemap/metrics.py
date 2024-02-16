@@ -1,7 +1,7 @@
-"""
-    This module contains functions that can be used to evaluate SLISEMAP solutions.
-    The functions take a solution (plus other arguments) and returns a single float.
-    This float should either be minimised or maximised for best results (see individual functions).
+"""Module that contains functions that can be used to evaluate SLISEMAP solutions.
+
+The functions take a solution (plus other arguments) and returns a single float.
+This float should either be minimised or maximised for best results (see individual functions).
 """
 
 from typing import Any, Callable, Optional, Sequence, Union
@@ -21,7 +21,8 @@ def _non_crashing_median(x: torch.Tensor) -> float:
         return torch.median(x).cpu().item()
 
 
-def nanmean(x) -> float:
+def nanmean(x: np.ndarray) -> float:
+    """Compute the mean, ignoring any nan."""
     mask = np.isfinite(x)
     if np.all(mask):
         return np.mean(x)
@@ -34,7 +35,7 @@ def nanmean(x) -> float:
 def euclidean_nearest_neighbours(
     D: torch.Tensor, index: int, k: Union[int, float] = 0.1, include_self: bool = True
 ) -> torch.LongTensor:
-    """Find the k nearest neighbours using euclidean distance
+    """Find the k nearest neighbours using euclidean distance.
 
     Args:
         D: Distance matrix.
@@ -61,7 +62,7 @@ def euclidean_nearest_neighbours(
 def kernel_neighbours(
     D: torch.Tensor, index: int, epsilon: float = 1.0, include_self: bool = True
 ) -> torch.LongTensor:
-    """Find the neighbours using a softmax kernel
+    """Find the neighbours using a softmax kernel.
 
     Args:
         D: Distance matrix.
@@ -75,9 +76,9 @@ def kernel_neighbours(
     K = torch.nn.functional.softmax(-D[index], 0)
     epsilon2 = epsilon / K.numel()
     if include_self:
-        return torch.where(K >= epsilon2)[0]
+        return torch.where(epsilon2 <= K)[0]
     else:
-        mask = K >= epsilon2
+        mask = epsilon2 <= K
         mask[index] = False
         return torch.where(mask)[0]
 
@@ -88,7 +89,7 @@ def cluster_neighbours(
     clusters: torch.LongTensor,
     include_self: bool = True,
 ) -> torch.LongTensor:
-    """Find the neighbours with given clusters
+    """Find the neighbours with given clusters.
 
     Args:
         D: Distance matrix (ignored).
@@ -114,7 +115,7 @@ def radius_neighbours(
     quantile: float = 0.2,
     include_self: bool = True,
 ) -> torch.LongTensor:
-    """Find the neighbours within a radius
+    """Find the neighbours within a radius.
 
     Args:
         D: Distance matrix (ignored).
@@ -167,6 +168,7 @@ def get_neighbours(
         sm: Trained Slisemap solution or an embedding vector (like Slisemap.Z).
         neighbours: Either None (return self), a vector of cluster id:s (take neighbours from the same cluter), or a function that gives neighbours (that takes a distance matrix and an index).
         full_if_none: If `neighbours` is None, return the whole dataset. Defaults to False.
+
     Keyword Args:
         **kwargs: Arguments passed on to `neighbours` (if it is a function).
 
@@ -213,6 +215,7 @@ def entropy(
     """Compute row-wise entropy of the `W` matrix induced by `Z`.
 
     Args:
+        sm: Trained Slisemap solution.
         aggregate: Aggregate the row-wise entropies into one scalar. Defaults to True.
         numpy: Return a `numpy.ndarray` or `float` instead of a `torch.Tensor`. Defaults to True.
 
@@ -229,7 +232,7 @@ def entropy(
 
 
 def slisemap_entropy(sm: Slisemap) -> float:
-    """Evaluate a SLISEMAP solution by calculating the entropy. **DEPRECATED**
+    """Evaluate a SLISEMAP solution by calculating the entropy. **DEPRECATED**.
 
     Args:
         sm: Trained Slisemap solution.
@@ -252,6 +255,7 @@ def fidelity(sm: Slisemap, neighbours: Neighbours = None, **kwargs: Any) -> floa
     Args:
         sm: Trained Slisemap solution.
         neighbours: Either None (only corresponding local model), a vector of cluster id:s, or a function that gives neighbours (see [get_neighbours][slisemap.metrics.get_neighbours]).
+
     Keyword Args:
         **kwargs: Arguments passed on to `neighbours` (if it is a function).
 
@@ -281,6 +285,7 @@ def coverage(
         sm: Trained Slisemap solution.
         max_loss: Maximum tolerable loss.
         neighbours: Either None (all), a vector of cluster id:s, or a function that gives neighbours (see [get_neighbours][slisemap.metrics.get_neighbours]).
+
     Keyword Args:
         **kwargs: Arguments passed on to `neighbours` (if it is a function).
 
@@ -309,6 +314,7 @@ def median_loss(sm: Slisemap, neighbours: Neighbours = None, **kwargs: Any) -> f
     Args:
         sm: Trained Slisemap solution.
         neighbours: Either None (all), a vector of cluster id:s, or a function that gives neighbours (see [get_neighbours][slisemap.metrics.get_neighbours]).
+
     Keyword Args:
         **kwargs: Arguments passed on to `neighbours` (if it is a function).
 
@@ -335,6 +341,7 @@ def coherence(sm: Slisemap, neighbours: Neighbours = None, **kwargs: Any) -> flo
     Args:
         sm: Trained Slisemap solution.
         neighbours: Either None (all), a vector of cluster id:s, or a function that gives neighbours (see [get_neighbours][slisemap.metrics.get_neighbours]).
+
     Keyword Args:
         **kwargs: Arguments passed on to `neighbours` (if it is a function).
 
@@ -365,6 +372,7 @@ def stability(sm: Slisemap, neighbours: Neighbours = None, **kwargs: Any) -> flo
     Args:
         sm: Trained Slisemap solution.
         neighbours: Either None (all), a vector of cluster id:s, or a function that gives neighbours (see [get_neighbours][slisemap.metrics.get_neighbours]).
+
     Keyword Args:
         **kwargs: Arguments passed on to `neighbours` (if it is a function).
 
@@ -392,13 +400,14 @@ def kmeans_matching(
     sm: Slisemap, clusters: Union[int, Sequence[int]] = range(2, 10), **kwargs: Any
 ) -> float:
     """Evaluate SLISE by measuring how well clusters in Z and B overlap (using kmeans to find the clusters).
-    The overlap is measured by finding the best matching clusters and dividing the size of intersect by the size of the union of each cluster pair.
 
+    The overlap is measured by finding the best matching clusters and dividing the size of intersect by the size of the union of each cluster pair.
     Larger is better.
 
     Args:
         sm: Trained Slisemap solution.
         clusters: The number of clusters. Defaults to range(2, 10).
+
     Keyword Args:
         **kwargs: Additional arguments to `sklearn.KMeans`.
 
@@ -466,7 +475,7 @@ def kernel_purity(
     epsilon: float = 1.0,
     losses: bool = False,
 ) -> float:
-    """Evaluate a SLISEMAP solution by calculating how many neighbours are in the same cluster
+    """Evaluate a SLISEMAP solution by calculating how many neighbours are in the same cluster.
 
     Larger is better.
 
@@ -482,10 +491,7 @@ def kernel_purity(
     if isinstance(clusters, np.ndarray):
         clusters = torch.tensor(clusters)
     res = np.zeros(sm.n)
-    if losses:
-        D = sm.get_L(numpy=False)
-    else:
-        D = sm.get_D(numpy=False)
+    D = sm.get_L(numpy=False) if losses else sm.get_D(numpy=False)
     for i in range(len(res)):
         mask = clusters[i] == clusters
         neig = kernel_neighbours(D, i, epsilon)
@@ -595,14 +601,16 @@ def accuracy(
     fit_new: bool = False,
     **kwargs: Any,
 ) -> float:
-    """Evaluate a SLISEMAP solution by checking how well the fitted models work on new points
+    """Evaluate a SLISEMAP solution by checking how well the fitted models work on new points.
 
     Args:
         sm: Trained Slisemap solution.
         X: New data matrix (uses the training data if None). Defaults to None.
         Y: New target matrix (uses the training data if None). Defaults to None.
         fidelity: Return the mean local loss (fidelity) instead of the mean embedding weighted loss. Defaults to True.
+        optimise: If `fit_new`, optimise the new points. Defaults to False.
         fit_new: Use `[Slisemap.fit_new][slisemap.slisemap.Slisemap.fit_new]` instead of `[Slisemap.predict][slisemap.slisemap.Slisemap.predict]` (if `fidelity=True`). Defaults to True.
+
     Keyword Args:
         **kwargs: Optional keyword arguments to [Slisemap.predict][slisemap.slisemap.Slisemap.predict].
 

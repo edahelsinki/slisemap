@@ -1,10 +1,27 @@
+import numpy as np
 import pytest
-from slisemap.slisemap import *
-from slisemap.local_models import *
-from slisemap.escape import escape_neighbourhood, escape_marginal
-from slisemap.utils import SlisemapWarning
+import torch
 
-from .utils import *
+from slisemap.escape import escape_marginal, escape_neighbourhood
+from slisemap.local_models import (
+    linear_regression,
+    linear_regression_coefficients,
+    linear_regression_loss,
+    logistic_regression,
+    logistic_regression_coefficients,
+    logistic_regression_loss,
+)
+from slisemap.slisemap import Slisemap
+from slisemap.utils import SlisemapWarning, tonp
+
+from .utils import (
+    all_finite,
+    assert_allclose,
+    assert_approx_ge,
+    get_slisemap,
+    get_slisemap2,
+    set_seed,
+)
 
 
 @pytest.fixture(scope="session")

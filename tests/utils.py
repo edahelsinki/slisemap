@@ -4,8 +4,9 @@ from typing import Tuple, Union
 
 import numpy as np
 import torch
+
+from slisemap.local_models import LogisticLogRegression, LogisticRegression
 from slisemap.slisemap import Slisemap
-from slisemap.local_models import *
 
 
 def set_seed(seed):
@@ -17,10 +18,7 @@ def set_seed(seed):
 def get_slisemap(
     n=20, m=5, classes=0, seed=None, randomB=False, lasso=1e-4, **kwargs
 ) -> Slisemap:
-    if seed is None:
-        npr = np.random
-    else:
-        npr = np.random.RandomState(seed)
+    npr = np.random if seed is None else np.random.RandomState(seed)
     X = npr.normal(size=(n, m))
     if classes > 0:
         y = npr.uniform(size=(n, classes))

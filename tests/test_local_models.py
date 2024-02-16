@@ -1,10 +1,22 @@
+from statistics import LinearRegression, linear_regression
+
+import numpy as np
 import pytest
 import torch
 
-from slisemap.local_models import *
+from slisemap.local_models import (
+    ALocalModel,
+    identify_local_model,
+    linear_regression_coefficients,
+    linear_regression_loss,
+    local_predict,
+    logistic_regression,
+    logistic_regression_coefficients,
+    logistic_regression_log,
+    logistic_regression_log_loss,
+    logistic_regression_loss,
+)
 from slisemap.utils import SlisemapException
-
-from .utils import *
 
 
 def test_linear_model():
@@ -104,16 +116,16 @@ def test_logistic_log_model():
 
 
 def test_identify():
-    p, l, c, r = identify_local_model(LinearRegression)
-    assert p == linear_regression
-    assert l == linear_regression_loss
-    assert c == linear_regression_coefficients
-    assert r == ALocalModel.regularisation
-    p, l, c, r = identify_local_model(LinearRegression, logistic_regression_loss, 3)
-    assert p == linear_regression
-    assert l == logistic_regression_loss
-    assert c(None, None) == 3
-    assert r == ALocalModel.regularisation
+    pr, lo, co, re = identify_local_model(LinearRegression)
+    assert pr == linear_regression
+    assert lo == linear_regression_loss
+    assert co == linear_regression_coefficients
+    assert re == ALocalModel.regularisation
+    pr, lo, co, re = identify_local_model(LinearRegression, logistic_regression_loss, 3)
+    assert pr == linear_regression
+    assert lo == logistic_regression_loss
+    assert co(None, None) == 3
+    assert re == ALocalModel.regularisation
 
 
 def test_local_predict():

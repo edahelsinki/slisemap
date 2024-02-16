@@ -1,6 +1,9 @@
+import numpy as np
 from matplotlib import pyplot as plt
 
-from .utils import *
+from slisemap.slisemap import Slisemap
+
+from .utils import assert_allclose, get_slisemap2
 
 
 def test_plot():

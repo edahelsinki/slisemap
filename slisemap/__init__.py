@@ -1,5 +1,4 @@
-"""
-SLISEMAP: Combine local explanations with supervised dimensionality reduction
+"""SLISEMAP: Combine local explanations with supervised dimensionality reduction.
 ===============================================================================
 
 SLISEMAP is a supervised dimensionality reduction method, that takes data, in the form of
@@ -48,7 +47,7 @@ Example Usage
     sm = Slipmap(X, y, radius=2.0, lasso=1e-4, ridge=2e-4)
     sm.optimise()
     sm.plot()
-"""
+"""  # noqa: D205
 
-from slisemap.slisemap import Slisemap
-from slisemap.slipmap import Slipmap
+from slisemap.slipmap import Slipmap  # noqa: F401
+from slisemap.slisemap import Slisemap  # noqa: F401

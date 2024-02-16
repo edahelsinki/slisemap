@@ -1,10 +1,10 @@
-"""
-This module contains the built-in alternatives for local white box models.
-These can also be used as templates for implementing your own.
+"""Module that contains the built-in alternatives for local white box models.
+
+These functions can also be used as templates for implementing your own.
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional, Type, Union, Sequence, Tuple, Callable
+from typing import Callable, Optional, Sequence, Tuple, Type, Union
 
 import numpy as np
 import torch
@@ -44,7 +44,7 @@ class ALocalModel(ABC):
     @staticmethod
     @abstractmethod
     def predict(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
-        """Prediction function
+        """Prediction function.
 
         Args:
             X: Data matrix.
@@ -53,7 +53,7 @@ class ALocalModel(ABC):
         Returns:
             Y: Prediction matrix.
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     @staticmethod
     @abstractmethod
@@ -67,7 +67,7 @@ class ALocalModel(ABC):
         Returns:
             L: Loss matrix.
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     @staticmethod
     @abstractmethod
@@ -76,7 +76,7 @@ class ALocalModel(ABC):
         Y: Union[torch.Tensor, np.ndarray],
         intercept: bool,
     ) -> int:
-        """Function for the number of columns of B.
+        """Get for the number of columns of B.
 
         Args:
             X: Data matrix.
@@ -86,7 +86,7 @@ class ALocalModel(ABC):
         Returns:
             Number of columns.
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     @staticmethod
     def regularisation(
@@ -126,7 +126,7 @@ def linear_regression(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
 
 
 def multiple_linear_regression(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
-    """Prediction function for multiple linear regression. **DEPRECATED**
+    """Prediction function for multiple linear regression. **DEPRECATED**.
 
     Args:
         X: Data matrix [n_x, m].
@@ -216,6 +216,7 @@ class LinearAbsoluteRegression(ALocalModel):
 
 def logistic_regression(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
     """Prediction function for (multinomial) logistic regression.
+
     Note that the number of coefficients is `m * (p-1)` due to the normalisation of softmax.
 
     Args:
@@ -288,6 +289,7 @@ class LogisticRegression(ALocalModel):
 
 def logistic_regression_log(X: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
     """Prediction function for (multinomial) logistic regression that returns the **log of the prediction**.
+
     Note that the number of coefficients is `m * (p-1)` due to the normalisation of softmax.
 
     Args:
@@ -310,6 +312,7 @@ def logistic_regression_log_loss(
     Ytilde: torch.Tensor, Y: torch.Tensor, B: Optional[torch.Tensor] = None
 ) -> torch.Tensor:
     """Cross entropy loss function for (multinomial) logistic regression.
+
     Note that this loss function expects `Ytilde` to be the **log of the predicted probabilities**.
 
     Args:
@@ -334,8 +337,8 @@ def logistic_regression_log_loss(
 
 
 class LogisticLogRegression(ALocalModel):
-    """
-    A class that contains all the functions needed for logistic regression.
+    """A class that contains all the functions needed for logistic regression.
+
     The predictions are in log-space rather than probabilities for numerical stability.
     """
 
@@ -371,7 +374,7 @@ def identify_local_model(
         local_model: A instance/subclass of `ALocalModel`, a predict function, or a tuple of functions.
         local_loss: A loss function or None if it is part of `local_model`. Defaults to None.
         coefficients: The number of coefficients, or a function giving that number, or None if it is part of `local_model`. Defaults to None.
-        coefficients: Additional regularisation function. Defaults to None.
+        regularisation: Additional regularisation function. Defaults to None.
 
     Returns:
         predict: "prediction" function (takes X and B and returns predicted Y for every X and B combination).
@@ -381,7 +384,7 @@ def identify_local_model(
     """
     pred_fn = None
     loss_fn = None
-    coef_fn = lambda X, Y: X.shape[1] * Y.shape[1]
+    coef_fn = linear_regression_coefficients
     regu_fn = ALocalModel.regularisation
     if isinstance(local_model, ALocalModel) or (
         isinstance(local_model, type) and issubclass(local_model, ALocalModel)
@@ -392,10 +395,7 @@ def identify_local_model(
         regu_fn = local_model.regularisation
     elif callable(local_model):
         pred_fn = local_model
-        if (
-            local_model == linear_regression
-            or local_model == multiple_linear_regression
-        ):
+        if local_model in (linear_regression, multiple_linear_regression):
             loss_fn = linear_regression_loss
             coef_fn = linear_regression_coefficients
         elif local_model == logistic_regression:
@@ -423,7 +423,7 @@ def identify_local_model(
         regu_fn = regularisation
     if isinstance(coef_fn, int):
         i_coef = coef_fn
-        coef_fn = lambda X, Y: i_coef
+        coef_fn = lambda X, Y: i_coef  # noqa: E731
     _assert(pred_fn is not None, "`local_model` function missing")
     _assert(loss_fn is not None, "`local_loss` function missing")
     return pred_fn, loss_fn, coef_fn, regu_fn

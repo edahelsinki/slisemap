@@ -1,5 +1,4 @@
-"""
-Prototype version of Slisemap.
+"""Prototype version of Slisemap.
 
 Instead of giving every data item its own local model we have a fixed grid of
 prototypes, where each prototype has a local model. This improves the scaling
@@ -44,6 +43,7 @@ from slisemap.utils import (
     CheckConvergence,
     Metadata,
     PCA_rotation,
+    ToTensor,
     _assert,
     _assert_shape,
     _warn,
@@ -53,7 +53,6 @@ from slisemap.utils import (
     squared_distance,
     to_tensor,
     tonp,
-    ToTensor,
 )
 
 
@@ -131,7 +130,7 @@ class Slipmap:
         jit: bool = True,
         dtype: torch.dtype = torch.float32,
         device: Optional[torch.device] = None,
-    ):
+    ) -> None:
         """Create a Slipmap object.
 
         Args:
@@ -260,46 +259,46 @@ class Slipmap:
 
     @property
     def n(self) -> int:
-        # The number of data items
+        """The number of data items."""
         return self._X.shape[0]
 
     @property
     def m(self) -> int:
-        # The number of variables (including potential intercept)
+        """The number of variables (including potential intercept)."""
         return self._X.shape[1]
 
     @property
     def o(self) -> int:
-        # The number of target variables (i.e. the number of classes)
+        """The number of target variables (i.e. the number of classes)."""
         return self._Y.shape[-1]
 
     @property
     def d(self) -> int:
-        # The number of embedding dimensions
+        """The number of embedding dimensions."""
         return self._Z.shape[1]
 
     @property
     def p(self) -> int:
-        # The number of prototypes
+        """The number of prototypes."""
         return self._Zp.shape[0]
 
     @property
     def q(self) -> int:
-        # The number of local model coefficients
+        """The number of local model coefficients."""
         return self._Bp.shape[1]
 
     @property
     def intercept(self) -> bool:
-        # Is an intercept column added to the data?
+        """Is an intercept column added to the data?."""
         return self._intercept
 
     @property
     def radius(self) -> float:
-        # The radius of the embedding
+        """The radius of the embedding."""
         return self._radius
 
     @radius.setter
-    def radius(self, value: float):
+    def radius(self, value: float) -> None:
         if self._radius != value:
             _assert(value >= 0, "radius must not be negative", Slipmap.radius)
             self._radius = value
@@ -308,11 +307,11 @@ class Slipmap:
 
     @property
     def lasso(self) -> float:
-        # Lasso regularisation strength
+        """Lasso regularisation strength."""
         return self._lasso
 
     @lasso.setter
-    def lasso(self, value: float):
+    def lasso(self, value: float) -> None:
         if self._lasso != value:
             _assert(value >= 0, "lasso must not be negative", Slisemap.lasso)
             self._lasso = value
@@ -320,11 +319,11 @@ class Slipmap:
 
     @property
     def ridge(self) -> float:
-        # Ridge regularisation strength
+        """Ridge regularisation strength."""
         return self._ridge
 
     @ridge.setter
-    def ridge(self, value: float):
+    def ridge(self, value: float) -> None:
         if self._ridge != value:
             _assert(value >= 0, "ridge must not be negative", Slisemap.ridge)
             self._ridge = value
@@ -332,11 +331,11 @@ class Slipmap:
 
     @property
     def local_model(self) -> CallableLike[ALocalModel.predict]:
-        # Local model prediction function. Takes in X[n, m] and B[n, q], and returns Ytilde[n, n, o]
+        """Local model prediction function. Takes in X[n, m] and B[n, q], and returns Ytilde[n, n, o]."""
         return self._local_model
 
     @local_model.setter
-    def local_model(self, value: CallableLike[ALocalModel.predict]):
+    def local_model(self, value: CallableLike[ALocalModel.predict]) -> None:
         if self._local_model != value:
             _assert(
                 callable(value), "local_model must be callable", Slisemap.local_model
@@ -346,11 +345,11 @@ class Slipmap:
 
     @property
     def local_loss(self) -> CallableLike[ALocalModel.loss]:
-        # Local model loss function. Takes in Ytilde[n, n, o] and Y[n, o] and returns L[n, n]
+        """Local model loss function. Takes in Ytilde[n, n, o] and Y[n, o] and returns L[n, n]."""
         return self._local_loss
 
     @local_loss.setter
-    def local_loss(self, value: CallableLike[ALocalModel.loss]):
+    def local_loss(self, value: CallableLike[ALocalModel.loss]) -> None:
         if self._local_loss != value:
             _assert(callable(value), "local_loss must be callable", Slisemap.local_loss)
             self._local_loss = value
@@ -358,11 +357,11 @@ class Slipmap:
 
     @property
     def regularisation(self) -> CallableLike[ALocalModel.regularisation]:
-        # Regularisation function. Takes in X, Y, Bp, Z, and Ytilde and returns an additional loss scalar
+        """Regularisation function. Takes in X, Y, Bp, Z, and Ytilde and returns an additional loss scalar."""
         return self._regularisation
 
     @regularisation.setter
-    def regularisation(self, value: CallableLike[ALocalModel.regularisation]):
+    def regularisation(self, value: CallableLike[ALocalModel.regularisation]) -> None:
         if self._regularisation != value:
             _assert(
                 callable(value),
@@ -374,11 +373,13 @@ class Slipmap:
 
     @property
     def distance(self) -> Callable[[torch.Tensor, torch.Tensor], torch.Tensor]:
-        # Distance function. Takes in Z[n1, d] and Z[n2, d], and returns D[n1, n2]
+        """Distance function. Takes in Z[n1, d] and Z[n2, d], and returns D[n1, n2]."""
         return self._distance
 
     @distance.setter
-    def distance(self, value: Callable[[torch.Tensor, torch.Tensor], torch.Tensor]):
+    def distance(
+        self, value: Callable[[torch.Tensor, torch.Tensor], torch.Tensor]
+    ) -> None:
         if self._distance != value:
             _assert(callable(value), "distance must be callable", Slisemap.distance)
             self._distance = value
@@ -386,11 +387,11 @@ class Slipmap:
 
     @property
     def kernel(self) -> Callable[[torch.Tensor], torch.Tensor]:
-        # Kernel function. Takes in D[n, n] and returns W[n, n]
+        """Kernel function. Takes in D[n, n] and returns W[n, n]."""
         return self._kernel
 
     @kernel.setter
-    def kernel(self, value: Callable[[torch.Tensor], torch.Tensor]):
+    def kernel(self, value: Callable[[torch.Tensor], torch.Tensor]) -> None:
         if self._kernel != value:
             _assert(callable(value), "kernel must be callable", Slisemap.kernel)
             self._kernel = value
@@ -398,11 +399,11 @@ class Slipmap:
 
     @property
     def jit(self) -> bool:
-        # Just-In-Time compile the loss function?
+        """Just-In-Time compile the loss function?"""  # noqa: D400
         return self._jit
 
     @jit.setter
-    def jit(self, value: bool):
+    def jit(self, value: bool) -> None:
         if self._jit != value:
             self._jit = value
             self._loss = None  # invalidate cached loss function
@@ -456,7 +457,7 @@ class Slipmap:
     def get_X(
         self, intercept: bool = True, numpy: bool = True
     ) -> Union[np.ndarray, torch.Tensor]:
-        """Get the data matrix
+        """Get the data matrix.
 
         Args:
             intercept: Include the intercept column (if ``self.intercept == True``). Defaults to True.
@@ -471,7 +472,7 @@ class Slipmap:
     def get_Y(
         self, ravel: bool = False, numpy: bool = True
     ) -> Union[np.ndarray, torch.Tensor]:
-        """Get the target matrix
+        """Get the target matrix.
 
         Args:
             ravel: Remove the second dimension if it is singular (i.e. turn it into a vector). Defaults to False.
@@ -490,7 +491,7 @@ class Slipmap:
         Z: Optional[torch.Tensor] = None,
         numpy: bool = True,
     ) -> Union[np.ndarray, torch.Tensor]:
-        """Get the embedding distance matrix
+        """Get the embedding distance matrix.
 
         Args:
             proto_rows: Calculate the distances with the prototype embeddings on the rows. Defaults to True.
@@ -520,7 +521,7 @@ class Slipmap:
         Z: Optional[torch.Tensor] = None,
         numpy: bool = True,
     ) -> Union[np.ndarray, torch.Tensor]:
-        """Get the weight matrix
+        """Get the weight matrix.
 
         Args:
             proto_rows: Calculate the weights with the prototype embeddings on the rows. Defaults to True.
@@ -592,11 +593,12 @@ class Slipmap:
 
     @property
     def tensorargs(self) -> Dict[str, Any]:
-        # When creating a new `torch.Tensor` add these keyword arguments to match the `dtype` and `device` of this Slisemap object.
-        return dict(device=self._X.device, dtype=self._X.dtype)
+        """When creating a new `torch.Tensor` add these keyword arguments to match the `dtype` and `device` of this Slisemap object."""
+        return {"device": self._X.device, "dtype": self._X.dtype}
 
-    def cuda(self, **kwargs: Any):
+    def cuda(self, **kwargs: Any) -> None:
         """Move the tensors to CUDA memory (and run the calculations there).
+
         Note that this resets the random state.
 
         Keyword Args:
@@ -610,8 +612,9 @@ class Slipmap:
         self._Zp = self._Zp.cuda(**kwargs)
         self._loss = None  # invalidate cached loss function
 
-    def cpu(self, **kwargs: Any):
+    def cpu(self, **kwargs: Any) -> None:
         """Move the tensors to CPU memory (and run the calculations there).
+
         Note that this resets the random state.
 
         Keyword Args:
@@ -628,7 +631,7 @@ class Slipmap:
     def copy(self) -> "Slipmap":
         """Make a copy of this Slipmap that references as much of the same torch-data as possible.
 
-        Returns:
+        Returns
             An almost shallow copy of this Slipmap object.
         """
         other = copy(self)  # Shallow copy!
@@ -641,11 +644,12 @@ class Slipmap:
     def convert(
         cls, sm: Slisemap, keep_kernel: bool = False, **kwargs: Any
     ) -> "Slipmap":
-        """Converts a Slisemap object into a Slipmap object.
+        """Convert a Slisemap object into a Slipmap object.
 
         Args:
             sm: Slisemap object.
             keep_kernel: Use the kernel and distance functions from the Slisemap object. Defaults to False.
+
         Keyword Args:
             **kwargs: Other parameters forwarded (overriding) to Slipmap.
 
@@ -676,7 +680,7 @@ class Slipmap:
         return sp
 
     def into(self, keep_kernel: bool = False) -> Slisemap:
-        """Converts a Slipmap object into a Slisemap object.
+        """Convert a Slipmap object into a Slisemap object.
 
         Args:
             keep_kernel: Use the kernel from the Slipmap object. Defaults to False.
@@ -711,7 +715,7 @@ class Slipmap:
         any_extension: bool = False,
         compress: Union[bool, int] = True,
         **kwargs: Any,
-    ):
+    ) -> None:
         """Save the Slipmap object to a file.
 
         This method uses ``torch.save`` (which uses ``pickle`` for the non-pytorch properties).
@@ -724,10 +728,12 @@ class Slipmap:
         Args:
             f: Either a Path-like object or a (writable) File-like object.
             any_extension: Do not check the file extension. Defaults to False.
+            compress: Compress the file with LZMA. Either a bool or a compression preset [0, 9]. Defaults to True.
+
         Keyword Args:
             **kwargs: Parameters forwarded to ``torch.save``.
         """
-        if not any_extension and isinstance(f, (str, PathLike)):
+        if not any_extension and isinstance(f, (str, PathLike)):  # noqa: SIM102
             if not str(f).endswith(".sp"):
                 _warn(
                     "When saving Slipmap objects, consider using the '.sp' extension for consistency.",
@@ -756,7 +762,7 @@ class Slipmap:
         cls,
         f: Union[str, PathLike, BinaryIO],
         device: Union[None, str, torch.device] = None,
-        map_location: Optional[Any] = None,
+        map_location: Optional[object] = None,
         **kwargs: Any,
     ) -> "Slipmap":
         """Load a Slipmap object from a file.
@@ -774,6 +780,7 @@ class Slipmap:
             f: Either a Path-like object or a (readable) File-like object.
             device: Device to load the tensors to (or the original if None). Defaults to None.
             map_location: The same as `device` (this is the name used by `torch.load`). Defaults to None.
+
         Keyword Args:
             **kwargs: Parameters forwarded to `torch.load`.
 
@@ -789,7 +796,7 @@ class Slipmap:
             sm: Slipmap = torch.load(f, map_location=device, **kwargs)
         return sm
 
-    def __setstate__(self, data):
+    def __setstate__(self, data: Any) -> None:
         # Handling loading of Slipmap objects from older versions
         if not isinstance(data, dict):
             data = next(d for d in data if isinstance(d, dict))
@@ -806,18 +813,26 @@ class Slipmap:
             self._regularisation = ALocalModel.regularisation
 
     def _get_loss_fn(self, individual: bool = False) -> CallableLike[ALocalModel.loss]:
-        """Returns the Slipmap loss function.
+        """Return the Slipmap loss function.
+
         This function JITs and caches the loss function for efficiency.
 
         Args:
             individual: Make a loss function for individual losses. Defaults to False.
+
         Returns:
             Loss function `(X, Y, Z, Bp, Zp) -> loss`.
         """
         if not individual and self._loss is not None:
             return self._loss
 
-        def loss(X, Y, Z, Bp, Zp):
+        def loss(
+            X: torch.Tensor,
+            Y: torch.Tensor,
+            Z: torch.Tensor,
+            Bp: torch.Tensor,
+            Zp: torch.Tensor,
+        ) -> torch.Tensor:
             """Slipmap loss function.
 
             Args:
@@ -865,6 +880,7 @@ class Slipmap:
 
         Args:
             individual: Give loss individual loss values for the data points. Defaults to False.
+            numpy: Return the predictions as a `numpy.ndarray` instead of `torch.Tensor`. Defaults to True.
 
         Returns:
             The loss value(s).
@@ -876,7 +892,7 @@ class Slipmap:
         else:
             return loss.cpu().item() if numpy else loss
 
-    def _normalise(self, both: bool = False):
+    def _normalise(self, both: bool = False) -> None:
         """Normalise Z."""
         if self.radius > 0:
             epsilon = self.radius * torch.finfo(self._Z.dtype).eps / 2
@@ -906,6 +922,7 @@ class Slipmap:
             verbose: Print status messages. Defaults to False.
             only_B: Only optimise Bp. Defaults to False.
             only_Z: Only optimise Z. Defaults to False.
+
         Keyword Args:
             **kwargs: Keyword arguments forwarded to [LBFGS][slisemap.utils.LBFGS].
 
@@ -922,7 +939,7 @@ class Slipmap:
             Z = Z.clone().requires_grad_(True)
 
         loss_ = self._get_loss_fn()
-        loss_fn = lambda: loss_(self._X, self._Y, Z, Bp, self._Zp)
+        loss_fn = lambda: loss_(self._X, self._Y, Z, Bp, self._Zp)  # noqa: E731
         pre_loss = loss_fn().cpu().detach().item()
 
         opt = [Bp] if not only_Z else ([Z] if not only_B else [Z, Bp])
@@ -941,7 +958,9 @@ class Slipmap:
                 print("Slipmap.lbfgs: No improvement found")
             return pre_loss
 
-    def escape(self, lerp: float = 0.9, outliers: bool = True, B_iter: int = 10):
+    def escape(
+        self, lerp: float = 0.9, outliers: bool = True, B_iter: int = 10
+    ) -> None:
         """Escape from a local optimum by moving each data item embedding towards the most suitable prototype embedding.
 
         Args:
@@ -989,6 +1008,7 @@ class Slipmap:
             only_B: Only optimise the local models, not the embedding. Defaults to False.
             verbose: Print status messages (0: no, 1: some, 2: all). Defaults to 0.
             escape_kws: Optional keyword arguments to `Slipmap.escape`. Defaults to {}.
+
         Keyword Args:
             **kwargs: Keyword arguments forwaded to `Slipmap.lbfgs`.
 
@@ -1047,6 +1067,7 @@ class Slipmap:
         numpy: bool = True,
     ) -> Union[np.ndarray, torch.Tensor]:
         """Predict the outcome for new data items.
+
         This function uses the nearest neighbour in X space to find the embedding.
         Then the prediction is made with the local model (of the closest prototype).
 
@@ -1078,6 +1099,7 @@ class Slipmap:
         random_state: int = 42,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Cluster the local model coefficients using k-means (from scikit-learn).
+
         This method (with a fixed random seed) is used for plotting Slipmap solutions.
 
         Args:
@@ -1115,6 +1137,7 @@ class Slipmap:
             jitter: Add random (normal) noise to the embedding, or a matrix with pre-generated noise matching Z. Defaults to 0.0.
             show: Show the plot. Defaults to True.
             bar: Alternative spelling for `bars`. Defaults to None.
+
         Keyword Args:
             **kwargs: Additional arguments to [plot_solution][slisemap.plot.plot_solution] and `plt.subplots`.
 
@@ -1169,6 +1192,7 @@ class Slipmap:
         **kwargs: Any,
     ) -> Optional[sns.FacetGrid]:
         """Plot local losses for alternative locations for the selected item(s).
+
         Indicate the selected item(s) either via `X` and `Y` or via `index`.
 
         Args:
@@ -1179,6 +1203,7 @@ class Slipmap:
             jitter: Add random (normal) noise to the embedding, or a matrix with pre-generated noise matching Z. Defaults to 0.0.
             legend_inside: Move the legend inside the grid (if there is an empty cell). Defaults to True.
             show: Show the plot. Defaults to True.
+
         Keyword Args:
             **kwargs: Additional arguments to `seaborn.relplot`.
 
@@ -1234,6 +1259,7 @@ class Slipmap:
             jitter: Add jitter to the scatterplots. Defaults to 0.0.
             legend_inside: Move the legend inside the grid (if there is an empty cell). Defaults to True.
             show: Show the plot. Defaults to True.
+
         Keyword Args:
             **kwargs: Additional arguments to `seaborn.relplot` or `seaborn.scatterplot`.
 

@@ -59,3 +59,22 @@ exclude_also = [
     "ImportError",
     "_warn",
 ]
+
+[tool.ruff.lint]
+select = ["I", "E", "F", "B", "C4", "W", "D", "UP", "ANN", "SIM", "RUF"]
+ignore = [
+    "E501",
+    "B006",
+    "D406",
+    "D407",
+    "D413",
+    "D105",
+    "D203",
+    "D213",
+    "ANN101",
+    "ANN102",
+    "ANN401",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D", "ANN"]

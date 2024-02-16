@@ -1,8 +1,18 @@
+import numpy as np
 import pytest
-from slisemap.slipmap import *
+from matplotlib import pyplot as plt
+
+from slisemap.slipmap import Slipmap, make_grid
 from slisemap.utils import SlisemapWarning, tonp
 
-from .utils import *
+from .utils import (
+    all_finite,
+    assert_allclose,
+    assert_approx_ge,
+    get_slisemap,
+    get_slisemap2,
+    set_seed,
+)
 
 
 def test_grid():

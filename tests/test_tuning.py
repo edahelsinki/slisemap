@@ -1,7 +1,12 @@
 import warnings
-from slisemap.tuning import *
-from .utils import get_slisemap2
+
 import pytest
+
+from slisemap.metrics import accuracy
+from slisemap.slipmap import Slipmap
+from slisemap.tuning import hyperparameter_tune, optimise_with_cv, optimise_with_test
+
+from .utils import get_slisemap2
 
 
 @pytest.fixture(scope="session")
@@ -60,7 +65,7 @@ def test_tune(tune_data):
             X_test,
             y_test,
             radius=sm0.radius,
-            optim_kws=dict(patience=1, max_escapes=5, max_iter=20),
+            optim_kws={"patience": 1, "max_escapes": 5, "max_iter": 20},
             n_calls=10,
         )
         assert accuracy(sm2, X_vali, y_vali) < accuracy(sm, X_vali, y_vali)

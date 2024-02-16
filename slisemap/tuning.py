@@ -1,6 +1,4 @@
-"""
-Find optimal hyper-parameters for Slisemap and Slipmap.
-"""
+"""Find optimal hyper-parameters for Slisemap and Slipmap."""
 
 from functools import lru_cache
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, Union
@@ -11,14 +9,14 @@ import torch
 try:
     import skopt
 except ImportError:
-    raise ImportError(
+    raise ImportError(  # noqa: B904
         "Hyperparameter tuning requires `scikit-optimize` to be installed"
     )
 
 from slisemap.metrics import accuracy
 from slisemap.slipmap import Slipmap
 from slisemap.slisemap import Slisemap
-from slisemap.utils import CheckConvergence, ToTensor, _assert, _deprecated, _warn, tonp
+from slisemap.utils import CheckConvergence, ToTensor, _assert, _deprecated, _warn
 
 
 def hyperparameter_tune(
@@ -41,7 +39,6 @@ def hyperparameter_tune(
     **kwargs: Any,
 ) -> Union[Slisemap, Slipmap, Dict[str, float]]:
     """Tune the `lasso`, `ridge`, and `radius` hyperparameters using Bayesian optimisation.
-    This function requires "scikit-optimize" to be installed.
 
     The search space is configured through the `lasso`/`ridge`/`radius` arguments as follows:
         - float: Skip the tuning of that hyperparameter.
@@ -62,6 +59,7 @@ def hyperparameter_tune(
         ridge: Limits for the `ridge` parameter. Defaults to (0.0001, 1.0).
         radius: Limits for the `radius` parameter. Defaults to (1.5, 4.0).
         *args: Arguments forwarded to `method`.
+
     Keyword Args:
         model: Return a trained model instead of a dictionary with tuned parameters. Defaults to True.
         n_calls: Number of parameter evaluations. Defaults to 15.
@@ -81,7 +79,7 @@ def hyperparameter_tune(
     space = []
     params = {}
 
-    def make_space(grid, name, prior):
+    def make_space(grid, name, prior):  # noqa: ANN001, ANN202
         if isinstance(grid, (float, int)):
             params[name] = grid
         else:
@@ -99,7 +97,7 @@ def hyperparameter_tune(
     if len(space) == 0:
         _warn("No hyperparameters to tune", hyperparameter_tune)
         if model:
-            sm = method(X, y, radius=radius, lasso=lasso, ridge=ridge, *args, **kwargs)
+            sm = method(X, y, radius=radius, lasso=lasso, ridge=ridge, *args, **kwargs)  # noqa: B026
             sm.optimise(**optim_kws)
             return sm
         else:
@@ -112,23 +110,27 @@ def hyperparameter_tune(
     @skopt.utils.use_named_args(space)
     @lru_cache
     def objective(
-        lasso=params["lasso"], ridge=params["ridge"], radius=params["radius"]
-    ):
-        sm = method(X, y, radius=radius, lasso=lasso, ridge=ridge, *args, **kwargs)
+        lasso: float = params["lasso"],
+        ridge: float = params["ridge"],
+        radius: float = params["radius"],
+    ) -> float:
+        sm = method(X, y, radius=radius, lasso=lasso, ridge=ridge, *args, **kwargs)  # noqa: B026
         sm.optimise(**optim_kws)
         Xt = sm._as_new_X(X_test)
         Yt = sm._as_new_Y(y_test, Xt.shape[0])
         P = sm.predict(Xt, **predict_kws, numpy=False)
-        l = sm.local_loss(Yt, P).mean().cpu().item()
+        loss = sm.local_loss(Yt, P).mean().cpu().item()
         if verbose:
-            print(f"Loss with {dict(lasso=lasso, ridge=ridge, radius=radius)}: {l}")
+            print(
+                f"Loss with { {'lasso': lasso, 'ridge': ridge, 'radius': radius} }: {loss}"
+            )
         if model:
             nonlocal best_loss, best_sm
-            if l < best_loss:
+            if loss < best_loss:
                 best_sm = sm
-                best_loss = l
+                best_loss = loss
         del sm
-        return l
+        return loss
 
     res = skopt.gp_minimize(
         objective,
@@ -141,7 +143,7 @@ def hyperparameter_tune(
     for s, v in zip(space, res.x):
         params[s.name] = v
     if verbose:
-        print(f"Final parameter values:", params)
+        print("Final parameter values:", params)
 
     if model:
         return best_sm
@@ -195,9 +197,9 @@ def _hyper_tune(
     random_state: int = 42,
     gp_kws: Dict[str, object] = {},
     **kwargs: Any,
-):
+) -> Tuple[Union[Slisemap, Slipmap], float]:
     space = []
-    make_space = lambda value, grid, name: space.append(
+    make_space = lambda value, grid, name: space.append(  # noqa: E731
         skopt.space.Real(value / grid, value * grid, "log-uniform", name=name)
     )
     if ridge_grid > 1.0:
@@ -211,7 +213,7 @@ def _hyper_tune(
 
     @skopt.utils.use_named_args(space)
     @lru_cache
-    def objective(lasso=sm.lasso, ridge=sm.ridge, radius=sm.radius):
+    def objective(lasso=sm.lasso, ridge=sm.ridge, radius=sm.radius):  # noqa: ANN001, ANN202
         sm2 = sm.copy()
         sm2.lasso = lasso
         sm2.ridge = ridge
@@ -238,11 +240,11 @@ def _hyper_tune(
 
 
 def _hyper_verbose(
-    method,
+    method: Callable,
     sm: Union[Slisemap, List[Slisemap]],
     iter: int,
     test: Union[float, List[float], None],
-):
+) -> None:
     # Print debug messages for the hyperparameter optimisation
     if isinstance(sm, list):
         lasso = [sm2.lasso for sm2 in sm]
@@ -265,7 +267,7 @@ def _hyper_verbose(
         )
 
 
-def optimise_with_test(
+def optimise_with_test(  # noqa: D417
     sm: Union[Slisemap, Slipmap],
     X_test: Union[np.ndarray, torch.Tensor],
     y_test: Union[np.ndarray, torch.Tensor],
@@ -279,7 +281,7 @@ def optimise_with_test(
     verbose: Literal[0, 1, 2, 3] = 0,
     escape_kws: Dict[str, Any] = {},
     *,
-    max_iterations=None,
+    max_iterations: Optional[int] = None,
     **kwargs: Any,
 ) -> Union[Slisemap, Slipmap]:
     """Optimise a Slisemap or Slipmap object using test data to tune the regularisation.
@@ -303,6 +305,7 @@ def optimise_with_test(
         max_escapes: Maximum numbers optimisation rounds. Defaults to 100.
         verbose: Print status messages. Defaults to 0.
         escape_kws: Keyword arguments forwarded to [sm.escape][slisemap.slisemap.Slisemap.escape]. Defaults to {}.
+
     Keyword Args:
         **kwargs: Optional keyword arguments to [sm.lbfgs][slisemap.slisemap.Slisemap.lbfgs].
 
@@ -367,7 +370,7 @@ optimize_with_test_set = optimise_with_test
 optimise_with_test_set = optimise_with_test
 
 
-def optimise_with_cv(
+def optimise_with_cv(  # noqa: D417
     sm: Union[Slisemap, Slipmap],
     k: int = 5,
     lasso_grid: float = 3.0,
@@ -381,7 +384,7 @@ def optimise_with_cv(
     verbose: Literal[0, 1, 2, 3] = 0,
     escape_kws: Dict[str, Any] = {},
     *,
-    max_iterations=None,
+    max_iterations: Optional[int] = None,
     **kwargs: Any,
 ) -> Union[Slisemap, Slipmap]:
     """Optimise a Slisemap or Slipmap object using cross validation to tune the regularisation.
@@ -407,6 +410,7 @@ def optimise_with_cv(
         max_escapes: Maximum numbers optimisation rounds. Defaults to 100.
         verbose: Print status messages. Defaults to 0.
         escape_kws: Keyword arguments forwarded to [sm.escape][slisemap.slisemap.Slisemap.escape]. Defaults to {}.
+
     Keyword Args:
         **kwargs: Optional keyword arguments to [sm.lbfgs][slisemap.slisemap.Slisemap.lbfgs].
 
@@ -455,15 +459,15 @@ def optimise_with_cv(
         sms.append(sm2)
 
     # Helper functions
-    def hyper():
+    def hyper() -> List[float]:
         nonlocal sms
-        loss = []
+        losses = []
         for i, (X_test, y_test) in enumerate(tests):
-            sms[i], l = _hyper_tune(sms[i], X_test, y_test, test, **hs_kws, **kwargs)
-            loss.append(l)
-        return [np.mean(loss)] + loss
+            sms[i], loss = _hyper_tune(sms[i], X_test, y_test, test, **hs_kws, **kwargs)
+            losses.append(loss)
+        return [np.mean(losses), *losses]
 
-    def optim():
+    def optim() -> List[float]:
         lasso = np.mean([sm2.lasso for sm2 in sms])
         ridge = np.mean([sm2.ridge for sm2 in sms])
         radius = np.mean([sm2.radius for sm2 in sms])
@@ -516,6 +520,7 @@ def optimise(
     **kwargs: Any,
 ) -> Union[Slisemap, Slipmap]:
     """Optimise a Slisemap or Slipmap object with hyperparameter tuning.
+
     This can either be done using a [test set][slisemap.tuning.optimise_with_test] or [cross validation][slisemap.tuning.optimise_with_cv].
     The choice of method is based on whether `X_test` and `y_test` is given.
 
@@ -523,6 +528,7 @@ def optimise(
         sm: Slisemap or Slipmap object.
         X_test: Data matrix for the test set. Defaults to None.
         y_test: Target matrix/vector for the test set. Defaults to None.
+
     Keyword Args:
         **kwargs: Optional keyword arguments to [slisemap.tuning.optimise_with_test][] or [slisemap.tuning.optimise_with_cv][].
 

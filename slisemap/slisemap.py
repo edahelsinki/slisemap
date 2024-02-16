@@ -1,6 +1,4 @@
-"""
-This module contains the `Slisemap` class.
-"""
+"""Module that contains the `Slisemap` class."""
 
 import lzma
 from copy import copy
@@ -136,7 +134,7 @@ class Slisemap:
         dtype: torch.dtype = torch.float32,
         device: Optional[torch.device] = None,
         cuda: Optional[bool] = None,
-    ):
+    ) -> None:
         """Create a Slisemap object.
 
         Args:
@@ -198,7 +196,7 @@ class Slisemap:
         if device is None:
             if cuda is None and isinstance(X, torch.Tensor):
                 device = X.device
-            elif cuda == True:
+            elif cuda is True:
                 device = torch.device("cuda")
         tensorargs = {"device": device, "dtype": dtype}
 
@@ -274,27 +272,27 @@ class Slisemap:
 
     @property
     def n(self) -> int:
-        # The number of data items
+        """The number of data items."""
         return self._X.shape[0]
 
     @property
     def m(self) -> int:
-        # The number of variables (including potential intercept)
+        """The number of variables (including potential intercept)."""
         return self._X.shape[1]
 
     @property
     def o(self) -> int:
-        # The number of target variables (i.e. the number of classes)
+        """The number of target variables (i.e. the number of classes)."""
         return self._Y.shape[-1]
 
     @property
     def d(self) -> int:
-        # The number of embedding dimensions
+        """The number of embedding dimensions."""
         return self._Z.shape[1]
 
     @d.setter
-    def d(self, value: int):
-        """Deprecated: 1.6"""
+    def d(self, value: int) -> None:
+        # Deprecated since 1.6.
         _assert(
             value > 0, "The number of embedding dimensions must be positive", Slisemap.d
         )
@@ -310,21 +308,21 @@ class Slisemap:
 
     @property
     def q(self) -> int:
-        # The number of local model coefficients
+        """The number of local model coefficients."""
         return self._B.shape[1]
 
     @property
     def intercept(self) -> bool:
-        # Is an intercept column added to the data?
+        """Is an intercept column added to the data?."""
         return self._intercept
 
     @property
     def radius(self) -> float:
-        # The radius of the embedding
+        """The radius of the embedding."""
         return self._radius
 
     @radius.setter
-    def radius(self, value: float):
+    def radius(self, value: float) -> None:
         if self._radius != value:
             _assert(value >= 0, "radius must not be negative", Slisemap.radius)
             self._radius = value
@@ -332,11 +330,11 @@ class Slisemap:
 
     @property
     def lasso(self) -> float:
-        # Lasso regularisation strength
+        """Lasso regularisation strength."""
         return self._lasso
 
     @lasso.setter
-    def lasso(self, value: float):
+    def lasso(self, value: float) -> None:
         if self._lasso != value:
             _assert(value >= 0, "lasso must not be negative", Slisemap.lasso)
             self._lasso = value
@@ -344,11 +342,11 @@ class Slisemap:
 
     @property
     def ridge(self) -> float:
-        # Ridge regularisation strength
+        """Ridge regularisation strength."""
         return self._ridge
 
     @ridge.setter
-    def ridge(self, value: float):
+    def ridge(self, value: float) -> None:
         if self._ridge != value:
             _assert(value >= 0, "ridge must not be negative", Slisemap.ridge)
             self._ridge = value
@@ -356,11 +354,11 @@ class Slisemap:
 
     @property
     def z_norm(self) -> float:
-        # Z normalisation regularisation strength
+        """Z normalisation regularisation strength."""
         return self._z_norm
 
     @z_norm.setter
-    def z_norm(self, value: float):
+    def z_norm(self, value: float) -> None:
         if self._z_norm != value:
             _assert(value >= 0, "z_norm must not be negative", Slisemap.z_norm)
             self._z_norm = value
@@ -368,11 +366,11 @@ class Slisemap:
 
     @property
     def local_model(self) -> CallableLike[ALocalModel.predict]:
-        # Local model prediction function. Takes in X[n, m] and B[n, q], and returns Ytilde[n, n, o]
+        """Local model prediction function. Takes in X[n, m] and B[n, q], and returns Ytilde[n, n, o]."""
         return self._local_model
 
     @local_model.setter
-    def local_model(self, value: CallableLike[ALocalModel.predict]):
+    def local_model(self, value: CallableLike[ALocalModel.predict]) -> None:
         if self._local_model != value:
             _assert(
                 callable(value), "local_model must be callable", Slisemap.local_model
@@ -382,11 +380,11 @@ class Slisemap:
 
     @property
     def local_loss(self) -> CallableLike[ALocalModel.loss]:
-        # Local model loss function. Takes in Ytilde[n, n, o] and Y[n, o] and returns L[n, n]
+        """Local model loss function. Takes in Ytilde[n, n, o] and Y[n, o] and returns L[n, n]."""
         return self._local_loss
 
     @local_loss.setter
-    def local_loss(self, value: CallableLike[ALocalModel.loss]):
+    def local_loss(self, value: CallableLike[ALocalModel.loss]) -> None:
         if self._local_loss != value:
             _assert(callable(value), "local_loss must be callable", Slisemap.local_loss)
             self._local_loss = value
@@ -394,11 +392,11 @@ class Slisemap:
 
     @property
     def regularisation(self) -> CallableLike[ALocalModel.regularisation]:
-        # Regularisation function. Takes in X, Y, Bp, Z, and Ytilde and returns an additional loss scalar
+        """Regularisation function. Takes in X, Y, Bp, Z, and Ytilde and returns an additional loss scalar."""
         return self._regularisation
 
     @regularisation.setter
-    def regularisation(self, value: CallableLike[ALocalModel.regularisation]):
+    def regularisation(self, value: CallableLike[ALocalModel.regularisation]) -> None:
         if self._regularisation != value:
             _assert(
                 callable(value),
@@ -410,11 +408,13 @@ class Slisemap:
 
     @property
     def distance(self) -> Callable[[torch.Tensor, torch.Tensor], torch.Tensor]:
-        # Distance function. Takes in Z[n1, d] and Z[n2, d], and returns D[n1, n2]
+        """Distance function. Takes in Z[n1, d] and Z[n2, d], and returns D[n1, n2]."""
         return self._distance
 
     @distance.setter
-    def distance(self, value: Callable[[torch.Tensor, torch.Tensor], torch.Tensor]):
+    def distance(
+        self, value: Callable[[torch.Tensor, torch.Tensor], torch.Tensor]
+    ) -> None:
         if self._distance != value:
             _assert(callable(value), "distance must be callable", Slisemap.distance)
             self._distance = value
@@ -422,11 +422,11 @@ class Slisemap:
 
     @property
     def kernel(self) -> Callable[[torch.Tensor], torch.Tensor]:
-        # Kernel function. Takes in D[n, n] and returns W[n, n]
+        """Kernel function. Takes in D[n, n] and returns W[n, n]."""
         return self._kernel
 
     @kernel.setter
-    def kernel(self, value: Callable[[torch.Tensor], torch.Tensor]):
+    def kernel(self, value: Callable[[torch.Tensor], torch.Tensor]) -> None:
         if self._kernel != value:
             _assert(callable(value), "kernel must be callable", Slisemap.kernel)
             self._kernel = value
@@ -434,16 +434,16 @@ class Slisemap:
 
     @property
     def jit(self) -> bool:
-        # Just-In-Time compile the loss function?
+        """Just-In-Time compile the loss function?."""
         return self._jit
 
     @jit.setter
-    def jit(self, value: bool):
+    def jit(self, value: bool) -> None:
         if self._jit != value:
             self._jit = value
             self._loss = None  # invalidate cached loss function
 
-    def random_state(self, value: Optional[int]):
+    def random_state(self, value: Optional[int]) -> None:
         """Set the seed for the random number generator specific for this object (None reverts to the global `torch` PRNG).
 
         Deprecated:
@@ -470,11 +470,12 @@ class Slisemap:
 
     @property
     def tensorargs(self) -> Dict[str, Any]:
-        # When creating a new `torch.Tensor` add these keyword arguments to match the `dtype` and `device` of this Slisemap object.
-        return dict(device=self._X.device, dtype=self._X.dtype)
+        """When creating a new `torch.Tensor` add these keyword arguments to match the `dtype` and `device` of this Slisemap object."""
+        return {"device": self._X.device, "dtype": self._X.dtype}
 
-    def cuda(self, **kwargs: Any):
+    def cuda(self, **kwargs: Any) -> None:
         """Move the tensors to CUDA memory (and run the calculations there).
+
         Note that this resets the random state.
 
         Keyword Args:
@@ -487,8 +488,9 @@ class Slisemap:
         self._B = self._B.detach().cuda(**kwargs)
         self._loss = None  # invalidate cached loss function
 
-    def cpu(self, **kwargs: Any):
+    def cpu(self, **kwargs: Any) -> None:
         """Move the tensors to CPU memory (and run the calculations there).
+
         Note that this resets the random state.
 
         Keyword Args:
@@ -506,7 +508,8 @@ class Slisemap:
     ) -> Callable[
         [torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor
     ]:
-        """Returns the Slisemap loss function.
+        """Return the Slisemap loss function.
+
         This function JITs and caches the loss function for efficiency.
 
         Args:
@@ -568,7 +571,7 @@ class Slisemap:
     def get_Z(
         self, scale: bool = True, rotate: bool = False, numpy: bool = True
     ) -> Union[np.ndarray, torch.Tensor]:
-        """Get the Z matrix
+        """Get the Z matrix.
 
         Args:
             scale: Scale the returned `Z` to match self.radius. Defaults to True.
@@ -579,16 +582,13 @@ class Slisemap:
            The `Z` matrix.
         """
         self._normalise()
-        if scale and self.radius > 0:
-            Z = self._Z * self.radius
-        else:
-            Z = self._Z
+        Z = self._Z * self.radius if scale and self.radius > 0 else self._Z
         if rotate:
             Z = Z @ PCA_rotation(Z, center=False)
         return tonp(Z) if numpy else Z
 
     def get_B(self, numpy: bool = True) -> Union[np.ndarray, torch.Tensor]:
-        """Get the B matrix
+        """Get the B matrix.
 
         Args:
             numpy: Return the matrix as a numpy (True) or pytorch (False) matrix. Defaults to True.
@@ -599,7 +599,7 @@ class Slisemap:
         return tonp(self._B) if numpy else self._B
 
     def get_D(self, numpy: bool = True) -> Union[np.ndarray, torch.Tensor]:
-        """Get the embedding distance matrix
+        """Get the embedding distance matrix.
 
         Args:
             numpy: Return the matrix as a numpy (True) or pytorch (False) matrix. Defaults to True.
@@ -696,7 +696,7 @@ class Slisemap:
     def entropy(
         self, aggregate: bool = True, numpy: bool = True
     ) -> Union[float, np.ndarray, torch.Tensor]:
-        """Compute row-wise entropy of the `W` matrix induced by `Z`. **DEPRECATED**
+        """Compute row-wise entropy of the `W` matrix induced by `Z`. **DEPRECATED**.
 
         Args:
             aggregate: Aggregate the row-wise entropies into one scalar. Defaults to True.
@@ -726,6 +726,7 @@ class Slisemap:
         Args:
             max_iter: Maximum number of LBFGS iterations. Defaults to 500.
             verbose: Print status messages. Defaults to False.
+
         Keyword Args:
             only_B: Only optimise B. Defaults to False.
             **kwargs: Optional keyword arguments to LBFGS.
@@ -737,7 +738,7 @@ class Slisemap:
         B = self._B.detach().clone().requires_grad_(True)
 
         loss_ = self._get_loss_fn()
-        loss_fn = lambda: loss_(self._X, self._Y, B, Z)
+        loss_fn = lambda: loss_(self._X, self._Y, B, Z)  # noqa: E731
         pre_loss = loss_fn().cpu().detach().item()
         LBFGS(
             loss_fn,
@@ -782,8 +783,9 @@ class Slisemap:
         lerp: float = 0.95,
         noise: float = 0.0,
         random_state: int = 42,
-    ):
+    ) -> None:
         """Try to escape a local optimum by moving the items (embedding and local model) to the neighbourhoods best suited for them.
+
         This is done by finding another item (in the optimal neighbourhood) and copying its values for Z and B.
 
         Args:
@@ -821,7 +823,7 @@ class Slisemap:
                 self._Z = torch.normal(self._Z, noise, generator=generator)
         self._normalise()
 
-    def _normalise(self):
+    def _normalise(self) -> None:
         """Normalise Z."""
         if self.radius > 0:
             scale = torch.sqrt(torch.sum(self._Z**2) / self.n)
@@ -852,6 +854,7 @@ class Slisemap:
             verbose: Print status messages (0: no, 1: some, 2: all). Defaults to 0.
             only_B: Only optimise the local models, not the embedding. Defaults to False.
             escape_kws: Optional keyword arguments to [self.escape()][slisemap.slisemap.Slisemap.escape]. Defaults to {}.
+
         Keyword Args:
             escape_fn: Escape function (see [slisemap.escape][]). Defaults to [escape_neighbourhood][slisemap.escape.escape_neighbourhood].
             noise: Scale of the noise added to the embedding matrix if it looses rank after an escape.
@@ -957,6 +960,7 @@ class Slisemap:
             loss: Return a vector of individual losses for the new items. Defaults to False.
             verbose: Print status messages. Defaults to False.
             numpy: Return the results as numpy (True) or pytorch (False) matrices. Defaults to True.
+
         Keyword Args:
             **kwargs: Optional keyword arguments to LBFGS.
 
@@ -1017,7 +1021,7 @@ class Slisemap:
                     set_new(Xnew[None, j], ynew[None, j])
                     Bi = Bnew[None, j].detach().clone().requires_grad_(True)
                     Zi = Znew[None, j].detach().clone().requires_grad_(True)
-                    LBFGS(lambda: lf(Bi, Zi), [Bi, Zi], **kwargs)
+                    LBFGS(lambda: lf(Bi, Zi), [Bi, Zi], **kwargs)  # noqa: B023
                     Bnew[j] = Bi.detach()
                     Znew[j] = Zi.detach()
             if verbose:
@@ -1061,15 +1065,15 @@ class Slisemap:
         else:
             return (tonp(Bnew), tonp(Zout)) if numpy else (Bnew, Zout)
 
-    def predict(
+    def predict(  # noqa: D417
         self,
         X: Optional[ToTensor] = None,
         B: Optional[ToTensor] = None,
         Z: Optional[ToTensor] = None,
         numpy: bool = True,
         *,
-        Xnew=None,
-        Znew=None,
+        Xnew: Optional[ToTensor] = None,
+        Znew: Optional[ToTensor] = None,
         **kwargs: Any,
     ) -> np.ndarray:
         """Predict new outcomes when the data and embedding or local model is known.
@@ -1083,6 +1087,7 @@ class Slisemap:
             B: Coefficient matrix. Defaults to None.
             Z: Embedding matrix. Defaults to None.
             numpy: Return the result as a numpy (True) or a pytorch (False) matrix. Defaults to True.
+
         Keyword Args:
             **kwargs: Optional keyword arguments to LBFGS.
 
@@ -1119,7 +1124,7 @@ class Slisemap:
             D = self._distance(Z, self._Z)
             W = self.kernel(D)
             B = self._B[torch.argmin(D, 1)].clone().requires_grad_(True)
-            yhat = lambda: (
+            yhat = lambda: (  # noqa: E731
                 torch.sum(W * self.local_loss(self.local_model(self._X, B), self._Y))
                 + self.lasso * torch.sum(torch.abs(B))
                 + self.ridge * torch.sum(B**2)
@@ -1143,7 +1148,7 @@ class Slisemap:
         other._Z = other._Z.clone().detach()
         return other
 
-    def restore(self):
+    def restore(self) -> None:
         """Reset B and Z to their initial values B0 and Z0.
 
         Deprecated:
@@ -1159,7 +1164,7 @@ class Slisemap:
         any_extension: bool = False,
         compress: Union[bool, int] = True,
         **kwargs: Any,
-    ):
+    ) -> None:
         """Save the Slisemap object to a file.
 
         This method uses `torch.save` (which uses `pickle` for the non-pytorch properties).
@@ -1173,10 +1178,11 @@ class Slisemap:
             f: Either a Path-like object or a (writable) File-like object.
             any_extension: Do not check the file extension. Defaults to False.
             compress: Compress the file with LZMA. Either a bool or a compression preset [0, 9]. Defaults to True.
+
         Keyword Args:
             **kwargs: Parameters forwarded to `torch.save`.
         """
-        if not any_extension and isinstance(f, (str, PathLike)):
+        if not any_extension and isinstance(f, (str, PathLike)):  # noqa: SIM102
             if not str(f).endswith(".sm"):
                 _warn(
                     "When saving Slisemap objects, consider using the '.sm' extension for consistency.",
@@ -1209,7 +1215,7 @@ class Slisemap:
         f: Union[str, PathLike, BinaryIO],
         device: Union[None, str, torch.device] = None,
         *,
-        map_location: Optional[Any] = None,
+        map_location: Optional[object] = None,
         **kwargs: Any,
     ) -> "Slisemap":
         """Load a Slisemap object from a file.
@@ -1226,6 +1232,7 @@ class Slisemap:
         Args:
             f: Either a Path-like object or a (readable) File-like object.
             device: Device to load the tensors to (or the original if None). Defaults to None.
+
         Keyword Args:
             map_location: The same as `device` (this is the name used by `torch.load`). Defaults to None.
             **kwargs: Parameters forwarded to `torch.load`.
@@ -1242,7 +1249,7 @@ class Slisemap:
             sm: Slisemap = torch.load(f, map_location=device, **kwargs)
         return sm
 
-    def __setstate__(self, data):
+    def __setstate__(self, data: Any) -> None:
         # Handling loading of Slisemap objects from older versions
         if not isinstance(data, dict):
             data = next(d for d in data if isinstance(d, dict))
@@ -1267,6 +1274,7 @@ class Slisemap:
         **kwargs: Any,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Cluster the local model coefficients using k-means (from scikit-learn).
+
         This method (with a fixed random seed) is used for plotting Slisemap solutions.
 
         Args:
@@ -1274,6 +1282,7 @@ class Slisemap:
             B: B matrix. Defaults to `self.get_B()`.
             Z: Z matrix. Defaults to `self.get_Z(rotate=True)`.
             random_state: random_state for the KMeans clustering. Defaults to 42.
+
         Keyword Args:
             **kwargs: Additional arguments to `sklearn.KMeans`.
 
@@ -1311,6 +1320,7 @@ class Slisemap:
             jitter: Add random (normal) noise to the embedding, or a matrix with pre-generated noise matching Z. Defaults to 0.0.
             show: Show the plot. Defaults to True.
             bar: Alternative spelling for `bars`. Defaults to None.
+
         Keyword Args:
             B: Override self.get_B() in the plot. Defaults to None. **DEPRECATED**
             Z: Override self.get_Z() in the plot. Defaults to None. **DEPRECATED**
@@ -1400,6 +1410,7 @@ class Slisemap:
         **kwargs: Any,
     ) -> Optional[sns.FacetGrid]:
         """Plot local losses for alternative locations for the selected item(s).
+
         Indicate the selected item(s) either via `X` and `Y` or via `index`.
 
         Args:
@@ -1411,6 +1422,7 @@ class Slisemap:
             selection: Mark the selected data item(s), if index is given. Defaults to True.
             legend_inside: Move the legend inside the grid (if there is an empty cell). Defaults to True.
             show: Show the plot. Defaults to True.
+
         Keyword Args:
             Z: Override `self.get_Z()` in the plot. Defaults to None. **DEPRECATED**
             **kwargs: Additional arguments to `seaborn.relplot`.
@@ -1478,6 +1490,7 @@ class Slisemap:
             jitter: Add jitter to the scatterplots. Defaults to 0.0.
             legend_inside: Move the legend inside the grid (if there is an empty cell). Defaults to True.
             show: Show the plot. Defaults to True.
+
         Keyword Args:
             X: Override self.get_X(). Defaults to None. **DEPRECATED**
             Y: Override self.get_Y(). Defaults to None. **DEPRECATED**
@@ -1566,8 +1579,8 @@ def make_loss(
     z_norm: float = 1.0,
     individual: bool = False,
     regularisation: Optional[Callable] = None,
-) -> Callable[[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor,], torch.Tensor,]:
-    """Create a loss function for Slisemap to optimise
+) -> Callable[[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor]:
+    r"""Create a loss function for Slisemap to optimise.
 
     Args:
         local_model: Prediction function for the local models.
@@ -1575,8 +1588,8 @@ def make_loss(
         distance: Embedding distance function. Defaults to `torch.cdist` (Euclidean distance).
         kernel: Kernel for embedding distances, Defaults to `softmax_kernel`.
         radius: For enforcing the radius of Z. Defaults to 3.5.
-        lasso: Lasso-regularisation coefficient for B ($\\lambda_{lasso} * ||B||_1$). Defaults to 0.0.
-        ridge: Ridge-regularisation coefficient for B ($\\lambda_{ridge} * ||B||_2$). Defaults to 0.0.
+        lasso: Lasso-regularisation coefficient for B ($\lambda_{lasso} * ||B||_1$). Defaults to 0.0.
+        ridge: Ridge-regularisation coefficient for B ($\lambda_{ridge} * ||B||_2$). Defaults to 0.0.
         z_norm: Z normalisation regularisation coefficient ($\\lambda_{norm} * (sum(Z^2)-n)^2$). Defaults to 1.0.
         individual: Return individual (row-wise) losses. Defaults to False.
         regularisation: Additional loss function. Defaults to None.
@@ -1647,7 +1660,7 @@ def make_marginal_loss(
     Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
     Callable[[torch.Tensor, torch.Tensor], None],
 ]:
-    """Create a loss for adding new points with Slisemap.
+    r"""Create a loss for adding new points with Slisemap.
 
     Args:
         X: The existing data matrix [n_old, m].
@@ -1661,8 +1674,8 @@ def make_marginal_loss(
         distance: Embedding distance function. Defaults to `torch.cdist` (Euclidean distance).
         kernel: Kernel for embedding distances, Defaults to `softmax_kernel`.
         radius: For enforcing the radius of Z. Defaults to 3.5.
-        lasso: Lasso-regularisation coefficient for B ($\\lambda_{lasso} * ||B||_1$). Defaults to 0.0.
-        ridge: Ridge-regularisation coefficient for B ($\\lambda_{ridge} * ||B||_2$). Defaults to 0.0.
+        lasso: Lasso-regularisation coefficient for B ($\lambda_{lasso} * ||B||_1$). Defaults to 0.0.
+        ridge: Ridge-regularisation coefficient for B ($\lambda_{ridge} * ||B||_2$). Defaults to 0.0.
         jit: Just-In-Time compile the loss function. Defaults to True.
 
     Returns:
@@ -1675,7 +1688,7 @@ def make_marginal_loss(
     L0 = local_loss(local_model(Xcomb, B), Ycomb)  # Nold x Ncomb
     D0 = distance(Z, Z)  # Nold x Nold
 
-    def set_new(Xnew: torch.Tensor, Ynew: torch.Tensor):
+    def set_new(Xnew: torch.Tensor, Ynew: torch.Tensor) -> None:
         """Set the Xnew and Ynew for the generated marginal Slisemap loss function.
 
         Args:
@@ -1694,8 +1707,8 @@ def make_marginal_loss(
         """Marginal Slisemap loss.
 
         Args:
-            B: New local models [n_new, p].
-            Z: New embedding matrix [n_new, d].
+            Bnew: New local models [n_new, p].
+            Znew: New embedding matrix [n_new, d].
 
         Returns:
             The marginal loss value.
