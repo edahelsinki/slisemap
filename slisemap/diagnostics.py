@@ -1,5 +1,4 @@
-"""
-These are diagnostics for identifying potential issues with SLISEMAP solutions.
+"""These are diagnostics for identifying potential issues with SLISEMAP solutions.
 
 **Typical usage:**
 
@@ -38,11 +37,12 @@ def _frac(n: int, part: Union[float, int]) -> float:
 def global_model_losses(
     sm: Slisemap, indices: Optional[np.ndarray] = None, **kwargs: Any
 ) -> torch.Tensor:
-    """Train a global model
+    """Train a global model.
 
     Args:
         sm: Slisemap object.
         indices: Optional subsampling indices. Defaults to None.
+
     Keyword Args:
         **kwargs: Optional keyword arguments to LBFGS.
 
@@ -67,7 +67,9 @@ def global_model_losses(
     return sm.local_loss(sm.local_model(sm._X, B), sm._Y).detach()
 
 
-def print_diagnostics(diagnostics: Dict[str, np.ndarray], summary: bool = False):
+def print_diagnostics(
+    diagnostics: Dict[str, np.ndarray], summary: bool = False
+) -> None:
     """Print diagnostic results.
 
     Args:
@@ -77,7 +79,7 @@ def print_diagnostics(diagnostics: Dict[str, np.ndarray], summary: bool = False)
     if summary:
         issues = reduce(lambda a, b: a + b.astype(int), diagnostics.values())
         if np.sum(issues) == 0:
-            print(f"All data items passed all the diagnostics!")
+            print("All data items passed all the diagnostics!")
         else:
             print(
                 f"{np.mean(issues > 0) * 100 :.1f}% of the data items failed at least",
@@ -109,6 +111,7 @@ def plot_diagnostics(
         summary: Combine multiple diagnostics into one plot. Defaults to False.
         title: Title of the plot. Defaults to "Slisemap Diagnostics".
         show: Show the plot. Defaults to True.
+
     Keyword Args:
         **kwargs: Additional parameters to `seaborn.relplot`.
 
@@ -202,7 +205,7 @@ def heavyweight_diagnostic(
 def lightweight_diagnostic(
     sm: Slisemap, max_size: Union[float, int] = 0.5
 ) -> np.ndarray:
-    """Check if any data item has a self-weight that is too small
+    """Check if any data item has a self-weight that is too small.
 
     Args:
         sm: Trained Slisemap solution.
@@ -311,11 +314,14 @@ def quantile_loss_diagnostic(sm: Slisemap, quantile: float = 0.4) -> np.ndarray:
 def optics_diagnostic(
     sm: Slisemap, min_size: Union[float, int] = 0.1, **kwargs: Any
 ) -> np.ndarray:
-    """Use a clustering method to check for problematic data items in the embedding.
+    """Use a clustering method (`sklearn.cluster.OPTICS`) to check for problematic data items in the embedding.
 
     Args:
         sm: Trained Slisemap solution.
         min_size: Miniumum neighbourhood/cluster size (as a fraction or absolute number). Defaults to 0.1.
+
+    Keyword Args:
+        **kwargs: forwaded to OPTICS.
 
     Returns:
         Boolean mask of problematic data items.

@@ -1,10 +1,27 @@
+import numpy as np
 import pytest
-from slisemap.slisemap import *
-from slisemap.local_models import *
-from slisemap.escape import escape_neighbourhood, escape_marginal
-from slisemap.utils import SlisemapWarning
+import torch
 
-from .utils import *
+from slisemap.escape import escape_marginal, escape_neighbourhood
+from slisemap.local_models import (
+    linear_regression,
+    linear_regression_coefficients,
+    linear_regression_loss,
+    logistic_regression,
+    logistic_regression_coefficients,
+    logistic_regression_loss,
+)
+from slisemap.slisemap import Slisemap
+from slisemap.utils import SlisemapWarning, tonp
+
+from .utils import (
+    all_finite,
+    assert_allclose,
+    assert_approx_ge,
+    get_slisemap,
+    get_slisemap2,
+    set_seed,
+)
 
 
 @pytest.fixture(scope="session")
@@ -60,7 +77,6 @@ def test_only_B(sm_data):
         lasso=sm.lasso,
         intercept=sm.intercept,
         Z0=sm.get_Z(numpy=False),
-        random_state=123009857,
     )
     sm2.optimise(1, 3, only_B=True)
     assert_allclose(sm.get_Z(), sm2.get_Z())
@@ -205,30 +221,28 @@ def test_get(sm_data):
 
 def test_set(sm_data):
     sm = sm_data[1].copy()
-    sm.d = 5
     sm.jit = False
-    sm.random_state = None
     assert np.isfinite(sm.value())
     sm.lasso = 1
     sm.ridge = 1
     sm.z_norm = 0
     sm.radius = 2
-    sm.d = 2
     sm.jit = True
-    sm.random_state = 42
     assert np.isfinite(sm.value())
+    sm.cpu()
 
 
 def test_restore(sm_data):
-    sm0, sm1 = sm_data
-    B1 = sm0.get_B()
-    Z1 = sm0.get_Z()
-    v1 = sm0.value()
-    sm2 = sm1.copy()
-    sm2.restore()
-    assert_allclose(B1, sm2.get_B(), "restore B")
-    assert_allclose(Z1, sm2.get_Z(), "restore Z")
-    assert_allclose(v1, sm2.value(), "restore value")
+    with pytest.warns(DeprecationWarning, match="Slisemap.restore"):
+        sm0, sm1 = sm_data
+        B1 = sm0.get_B()
+        Z1 = sm0.get_Z()
+        v1 = sm0.value()
+        sm2 = sm1.copy()
+        sm2.restore()
+        assert_allclose(B1, sm2.get_B(), "restore B")
+        assert_allclose(Z1, sm2.get_Z(), "restore Z")
+        assert_allclose(v1, sm2.value(), "restore value")
 
 
 def test_cluster(sm_data):

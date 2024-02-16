@@ -1,7 +1,8 @@
 # Installation: `pip install -r requirements.txt`
 numpy
 torch # This is the CPU version, check https://pytorch.org/get-started/locally/ for GPU acceleration
-scipy
 scikit-learn
 matplotlib
 seaborn
+scipy
+scikit-optimize

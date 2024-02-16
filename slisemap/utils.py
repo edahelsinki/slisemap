@@ -1,26 +1,75 @@
-"""
-This module contains various useful functions.
-"""
+"""Module that contains various useful functions."""
 
 import warnings
 from timeit import default_timer as timer
-from typing import Any, Callable, Dict, Iterator, List, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 import numpy as np
 import torch
 
 
-class SlisemapException(Exception):
-    # Custom Exception type (for filtering)
+def softmax_row_kernel(D: torch.Tensor) -> torch.Tensor:
+    """Kernel function that applies softmax on the rows.
+
+    Args:
+        D: Distance matrix.
+
+    Returns:
+        Weight matrix.
+    """
+    return torch.softmax(-D, 1)
+
+
+def softmax_column_kernel(D: torch.Tensor) -> torch.Tensor:
+    """Kernel function that applies softmax on the columns.
+
+    Args:
+        D: Distance matrix.
+
+    Returns:
+        Weight matrix.
+    """
+    return torch.softmax(-D, 0)
+
+
+def squared_distance(A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
+    """Distance function that returns the squared euclidean distances.
+
+    Args:
+        A: The first matrix [n1, d].
+        B: The second matrix [n2, d].
+
+    Returns:
+        Distance matrix [n1, n2].
+    """
+    return torch.sum((A[:, None, ...] - B[None, ...]) ** 2, -1)
+
+
+class SlisemapException(Exception):  # noqa: N818
+    """Custom Exception type (for filtering)."""
+
     pass
 
 
 class SlisemapWarning(Warning):
-    # Custom Warning type (for filtering)
+    """Custom Warning type (for filtering)."""
+
     pass
 
 
-def _assert(condition: bool, message: str, method: Optional[Callable] = None):
+def _assert(condition: bool, message: str, method: Optional[Callable] = None) -> None:
     if not condition:
         if method is None:
             raise SlisemapException(f"AssertionError: {message}")
@@ -28,10 +77,30 @@ def _assert(condition: bool, message: str, method: Optional[Callable] = None):
             raise SlisemapException(f"AssertionError, {method.__qualname__}: {message}")
 
 
+def _assert_shape(
+    tensor: Union[np.ndarray, torch.tensor],
+    shape: Tuple[int],
+    name: str,
+    method: Optional[Callable] = None,
+) -> None:
+    _assert(
+        tensor.shape == shape,
+        f"{name} has the wrong shape: {tensor.shape} != {shape}",
+        method,
+    )
+
+
+def _assert_no_trace(
+    condition: Callable[[], Tuple[bool, str]], method: Optional[Callable] = None
+) -> None:
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=torch.jit.TracerWarning)
+        _assert(*condition(), method)
+
+
 def _deprecated(
-    old: Union[Callable, str],
-    new: Union[None, Callable, str] = None,
-):
+    old: Union[Callable, str], new: Union[None, Callable, str] = None
+) -> None:
     try:
         old = f"'{old.__qualname__}'"
     except AttributeError:
@@ -40,7 +109,7 @@ def _deprecated(
         warnings.warn(
             f"{old} is deprecated and may be removed in a future version",
             DeprecationWarning,
-            2,
+            stacklevel=2,
         )
     else:
         try:
@@ -50,19 +119,33 @@ def _deprecated(
         warnings.warn(
             f"{old} is deprecated in favour of {new} and may be removed in a future version",
             DeprecationWarning,
-            2,
+            stacklevel=2,
         )
 
 
-def _warn(warning: str, method: Optional[Callable] = None):
+def _warn(warning: str, method: Optional[Callable] = None) -> None:
     if method is None:
-        warnings.warn(warning, SlisemapWarning, 2)
+        warnings.warn(warning, SlisemapWarning, stacklevel=2)
     else:
-        warnings.warn(f"{method.__qualname__}: {warning}", SlisemapWarning, 2)
+        warnings.warn(
+            f"{method.__qualname__}: {warning}", SlisemapWarning, stacklevel=2
+        )
 
 
-def tonp(x: Union[torch.Tensor, Any]) -> np.ndarray:
+_F = TypeVar("_F", bound=Callable[..., Any])
+
+
+class CallableLike(Generic[_F]):
+    """Type annotation for functions matching the signature of a given function."""
+
+    @staticmethod
+    def __class_getitem__(fn: _F) -> _F:
+        return fn
+
+
+def tonp(x: Union[torch.Tensor, object]) -> np.ndarray:
     """Convert a `torch.Tensor` to a `numpy.ndarray`.
+
     If `x` is not a `torch.Tensor` then `np.asarray` is used instead.
 
     Args:
@@ -77,16 +160,10 @@ def tonp(x: Union[torch.Tensor, Any]) -> np.ndarray:
         return np.asarray(x)
 
 
-_tonp = tonp
-
-
 class CheckConvergence:
     """An object that tries to estimate when an optimisation has converged.
-    Use it for, e.g., escape+optimisation cycles in Slisemap.
 
-    Args:
-        patience: How long should the optimisation continue without improvement. Defaults to 3.
-        max_iter: The maximum number of iterations. Defaults to `2**20`.
+    Use it for, e.g., escape+optimisation cycles in Slisemap.
     """
 
     __slots__ = {
@@ -97,9 +174,19 @@ class CheckConvergence:
         "optimal": "Cache for storing the state that produced the best loss value.",
         "max_iter": "The maximum number of iterations.",
         "iter": "The current number of iterations.",
+        "rel": "Minimum relative error for convergence check",
     }
 
-    def __init__(self, patience: float = 3, max_iter: int = 1 << 20):
+    def __init__(
+        self, patience: float = 3, max_iter: int = 1 << 20, rel: float = 1e-4
+    ) -> None:
+        """Create a `CheckConvergence` object.
+
+        Args:
+            patience: How long should the optimisation continue without improvement. Defaults to 3.
+            max_iter: The maximum number of iterations. Defaults to `2**20`.
+            rel: Minimum relative error change that is considered an improvement. Defaults to `1e-4`.
+        """
         self.current = np.inf
         self.best = np.asarray(np.inf)
         self.counter = 0.0
@@ -107,10 +194,11 @@ class CheckConvergence:
         self.optimal = None
         self.max_iter = max_iter
         self.iter = 0
+        self.rel = rel
 
     def has_converged(
         self,
-        loss: Union[float, Sequence[float]],
+        loss: Union[float, Sequence[float], np.ndarray],
         store: Optional[Callable[[], Any]] = None,
         verbose: bool = False,
     ) -> bool:
@@ -132,7 +220,7 @@ class CheckConvergence:
         if np.any(np.isnan(loss)):
             _warn("Loss is `nan`", CheckConvergence.has_converged)
             return True
-        if np.any(loss < self.best):
+        if np.any(loss + np.abs(loss) * self.rel < self.best):
             self.counter = 0.0  # Reset the counter if a new best
             if store is not None and loss.item(0) < self.best.item(0):
                 self.optimal = store()
@@ -159,7 +247,7 @@ def LBFGS(
     verbose: bool = False,
     **kwargs: Any,
 ) -> torch.optim.LBFGS:
-    """Optimise a function using LBFGS.
+    """Optimise a function using [LBFGS](https://en.wikipedia.org/wiki/Limited-memory_BFGS).
 
     Args:
         loss_fn: Function that returns a value to be minimised.
@@ -170,8 +258,9 @@ def LBFGS(
         time_limit: Optional time limit for the optimisation (in seconds). Defaults to None.
         increase_tolerance: Increase the tolerances for convergence checking. Defaults to False.
         verbose: Print status messages. Defaults to False.
+
     Keyword Args:
-        **kwargs: Argumemts passed to `torch.optim.LBFGS`.
+        **kwargs: Arguments forwarded to [`torch.optim.LBFGS`](https://pytorch.org/docs/stable/generated/torch.optim.LBFGS.html).
 
     Returns:
         The LBFGS optimiser.
@@ -187,7 +276,7 @@ def LBFGS(
         **kwargs,
     )
 
-    def closure():
+    def closure() -> torch.Tensor:
         optimiser.zero_grad()
         loss = loss_fn()
         loss.backward()
@@ -261,7 +350,7 @@ def PCA_rotation(
             return torch.linalg.svd(X, full_matrices=False)[2].T[:, :components]
         else:
             return torch.pca_lowrank(X, components, center=center, niter=niter)[2]
-    except:
+    except Exception:
         _warn("Could not perform PCA", PCA_rotation)
         z = torch.zeros((X.shape[1], components), dtype=X.dtype, device=X.device)
         z.fill_diagonal_(1.0, True)
@@ -277,7 +366,7 @@ def global_model(
     lasso: float = 0.0,
     ridge: float = 0.0,
 ) -> torch.Tensor:
-    """Find coefficients for a global model.
+    r"""Find coefficients for a global model.
 
     Args:
         X: Data matrix.
@@ -285,8 +374,8 @@ def global_model(
         local_model: Prediction function for the model.
         local_loss: Loss function for the model.
         coefficients: Number of coefficients. Defaults to X.shape[1].
-        lasso: Lasso-regularisation coefficient for B ($\\lambda_{lasso} * ||B||_1$). Defaults to 0.0.
-        ridge: Ridge-regularisation coefficient for B ($\\lambda_{ridge} * ||B||_2$). Defaults to 0.0.
+        lasso: Lasso-regularisation coefficient for B ($\lambda_{lasso} * ||B||_1$). Defaults to 0.0.
+        ridge: Ridge-regularisation coefficient for B ($\lambda_{ridge} * ||B||_2$). Defaults to 0.0.
 
     Returns:
         Global model coefficients.
@@ -294,13 +383,13 @@ def global_model(
     shape = (1, X.shape[1] * Y.shape[1] if coefficients is None else coefficients)
     B = torch.zeros(shape, dtype=X.dtype, device=X.device).requires_grad_(True)
 
-    def loss():
-        l = local_loss(local_model(X, B), Y, B).mean()
+    def loss() -> torch.Tensor:
+        loss = local_loss(local_model(X, B), Y).mean()
         if lasso > 0:
-            l += lasso * torch.sum(B.abs())
+            loss += lasso * torch.sum(B.abs())
         if ridge > 0:
-            l += ridge * torch.sum(B**2)
-        return l
+            loss += ridge * torch.sum(B**2)
+        return loss
 
     LBFGS(loss, [B])
     return B.detach()
@@ -339,15 +428,16 @@ def dict_append(df: Dict[str, np.ndarray], d: Dict[str, Any]) -> Dict[str, np.nd
         The same dictionary as `df` with the values from `d` appended.
     """
     d = dict_array(d)
-    for k in df.keys():
+    for k in df:
         df[k] = np.concatenate((df[k], d[k]), 0)
     return df
 
 
 def dict_concat(
-    dicts: Union[Sequence[Dict[str, Any]], Iterator[Dict[str, Any]]]
+    dicts: Union[Sequence[Dict[str, Any]], Iterator[Dict[str, Any]]],
 ) -> Dict[str, np.ndarray]:
     """Combine multiple dictionaries into one by concatenating the values.
+
     Calls `dict_array` to pre-process the dictionaries.
 
     Args:
@@ -364,11 +454,22 @@ def dict_concat(
     return df
 
 
+ToTensor = Union[
+    float,
+    np.ndarray,
+    torch.Tensor,
+    "pandas.DataFrame",  # noqa: F821
+    Dict[str, Sequence[float]],
+    Sequence[float],
+]
+"""Type annotations for objects that can be turned into a `torch.Tensor` with the [to_tensor][slisemap.utils.to_tensor] function."""
+
+
 def to_tensor(
-    input: Union[np.ndarray, torch.Tensor, Dict[str, Any], Sequence[Any], Any],
-    **tensorargs: Any,
-) -> Tuple[torch.Tensor, Optional[Sequence[Any]], Optional[Sequence[Any]]]:
+    input: ToTensor, **tensorargs: object
+) -> Tuple[torch.Tensor, Optional[Sequence[object]], Optional[Sequence[object]]]:
     """Convert the input into a `torch.Tensor` (via `numpy.ndarray` if necessary).
+
     This function wrapps `torch.as_tensor` (and `numpy.asarray`) and tries to extract row and column names.
     This function can handle arbitrary objects (such as `pandas.DataFrame`) if they implement `.to_numpy()` and, optionally, `.index` and `.columns`.
 
@@ -385,9 +486,7 @@ def to_tensor(
     if isinstance(input, dict):
         output = torch.as_tensor(np.asarray(tuple(input.values())).T, **tensorargs)
         return output, None, list(input.keys())
-    elif isinstance(input, np.ndarray):
-        return (torch.as_tensor(input, **tensorargs), None, None)
-    elif isinstance(input, torch.Tensor):
+    elif isinstance(input, (np.ndarray, torch.Tensor)):
         return (torch.as_tensor(input, **tensorargs), None, None)
     else:
         # Check if X is similar to a Pandas DataFrame
@@ -397,7 +496,10 @@ def to_tensor(
             try:
                 output = torch.as_tensor(input.numpy(), **tensorargs)
             except (AttributeError, TypeError):
-                output = torch.as_tensor(np.asarray(input), **tensorargs)
+                try:
+                    output = torch.as_tensor(input, **tensorargs)
+                except (TypeError, RuntimeError):
+                    output = torch.as_tensor(np.asarray(input), **tensorargs)
         try:
             columns = input.columns if len(input.columns) == output.shape[1] else None
         except (AttributeError, TypeError):
@@ -411,35 +513,45 @@ def to_tensor(
 
 class Metadata(dict):
     """Metadata for Slisemap objects.
+
     Primarily row names, column names, and scaling information about the matrices (these are used when plotting).
     But other arbitrary information can also be stored in this dictionary (The main Slisemap class has predefined "slots").
     """
 
-    def __init__(self, root: "Slisemap"):
-        super().__init__()
+    def __init__(self, root: "Slisemap", **kwargs: Any) -> None:  # noqa: F821
+        """Create a Metadata dictionary."""
+        super().__init__(**kwargs)
         self.root = root
 
-    def set_rows(self, *rows: Optional[Sequence[Any]]):
-        """Set the row names with checks.
+    def set_rows(self, *rows: Optional[Sequence[object]]) -> None:
+        """Set the row names with checks to avoid saving ranges.
 
         Args:
             *rows: row names
         """
         for row in rows:
             if row is not None:
+                try:
+                    # Check if row is `range(0, self.root.n, 1)`-like (duck typing)
+                    if row.start == 0 and row.step == 1 and row.stop == self.root.n:
+                        continue
+                except AttributeError:
+                    pass
                 _assert(
                     len(row) == self.root.n,
                     f"Wrong number of row names {len(row)} != {self.root.n}",
                     Metadata.set_rows,
                 )
-                self["rows"] = row
+                if all(i == j for i, j in enumerate(row)):
+                    continue
+                self["rows"] = list(row)
                 break
 
     def set_variables(
         self,
         variables: Optional[Sequence[Any]] = None,
         add_intercept: Optional[bool] = None,
-    ):
+    ) -> None:
         """Set the variable names with checks.
 
         Args:
@@ -449,24 +561,24 @@ class Metadata(dict):
         if add_intercept is None:
             add_intercept = self.root.intercept
         if variables is not None:
+            variables = list(variables)
             if add_intercept:
-                variables = list(variables) + ["Intercept"]
+                variables.append("Intercept")
             _assert(
                 len(variables) == self.root.m,
-                f"Wrong number of variables {len(variables)} != {self.root.m}",
+                f"Wrong number of variables {len(variables)} != {self.root.m} ({variables})",
                 Metadata.set_variables,
             )
             self["variables"] = variables
 
-    def set_targets(self, targets: Union[None, str, Sequence[Any]] = None):
+    def set_targets(self, targets: Union[None, str, Sequence[Any]] = None) -> None:
         """Set the target names with checks.
 
         Args:
             targets: target names
         """
         if targets is not None:
-            if isinstance(targets, str):
-                targets = [targets]
+            targets = [targets] if isinstance(targets, str) else list(targets)
             _assert(
                 len(targets) == self.root.o,
                 f"Wrong number of targets {len(targets)} != {self.root.o}",
@@ -474,7 +586,7 @@ class Metadata(dict):
             )
             self["targets"] = targets
 
-    def set_coefficients(self, coefficients: Optional[Sequence[Any]] = None):
+    def set_coefficients(self, coefficients: Optional[Sequence[Any]] = None) -> None:
         """Set the coefficient names with checks.
 
         Args:
@@ -486,9 +598,9 @@ class Metadata(dict):
                 f"Wrong number of targets {len(coefficients)} != {self.root.q}",
                 Metadata.set_coefficients,
             )
-            self["coefficients"] = coefficients
+            self["coefficients"] = list(coefficients)
 
-    def set_dimensions(self, dimensions: Optional[Sequence[Any]] = None):
+    def set_dimensions(self, dimensions: Optional[Sequence[Any]] = None) -> None:
         """Set the dimension names with checks.
 
         Args:
@@ -500,10 +612,10 @@ class Metadata(dict):
                 f"Wrong number of targets {len(dimensions)} != {self.root.d}",
                 Metadata.set_dimensions,
             )
-            self["dimensions"] = dimensions
+            self["dimensions"] = list(dimensions)
 
     def get_coefficients(self, fallback: bool = True) -> Optional[List[str]]:
-        """Get a list of coefficient names
+        """Get a list of coefficient names.
 
         Args:
             fallback: If metadata for coefficients is missing, return a new list instead of None. Defaults to True.
@@ -526,7 +638,7 @@ class Metadata(dict):
             return None
 
     def get_targets(self, fallback: bool = True) -> Optional[List[str]]:
-        """Get a list of target names
+        """Get a list of target names.
 
         Args:
             fallback: If metadata for targets is missing, return a new list instead of None. Defaults to True.
@@ -544,7 +656,7 @@ class Metadata(dict):
     def get_variables(
         self, intercept: bool = True, fallback: bool = True
     ) -> Optional[List[str]]:
-        """Get a list of variable names
+        """Get a list of variable names.
 
         Args:
             intercept: include the intercept in the list. Defaults to True.
@@ -573,7 +685,7 @@ class Metadata(dict):
     def get_dimensions(
         self, fallback: bool = True, long: bool = False
     ) -> Optional[List[str]]:
-        """Get a list of dimension names
+        """Get a list of dimension names.
 
         Args:
             fallback: If metadata for dimensions is missing, return a new list instead of None. Defaults to True.
@@ -586,14 +698,15 @@ class Metadata(dict):
             return self["dimensions"]
         elif fallback:
             if long:
-                return [f"SLISEMAP {i+1}" for i in range(self.root.d)]
+                cls = "Slisemap" if self.root is None else type(self.root).__name__
+                return [f"{cls} {i+1}" for i in range(self.root.d)]
             else:
                 return [f"Z_{i}" for i in range(self.root.d)]
         else:
             return None
 
     def get_rows(self, fallback: bool = True) -> Optional[Sequence[Any]]:
-        """Get a list of row names
+        """Get a list of row names.
 
         Args:
             fallback: If metadata for rows is missing, return a range instead of None. Defaults to True.
@@ -612,8 +725,9 @@ class Metadata(dict):
         self,
         center: Union[None, torch.Tensor, np.ndarray, Sequence[float]] = None,
         scale: Union[None, torch.Tensor, np.ndarray, Sequence[float]] = None,
-    ):
+    ) -> None:
         """Set scaling information with checks.
+
         Use if `X` has been scaled before being input to Slisemap.
         Assuming the scaling can be converted to the form `X = (X_unscaled - center) / scale`.
         This allows some plots to (temporarily) revert the scaling (for more intuitive units).
@@ -635,8 +749,9 @@ class Metadata(dict):
         self,
         center: Union[None, torch.Tensor, np.ndarray, Sequence[float]] = None,
         scale: Union[None, torch.Tensor, np.ndarray, Sequence[float]] = None,
-    ):
+    ) -> None:
         """Set scaling information with checks.
+
         Use if `Y` has been scaled before being input to Slisemap.
         Assuming the scaling can be converted to the form `Y = (Y_unscaled - center) / scale`.
         This allows some plots to (temporarily) revert the scaling (for more intuitive units).
@@ -687,3 +802,65 @@ class Metadata(dict):
         if "Y_center" in self:
             Y = Y + self["Y_center"][None, :]
         return Y
+
+
+def make_grid(num: int = 50, d: int = 2, hex: bool = True) -> np.ndarray:
+    """Create a circular grid of points with radius 1.0.
+
+    Args:
+        num: The approximate number of points. Defaults to 50.
+        d: The number of dimensions. Defaults to 2.
+        hex: If ``d == 2`` produce a hexagonal grid instead of a rectangular grid. Defaults to True.
+
+    Returns:
+        A matrix of coordinates `[num, d]`.
+    """
+    _assert(d > 0, "The number of dimensions must be positive", make_grid)
+    if d == 1:
+        return np.linspace(-1, 1, num)[:, None]
+    elif d == 2 and hex:
+        return make_hex_grid(num)
+    else:
+        nball_frac = np.pi ** (d / 2) / np.math.gamma(d / 2 + 1) / 2**d
+        if 4**d * nball_frac > num:
+            _warn(
+                "Too few grid points per dimension. Try reducing the number of dimensions or increase the number of points in the grid.",
+                make_grid,
+            )
+        proto_1d = int(np.ceil((num / nball_frac) ** (1 / d))) // 2 * 2 + 2
+        grid_1d = np.linspace(-0.9999, 0.9999, proto_1d)
+        grid = np.stack(np.meshgrid(*(grid_1d for _ in range(d))), -1).reshape((-1, d))
+        dist = np.sum(grid**2, 1)
+        q = np.quantile(dist, num / len(dist)) + np.finfo(dist.dtype).eps ** 0.5
+        grid = grid[dist <= q]
+        return grid / np.quantile(grid, 0.99)
+
+
+def make_hex_grid(num: int = 52) -> np.ndarray:
+    """Create a circular grid of 2D points with a hexagon pattern and radius 1.0.
+
+    Args:
+        num: The approximate number of points. Defaults to 52.
+
+    Returns:
+        A matrix of coordinates `[num, 2]`.
+    """
+    num_h = int(np.ceil(np.sqrt(num * 4 / np.pi))) // 2 * 2 + 3
+    grid_h, height = np.linspace(-0.9999, 0.9999, num_h, retstep=True)
+    width = height * 2 / 3 * np.sqrt(3)
+    num_w = int(np.ceil(1.0 / width))
+    grid_w = np.arange(-num_w, num_w + 1) * width
+    grid = np.stack(np.meshgrid(grid_w, grid_h), -1)
+    grid[(1 - num_h // 2 % 2) :: 2, :, 0] += width / 2
+    grid = grid.reshape((-1, 2))
+    best = None
+    for origo in (0.0, 0.5 * width):
+        if origo != 0.0:
+            grid[:, 0] += origo
+        dist = np.sum(grid**2, 1)
+        q = np.quantile(dist, num / len(dist))
+        for epsilon in (-1e-4, 1e-4):
+            grid2 = grid[dist <= q + epsilon]
+            if best is None or abs(best.shape[0] - num) > abs(grid2.shape[0] - num):
+                best = grid2.copy()
+    return best / np.quantile(best, 0.99)

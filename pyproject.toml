@@ -4,15 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "slisemap"
-version = "1.5.2"
+version = "1.6.0"
 authors = [
     { name = "Anton Björklund", email = "anton.bjorklund@helsinki.fi" },
-    { name = "Jarmo Mäkelä", email = "jarmo.makela@helsinki.fi" },
+    { name = "Jarmo Mäkelä" },
     { name = "Kai Puolamäki", email = "kai.puolamaki@helsinki.fi" },
 ]
 description = "SLISEMAP: Combine local explanations with supervised dimensionality reduction"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 keywords = [
     "Explainable AI",
     "Local explanation",
@@ -35,6 +35,10 @@ dependencies = [
     "seaborn >= 0.11",
 ]
 
+[project.optional-dependencies]
+tuning = ["scikit-optimize >= 0.9", "scipy >= 0.17"]
+dev = ["pytest", "pytest-cov", "black[jupyter]", "ruff", "jupyter", "IPython"]
+
 [project.urls]
 homepage = "https://github.com/edahelsinki/slisemap"
 documentation = "https://edahelsinki.github.io/slisemap"
@@ -42,3 +46,54 @@ repository = "https://github.com/edahelsinki/slisemap.git"
 
 [tool.setuptools]
 packages = ["slisemap"]
+
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+exclude_also = [
+    "_deprecated",
+    "print",
+    "plt.show",
+    "if verbose",
+    "ImportError",
+    "_warn",
+]
+
+[tool.ruff.lint]
+select = [
+    "I",
+    "E",
+    "F",
+    "B",
+    "C4",
+    "W",
+    "D",
+    "UP",
+    "ANN",
+    "SIM",
+    "RUF",
+    "S",
+    "N",
+]
+ignore = [
+    "E501",
+    "B006",
+    "D105",
+    "D203",
+    "D204",
+    "D406",
+    "D213",
+    "D407",
+    "D413",
+    "ANN101",
+    "ANN102",
+    "ANN401",
+    "S101",
+    "N802",
+    "N803",
+    "N806",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D", "ANN"]

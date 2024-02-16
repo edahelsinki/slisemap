@@ -4,8 +4,9 @@ from typing import Tuple, Union
 
 import numpy as np
 import torch
+
+from slisemap.local_models import LogisticLogRegression, LogisticRegression
 from slisemap.slisemap import Slisemap
-from slisemap.local_models import *
 
 
 def set_seed(seed):
@@ -17,10 +18,7 @@ def set_seed(seed):
 def get_slisemap(
     n=20, m=5, classes=0, seed=None, randomB=False, lasso=1e-4, **kwargs
 ) -> Slisemap:
-    if seed is None:
-        npr = np.random
-    else:
-        npr = np.random.RandomState(seed)
+    npr = np.random if seed is None else np.random.RandomState(seed)
     X = npr.normal(size=(n, m))
     if classes > 0:
         y = npr.uniform(size=(n, classes))
@@ -58,18 +56,19 @@ def get_slisemap2(
         y = 1 / (1 + np.exp(-y))
         sm = Slisemap(
             X,
-            y,
+            np.stack((y, 1 - y), -1),
             local_model=LogisticLogRegression,
             lasso=lasso * 10,
-            random_state=seed,
             **kwargs,
         )
     else:
-        sm = Slisemap(X, y, lasso=lasso, random_state=seed, **kwargs)
+        sm = Slisemap(X, y, lasso=lasso, **kwargs)
     if randomB:
-        sm._B = torch.normal(
-            0, 1, sm._B.shape, **sm.tensorargs, generator=sm._random_state
-        )
+        if seed is not None:
+            generator = torch.Generator(sm._B.device).manual_seed(seed)
+            sm._B = torch.normal(sm._B * 0.0, 1.0, generator=generator)
+        else:
+            sm._B = torch.normal(sm._B * 0.0, 1.0)
     if cheat:
         angles = 2 * np.pi * cl / 3  # Assume k=3, d=2
         Z = np.stack((np.sin(angles), np.cos(angles)), 1)

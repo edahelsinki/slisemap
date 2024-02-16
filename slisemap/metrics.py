@@ -1,7 +1,7 @@
-"""
-    This module contains functions that can be used to evaluate SLISEMAP solutions.
-    The functions take a solution (plus other arguments) and returns a single float.
-    This float should either be minimised or maximised for best results (see individual functions).
+"""Module that contains functions that can be used to evaluate SLISEMAP solutions.
+
+The functions take a solution (plus other arguments) and returns a single float.
+This float should either be minimised or maximised for best results (see individual functions).
 """
 
 from typing import Any, Callable, Optional, Sequence, Union
@@ -11,7 +11,7 @@ import torch
 from sklearn.cluster import KMeans
 
 from slisemap.slisemap import Slisemap
-from slisemap.utils import _deprecated, tonp
+from slisemap.utils import ToTensor, _deprecated, to_tensor, tonp
 
 
 def _non_crashing_median(x: torch.Tensor) -> float:
@@ -21,7 +21,8 @@ def _non_crashing_median(x: torch.Tensor) -> float:
         return torch.median(x).cpu().item()
 
 
-def nanmean(x) -> float:
+def nanmean(x: np.ndarray) -> float:
+    """Compute the mean, ignoring any nan."""
     mask = np.isfinite(x)
     if np.all(mask):
         return np.mean(x)
@@ -34,7 +35,7 @@ def nanmean(x) -> float:
 def euclidean_nearest_neighbours(
     D: torch.Tensor, index: int, k: Union[int, float] = 0.1, include_self: bool = True
 ) -> torch.LongTensor:
-    """Find the k nearest neighbours using euclidean distance
+    """Find the k nearest neighbours using euclidean distance.
 
     Args:
         D: Distance matrix.
@@ -61,7 +62,7 @@ def euclidean_nearest_neighbours(
 def kernel_neighbours(
     D: torch.Tensor, index: int, epsilon: float = 1.0, include_self: bool = True
 ) -> torch.LongTensor:
-    """Find the neighbours using a softmax kernel
+    """Find the neighbours using a softmax kernel.
 
     Args:
         D: Distance matrix.
@@ -75,9 +76,9 @@ def kernel_neighbours(
     K = torch.nn.functional.softmax(-D[index], 0)
     epsilon2 = epsilon / K.numel()
     if include_self:
-        return torch.where(K >= epsilon2)[0]
+        return torch.where(epsilon2 <= K)[0]
     else:
-        mask = K >= epsilon2
+        mask = epsilon2 <= K
         mask[index] = False
         return torch.where(mask)[0]
 
@@ -88,7 +89,7 @@ def cluster_neighbours(
     clusters: torch.LongTensor,
     include_self: bool = True,
 ) -> torch.LongTensor:
-    """Find the neighbours with given clusters
+    """Find the neighbours with given clusters.
 
     Args:
         D: Distance matrix (ignored).
@@ -114,7 +115,7 @@ def radius_neighbours(
     quantile: float = 0.2,
     include_self: bool = True,
 ) -> torch.LongTensor:
-    """Find the neighbours within a radius
+    """Find the neighbours within a radius.
 
     Args:
         D: Distance matrix (ignored).
@@ -136,29 +137,38 @@ def radius_neighbours(
         return torch.where(mask)[0]
 
 
+Neighbours = Union[
+    None,
+    np.ndarray,
+    torch.LongTensor,
+    Callable[[torch.Tensor, int], torch.LongTensor],
+]
+"""Type annotation for specifying neighbouring items.
+Used in the [get_neighbours][slisemap.metrics.get_neighbours] function.
+
+- If None, every item is or is not a neighbour.
+- If a vector of cluster id:s, take neighbours from the same cluter.
+- Or a function that gives neighbours (that takes a distance matrix and an index), primarily:
+     - euclidean_nearest_neighbours
+     - kernel_neighbours
+     - cluster_neighbours
+     - radius_neighbours
+"""
+
+
 def get_neighbours(
     sm: Union[Slisemap, torch.Tensor],
-    neighbours: Union[
-        None,
-        np.ndarray,
-        torch.LongTensor,
-        Callable[[torch.Tensor, int], torch.LongTensor],
-    ],
+    neighbours: Neighbours,
     full_if_none: bool = False,
     **kwargs: Any,
 ) -> Callable[[int], torch.LongTensor]:
     """Create a function that takes the index of an item and returns the indices of its neighbours.
 
-    The neighbours parameter is primarily one of:
-     - euclidean_nearest_neighbours
-     - kernel_neighbours
-     - cluster_neighbours
-     - radius_neighbours
-
     Args:
         sm: Trained Slisemap solution or an embedding vector (like Slisemap.Z).
         neighbours: Either None (return self), a vector of cluster id:s (take neighbours from the same cluter), or a function that gives neighbours (that takes a distance matrix and an index).
         full_if_none: If `neighbours` is None, return the whole dataset. Defaults to False.
+
     Keyword Args:
         **kwargs: Arguments passed on to `neighbours` (if it is a function).
 
@@ -167,12 +177,18 @@ def get_neighbours(
     """
     if neighbours is None:
         if full_if_none:
-            n = sm.n if isinstance(sm, Slisemap) else sm.shape[0]
+            try:
+                n = sm.n
+            except AttributeError:
+                n = sm.shape[0]
             return lambda i: torch.arange(n)
         else:
             return lambda i: torch.LongTensor([i])
     if callable(neighbours):
-        D = sm.get_D(numpy=False) if isinstance(sm, Slisemap) else torch.cdist(sm, sm)
+        try:
+            D = sm.get_D(numpy=False)
+        except AttributeError:
+            D = torch.cdist(sm, sm)
         return lambda i: neighbours(D, i, **kwargs)
     else:
         neighbours = torch.as_tensor(neighbours)
@@ -199,13 +215,14 @@ def entropy(
     """Compute row-wise entropy of the `W` matrix induced by `Z`.
 
     Args:
+        sm: Trained Slisemap solution.
         aggregate: Aggregate the row-wise entropies into one scalar. Defaults to True.
         numpy: Return a `numpy.ndarray` or `float` instead of a `torch.Tensor`. Defaults to True.
 
     Returns:
         The entropy.
     """
-    W = sm.get_W(False)
+    W = sm.get_W(numpy=False)
     entropy = -(W * W.log()).sum(dim=1)
     if aggregate:
         entropy = entropy.mean().exp() / sm.n
@@ -215,7 +232,7 @@ def entropy(
 
 
 def slisemap_entropy(sm: Slisemap) -> float:
-    """Evaluate a SLISEMAP solution by calculating the entropy. **DEPRECATED**
+    """Evaluate a SLISEMAP solution by calculating the entropy. **DEPRECATED**.
 
     Args:
         sm: Trained Slisemap solution.
@@ -230,16 +247,7 @@ def slisemap_entropy(sm: Slisemap) -> float:
     return entropy(sm, aggregate=True, numpy=True)
 
 
-def fidelity(
-    sm: Slisemap,
-    neighbours: Union[
-        None,
-        np.ndarray,
-        torch.LongTensor,
-        Callable[[torch.Tensor, int], torch.LongTensor],
-    ] = None,
-    **kwargs: Any,
-) -> float:
+def fidelity(sm: Slisemap, neighbours: Neighbours = None, **kwargs: Any) -> float:
     """Evaluate a SLISEMAP solution by calculating the fidelity (loss per item/neighbourhood).
 
     Smaller is better.
@@ -247,6 +255,7 @@ def fidelity(
     Args:
         sm: Trained Slisemap solution.
         neighbours: Either None (only corresponding local model), a vector of cluster id:s, or a function that gives neighbours (see [get_neighbours][slisemap.metrics.get_neighbours]).
+
     Keyword Args:
         **kwargs: Arguments passed on to `neighbours` (if it is a function).
 
@@ -266,15 +275,7 @@ def fidelity(
 
 
 def coverage(
-    sm: Slisemap,
-    max_loss: float,
-    neighbours: Union[
-        None,
-        np.ndarray,
-        torch.LongTensor,
-        Callable[[torch.Tensor, int], torch.LongTensor],
-    ] = None,
-    **kwargs: Any,
+    sm: Slisemap, max_loss: float, neighbours: Neighbours = None, **kwargs: Any
 ) -> float:
     """Evaluate a SLISEMAP solution by calculating the coverage.
 
@@ -284,13 +285,14 @@ def coverage(
         sm: Trained Slisemap solution.
         max_loss: Maximum tolerable loss.
         neighbours: Either None (all), a vector of cluster id:s, or a function that gives neighbours (see [get_neighbours][slisemap.metrics.get_neighbours]).
+
     Keyword Args:
         **kwargs: Arguments passed on to `neighbours` (if it is a function).
 
     Returns:
         The mean fraction of items within the error bound.
     """
-    if torch.all(torch.isnan(sm._B.sum(1))).cpu().item():
+    if torch.all(torch.isnan(sm.get_B(numpy=False).sum(1))).cpu().item():
         return np.nan
     neighbours = get_neighbours(sm, neighbours, full_if_none=True, **kwargs)
     results = np.zeros(sm.n)
@@ -304,16 +306,7 @@ def coverage(
     return nanmean(results)
 
 
-def median_loss(
-    sm: Slisemap,
-    neighbours: Union[
-        None,
-        np.ndarray,
-        torch.LongTensor,
-        Callable[[torch.Tensor, int], torch.LongTensor],
-    ] = None,
-    **kwargs: Any,
-) -> float:
+def median_loss(sm: Slisemap, neighbours: Neighbours = None, **kwargs: Any) -> float:
     """Evaluate a SLISEMAP solution by calculating the median loss.
 
     Smaller is better.
@@ -321,6 +314,7 @@ def median_loss(
     Args:
         sm: Trained Slisemap solution.
         neighbours: Either None (all), a vector of cluster id:s, or a function that gives neighbours (see [get_neighbours][slisemap.metrics.get_neighbours]).
+
     Keyword Args:
         **kwargs: Arguments passed on to `neighbours` (if it is a function).
 
@@ -339,16 +333,7 @@ def median_loss(
     return nanmean(results)
 
 
-def coherence(
-    sm: Slisemap,
-    neighbours: Union[
-        None,
-        np.ndarray,
-        torch.LongTensor,
-        Callable[[torch.Tensor, int], torch.LongTensor],
-    ] = None,
-    **kwargs: Any,
-) -> float:
+def coherence(sm: Slisemap, neighbours: Neighbours = None, **kwargs: Any) -> float:
     """Evaluate a SLISEMAP solution by calculating the coherence (max change in prediction divided by the change in variable values).
 
     Smaller is better.
@@ -356,6 +341,7 @@ def coherence(
     Args:
         sm: Trained Slisemap solution.
         neighbours: Either None (all), a vector of cluster id:s, or a function that gives neighbours (see [get_neighbours][slisemap.metrics.get_neighbours]).
+
     Keyword Args:
         **kwargs: Arguments passed on to `neighbours` (if it is a function).
 
@@ -366,7 +352,7 @@ def coherence(
         sm, neighbours, full_if_none=True, include_self=False, **kwargs
     )
     results = np.zeros(sm.n)
-    P = sm.local_model(sm._X, sm._B)
+    P = sm.local_model(sm._X, sm.get_B(numpy=False))
     for i in range(len(results)):
         ni = neighbours(i)
         if ni.numel() == 0:
@@ -378,16 +364,7 @@ def coherence(
     return nanmean(results)
 
 
-def stability(
-    sm: Slisemap,
-    neighbours: Union[
-        None,
-        np.ndarray,
-        torch.LongTensor,
-        Callable[[torch.Tensor, int], torch.LongTensor],
-    ] = None,
-    **kwargs: Any,
-) -> float:
+def stability(sm: Slisemap, neighbours: Neighbours = None, **kwargs: Any) -> float:
     """Evaluate a SLISEMAP solution by calculating the stability (max change in the local model divided by the change in variable values).
 
     Smaller is better.
@@ -395,6 +372,7 @@ def stability(
     Args:
         sm: Trained Slisemap solution.
         neighbours: Either None (all), a vector of cluster id:s, or a function that gives neighbours (see [get_neighbours][slisemap.metrics.get_neighbours]).
+
     Keyword Args:
         **kwargs: Arguments passed on to `neighbours` (if it is a function).
 
@@ -405,13 +383,15 @@ def stability(
         sm, neighbours, full_if_none=True, include_self=False, **kwargs
     )
     results = np.zeros(sm.n)
+    B = sm.get_B(numpy=False)
+    X = sm.get_X(numpy=False)
     for i in range(len(results)):
         ni = neighbours(i)
         if ni.numel() == 0:
             results[i] = np.nan
         else:
-            dB = torch.sum((sm._B[None, i, :] - sm._B[ni, :]) ** 2, 1)
-            dX = torch.sum((sm._X[None, i, :] - sm._X[ni, :]) ** 2, 1) + 1e-8
+            dB = torch.sum((B[None, i, :] - B[ni, :]) ** 2, 1)
+            dX = torch.sum((X[None, i, :] - X[ni, :]) ** 2, 1) + 1e-8
             results[i] = torch.sqrt(torch.max(dB / dX))
     return nanmean(results)
 
@@ -420,13 +400,14 @@ def kmeans_matching(
     sm: Slisemap, clusters: Union[int, Sequence[int]] = range(2, 10), **kwargs: Any
 ) -> float:
     """Evaluate SLISE by measuring how well clusters in Z and B overlap (using kmeans to find the clusters).
-    The overlap is measured by finding the best matching clusters and dividing the size of intersect by the size of the union of each cluster pair.
 
+    The overlap is measured by finding the best matching clusters and dividing the size of intersect by the size of the union of each cluster pair.
     Larger is better.
 
     Args:
         sm: Trained Slisemap solution.
         clusters: The number of clusters. Defaults to range(2, 10).
+
     Keyword Args:
         **kwargs: Additional arguments to `sklearn.KMeans`.
 
@@ -460,8 +441,7 @@ def kmeans_matching(
 
 
 def cluster_purity(
-    sm: Union[Slisemap, torch.Tensor, np.ndarray],
-    clusters: Union[np.ndarray, torch.LongTensor],
+    sm: Union[Slisemap, ToTensor], clusters: Union[np.ndarray, torch.LongTensor]
 ) -> float:
     """Evaluate a SLISEMAP solution by calculating how many items in the same cluster are neighbours.
 
@@ -474,12 +454,10 @@ def cluster_purity(
     Returns:
         The mean number of items sharing cluster that are neighbours.
     """
-    if isinstance(sm, Slisemap):
+    try:
         Z = sm.get_Z(numpy=False)
-    elif isinstance(sm, torch.Tensor):
-        Z = sm
-    else:
-        Z = torch.as_tensor(sm)
+    except AttributeError:
+        Z = to_tensor(sm)
     if isinstance(clusters, np.ndarray):
         clusters = torch.as_tensor(clusters, device=Z.device)
     res = np.zeros(Z.shape[0])
@@ -497,7 +475,7 @@ def kernel_purity(
     epsilon: float = 1.0,
     losses: bool = False,
 ) -> float:
-    """Evaluate a SLISEMAP solution by calculating how many neighbours are in the same cluster
+    """Evaluate a SLISEMAP solution by calculating how many neighbours are in the same cluster.
 
     Larger is better.
 
@@ -513,10 +491,7 @@ def kernel_purity(
     if isinstance(clusters, np.ndarray):
         clusters = torch.tensor(clusters)
     res = np.zeros(sm.n)
-    if losses:
-        D = sm.get_L(numpy=False)
-    else:
-        D = sm.get_D(numpy=False)
+    D = sm.get_L(numpy=False) if losses else sm.get_D(numpy=False)
     for i in range(len(res)):
         mask = clusters[i] == clusters
         neig = kernel_neighbours(D, i, epsilon)
@@ -598,8 +573,9 @@ def relevance(sm: Slisemap, pred_fn: Callable, change: float) -> float:
         The mean number of mutated variables required to cause a large enough change in the prediction.
     """
     rel = np.ones(sm.n) * sm.m
+    B = sm.get_B(numpy=False)
     for i in range(len(rel)):
-        b = sm._B[i, :]
+        b = B[i, :]
         x = sm._X[i, :]
         y = sm._Y[i, 0]
         xmax = torch.max(sm._X, 0)[0]
@@ -618,33 +594,53 @@ def relevance(sm: Slisemap, pred_fn: Callable, change: float) -> float:
 
 def accuracy(
     sm: Slisemap,
-    X: Union[None, np.ndarray, torch.Tensor] = None,
-    Y: Union[None, np.ndarray, torch.Tensor] = None,
+    X: Optional[ToTensor] = None,
+    Y: Optional[ToTensor] = None,
     fidelity: bool = True,
     optimise: bool = False,
+    fit_new: bool = False,
     **kwargs: Any,
 ) -> float:
-    """Evaluate a SLISEMAP solution by checking how well the fitted models work on new points
+    """Evaluate a SLISEMAP solution by checking how well the fitted models work on new points.
 
     Args:
         sm: Trained Slisemap solution.
         X: New data matrix (uses the training data if None). Defaults to None.
         Y: New target matrix (uses the training data if None). Defaults to None.
         fidelity: Return the mean local loss (fidelity) instead of the mean embedding weighted loss. Defaults to True.
+        optimise: If `fit_new`, optimise the new points. Defaults to False.
+        fit_new: Use `[Slisemap.fit_new][slisemap.slisemap.Slisemap.fit_new]` instead of `[Slisemap.predict][slisemap.slisemap.Slisemap.predict]` (if `fidelity=True`). Defaults to True.
+
     Keyword Args:
-        **kwargs: Optional keyword arguments to [Slisemap.fit_new][slisemap.slisemap.Slisemap.fit_new].
+        **kwargs: Optional keyword arguments to [Slisemap.predict][slisemap.slisemap.Slisemap.predict].
 
     Returns:
         Mean loss for the new points.
+
+    Deprecated:
+        1.6: `fit_new`, `fidelity`, `optimise`.
     """
     if X is None or Y is None:
         X = sm.get_X(intercept=False, numpy=False)
         Y = sm.get_Y(numpy=False)
+    if fit_new:
+        _deprecated("accuracy(..., fit_new=True)")
+    if not fidelity:
+        _deprecated("accuracy(..., fidelity=False)")
+    if optimise:
+        _deprecated("accuracy(..., optimise=True)")
     if not fidelity:
         loss = sm.fit_new(X, Y, loss=True, optimise=optimise, numpy=False, **kwargs)[2]
         return loss.mean().cpu().item()
     else:
         X = sm._as_new_X(X)
         Y = sm._as_new_Y(Y, X.shape[0])
-        B, _ = sm.fit_new(X, Y, loss=False, optimise=optimise, numpy=False, **kwargs)
-        return sm.local_loss(sm.predict(X, B, numpy=False), Y, B).mean().cpu().item()
+        if fit_new:
+            B, _ = sm.fit_new(
+                X, Y, loss=False, optimise=optimise, numpy=False, **kwargs
+            )
+            return sm.local_loss(sm.predict(X, B, numpy=False), Y).mean().cpu().item()
+        else:
+            loss = sm.local_loss(sm.predict(X, **kwargs, numpy=False), Y)
+            assert loss.shape == X.shape[:1]
+            return loss.mean().cpu().item()

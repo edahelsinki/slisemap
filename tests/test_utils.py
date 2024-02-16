@@ -1,9 +1,22 @@
 from timeit import default_timer as timer
 
+import numpy as np
 import pytest
-from slisemap.utils import *
+import torch
 
-from .utils import *
+from slisemap import Slipmap
+from slisemap.slisemap import Slisemap
+from slisemap.utils import (
+    CheckConvergence,
+    PCA_rotation,
+    SlisemapWarning,
+    dict_array,
+    dict_concat,
+    global_model,
+    to_tensor,
+)
+
+from .utils import assert_allclose, get_slisemap, get_slisemap2, set_seed
 
 
 def test_LBFGS():
@@ -89,11 +102,20 @@ def test_PCA_for_rotation():
 
 
 def test_dict():
-    dict_array(dict())
-    dict_array(dict(a=2, b="asd", c=[1, 2, 3], d=np.arange(3), e=0.2, f=None))
-    dict_concat(dict() for _ in range(3))
+    dict_array({})
+    dict_array(
+        {"a": 2, "b": "asd", "c": [1, 2, 3], "d": np.arange(3), "e": 0.2, "f": None}
+    )
+    dict_concat({} for _ in range(3))
     dict_concat(
-        dict(a=2, b="asd", c=list(range(i)), d=np.arange(i), e=0.2, f=None)
+        {
+            "a": 2,
+            "b": "asd",
+            "c": list(range(i)),
+            "d": np.arange(i),
+            "e": 0.2,
+            "f": None,
+        }
         for i in range(2, 3)
     )
 
@@ -101,8 +123,8 @@ def test_dict():
 def test_to_tensor():
     X = np.random.normal(0, 1, (5, 5))
     X2 = torch.as_tensor(X)
-    X3 = [c for c in X]
-    X4 = {k: v for k, v in enumerate(X.T)}
+    X3 = list(X)
+    X4 = dict(enumerate(X.T))
 
     def test(X):
         Xn, r, c = to_tensor(X)
@@ -112,7 +134,8 @@ def test_to_tensor():
 
     test(X)
     test(X2)
-    test(X3)
+    with pytest.warns(UserWarning, match="extremely slow"):
+        test(X3)
     test(X4)
 
     try:
@@ -122,6 +145,8 @@ def test_to_tensor():
         test(pandas.DataFrame(X4))
         rows = [1, 4, 2, 0, 3]
         assert_allclose(rows, to_tensor(pandas.DataFrame(X4).iloc[rows])[1])
+        Slisemap(X=pandas.DataFrame(X4), y=X3[1], lasso=0.1)
+        Slipmap(X=pandas.DataFrame(X4), y=X3[1], lasso=0.1)
     except ImportError:
         pass
 

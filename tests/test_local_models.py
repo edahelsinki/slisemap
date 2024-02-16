@@ -1,8 +1,22 @@
+import numpy as np
 import pytest
 import torch
-from slisemap.local_models import *
 
-from .utils import *
+from slisemap.local_models import (
+    ALocalModel,
+    LinearRegression,
+    identify_local_model,
+    linear_regression,
+    linear_regression_coefficients,
+    linear_regression_loss,
+    local_predict,
+    logistic_regression,
+    logistic_regression_coefficients,
+    logistic_regression_log,
+    logistic_regression_log_loss,
+    logistic_regression_loss,
+)
+from slisemap.utils import SlisemapException
 
 
 def test_linear_model():
@@ -41,7 +55,6 @@ def test_logistic_model():
     Y = torch.as_tensor(np.eye(2)[np.random.randint(0, 2, 10)])
     assert B.shape[1] == logistic_regression_coefficients(X, Y)
     P = logistic_regression(X, B)
-    print(P.shape, Y.shape)
     L = logistic_regression_loss(P, Y)
     assert P.shape == (10, 10, 2)
     assert L.shape == (10, 10)
@@ -51,6 +64,11 @@ def test_logistic_model():
     assert logistic_regression(X[:1, :], B).shape == (10, 1, 2)
     torch.jit.trace(logistic_regression, (X, B))
     torch.jit.trace(logistic_regression_loss, (P, Y))
+    with pytest.raises(SlisemapException, match="AssertionError"):
+        logistic_regression_loss(
+            logistic_regression(X, B),
+            torch.as_tensor(np.random.uniform(0, 1.0, size=(10, 1))),
+        )
     B = torch.as_tensor(np.random.normal(size=(10, 8)))
     Y = torch.as_tensor(np.eye(3)[np.random.randint(0, 3, 10)])
     assert B.shape[1] == logistic_regression_coefficients(X, Y)
@@ -98,14 +116,16 @@ def test_logistic_log_model():
 
 
 def test_identify():
-    p, l, c = identify_local_model(LinearRegression)
-    assert p == linear_regression
-    assert l == linear_regression_loss
-    assert c == linear_regression_coefficients
-    p, l, c = identify_local_model(LinearRegression, logistic_regression_loss, 3)
-    assert p == linear_regression
-    assert l == logistic_regression_loss
-    assert c(None, None) == 3
+    pr, lo, co, re = identify_local_model(LinearRegression)
+    assert pr == linear_regression
+    assert lo == linear_regression_loss
+    assert co == linear_regression_coefficients
+    assert re == ALocalModel.regularisation
+    pr, lo, co, re = identify_local_model(LinearRegression, logistic_regression_loss, 3)
+    assert pr == linear_regression
+    assert lo == logistic_regression_loss
+    assert co(None, None) == 3
+    assert re == ALocalModel.regularisation
 
 
 def test_local_predict():

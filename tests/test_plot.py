@@ -1,6 +1,9 @@
+import numpy as np
 from matplotlib import pyplot as plt
 
-from .utils import *
+from slisemap.slisemap import Slisemap
+
+from .utils import assert_allclose, get_slisemap2
 
 
 def test_plot():
@@ -9,7 +12,6 @@ def test_plot():
         sm.plot(title="ASD", clusters=4, show=False)
         sm.plot(title="ASD", clusters=4, bars=True, show=False)
         sm.plot(title="ASD", clusters=4, bars=-1, show=False)
-        sm.plot(title="ASD", clusters=0, show=False)
         sm.plot(clusters=cl, bars=False, show=False)
         sm.plot(clusters=cl, bars=True, show=False)
         cl2 = np.asarray([f"A{9-i}" for i in np.unique(cl)])[cl]
