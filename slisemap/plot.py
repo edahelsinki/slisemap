@@ -1,12 +1,11 @@
-"""
-Utility functions for plotting
-"""
+"""Utility functions for plotting."""
 
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import seaborn as sns
-from matplotlib import pyplot as plt, figure
+from matplotlib import figure
+from matplotlib import pyplot as plt
 from matplotlib.colors import Colormap
 from matplotlib.lines import Line2D
 
@@ -21,8 +20,8 @@ def _expand_variable_names(
     coefficients: int,
 ) -> List[str]:
     if intercept and len(variables) == columns - 1:
-        variables = list(variables) + ["Intercept"]
-    if targets and not isinstance(targets, str) and len(targets) > 0:
+        variables = [*list(variables), "Intercept"]
+    if targets and not isinstance(targets, str) and len(targets) > 0:  # noqa: SIM102
         if coefficients % len(variables) == 0 and coefficients % len(targets) == 0:
             variables = [f"{t}: {v}" for t in targets for v in variables]
             variables = variables[:coefficients]
@@ -50,21 +49,21 @@ def _create_legend(
     if max(abs(i) for i in hue_norm) < 10:
         min_digits += 1
     for i in range(max_digits):
-        labels = [f"{l:.{i}f}" for l in values]
-        length = max(len(l) for l in labels)
+        labels = [f"{v:.{i}f}" for v in values]
+        length = max(len(s) for s in labels)
         if length < min_digits:
             continue
         if len(np.unique(labels)) == markers:
-            if length == min_digits:
+            if length == min_digits:  # noqa: SIM102
                 # Do not count '-' for short labels
-                if not any(len(l) == length and v >= 0 for v, l in zip(values, labels)):
+                if not any(len(s) == length and v >= 0 for v, s in zip(values, labels)):
                     i += 1
             break
-    labels = [f"{l:{length}.{i}f}" for l in values]
+    labels = [f"{v:{length}.{i}f}" for v in values]
     return handles, labels
 
 
-def legend_inside_facet(grid: sns.FacetGrid):
+def legend_inside_facet(grid: sns.FacetGrid) -> None:
     """Move the legend to within the facet grid if possible.
 
     Args:
@@ -84,7 +83,12 @@ def legend_inside_facet(grid: sns.FacetGrid):
         plt.tight_layout()
 
 
-def _prepare_Z(Z, Z_names, jitter, function) -> Tuple[np.ndarray, Tuple[str, str]]:
+def _prepare_Z(
+    Z: np.ndarray,
+    Z_names: Sequence[str],
+    jitter: Union[float, np.ndarray],
+    function: Callable,
+) -> Tuple[np.ndarray, Tuple[str, str]]:
     if Z.shape[1] > 2:
         _warn("Only the first two dimensions in the embedding are plotted", function)
     elif Z.shape[1] < 2:
@@ -120,6 +124,7 @@ def plot_embedding(
         color: Variable for coloring. Defaults to None.
         color_name: Variable name. Defaults to "".
         color_norm: Color scale limits. Defaults to None.
+
     Keyword Args:
         **kwargs: Additional arguments to `seaborn.scatterplot`.
 
@@ -176,6 +181,7 @@ def plot_matrix(
         title: Title of the plot. Defaults to "Local models".
         xlabel: Label for the x-axis. Defaults to "Data items sorted left to right".
         items: Ticklabels for the x-axis. Defaults to None.
+
     Keyword Args:
         **kwargs: Additional arguments to `seaborn.heatmap`.
 
@@ -216,6 +222,9 @@ def plot_barmodels(
         coefficients: Coefficient names.
         bars: Number / list of variables to show (or a bool for all). Defaults to True.
         palette: `seaborn` palette. Defaults to "bright".
+        xlabel: Label for the x-axis. Defaults to "Coefficients".
+        title: Title of the plot. Defaults to "Cluster mean local model".
+
     Keyword Args:
         **kwargs: Additional arguments to `seaborn.barplot`.
 
@@ -269,7 +278,9 @@ def plot_embedding_facet(
         names: Column names.
         legend_title: Legend title. Defaults to "Value".
         jitter: jitter. Defaults to 0.0.
+        share_hue: Share color legend between facets.
         equal_aspect: Set equal scale for the axes. Defaults to True.
+
     Keyword Args:
         **kwargs: Additional arguments to `seaborn.relplot`.
 
@@ -335,6 +346,7 @@ def plot_density_facet(
         data: Data matrix.
         names: Column names.
         clusters: Cluster labels. Defaults to None.
+
     Keyword Args:
         **kwargs: Additional arguments to `seaborn.displot`.
 
@@ -350,7 +362,7 @@ def plot_density_facet(
         kwargs.setdefault("common_norm", False)
     if clusters is not None:
         kwargs.setdefault("palette", "bright")
-    kwargs.setdefault("facet_kws", dict(sharex=False, sharey=False))
+    kwargs.setdefault("facet_kws", {"sharex": False, "sharey": False})
     g = sns.displot(
         data=df,
         x="Value",
@@ -363,7 +375,7 @@ def plot_density_facet(
     return g
 
 
-def plot_prototypes(Zp: np.ndarray, *axs: plt.Axes):
+def plot_prototypes(Zp: np.ndarray, *axs: plt.Axes) -> None:
     """Draw a grid of prototypes.
 
     Args:
@@ -390,7 +402,7 @@ def plot_solution(
     right_kwargs: Dict[str, object] = {},
     **kwargs: Any,
 ) -> figure.Figure:
-    """Plot a Slisemap solution
+    """Plot a Slisemap solution.
 
     Args:
         Z: Embedding matrix.
@@ -405,6 +417,7 @@ def plot_solution(
         jitter: Add noise to the embedding. Defaults to 0.0.
         left_kwargs: Keyword arguments to the left (embedding) plot. Defaults to {}.
         right_kwargs: Keyword arguments to the right (matrix/bar) plot. Defaults to {}.
+
     Keyword Args:
         **kwargs: Additional arguments to `matplotlib.pyplot.subplots`.
 
@@ -472,6 +485,7 @@ def plot_position(
         jitter: Add random noise to the embedding. Defaults to 0.0.
         legend_inside: Move the legend inside the grid (if there is an empty cell). Defaults to True.
         marker_size: Multiply the point size with this value. Defaults to 1.0.
+
     Keyword Args:
         **kwargs: Additional arguments to `seaborn.relplot`.
 
@@ -499,7 +513,7 @@ def plot_position(
     # Legend
     col_wrap = kwargs["col_wrap"]
     facets = g._n_facets
-    legend = {l: h for h, l in zip(*_create_legend(hue_norm, kwargs["palette"], 6))}
+    legend = {s: h for h, s in zip(*_create_legend(hue_norm, kwargs["palette"], 6))}
     inside = legend_inside and col_wrap < facets and facets % col_wrap != 0
     w = 1 / col_wrap
     h = 1 / ((facets - 1) // col_wrap + 1)
@@ -566,6 +580,7 @@ def plot_dist(
         scatter: Plot a scatterplot instead of a density plot. Defaults to False.
         jitter: Add noise to the embedding. Defaults to 0.0.
         legend_inside: Move the legend inside a facet, if possible.. Defaults to True.
+
     Keyword Args:
         **kwargs: Additional arguments to `seaborn.relplot` or `seaborn.scatterplot`.
 

@@ -7,7 +7,7 @@ name = "slisemap"
 version = "1.6.0"
 authors = [
     { name = "Anton Björklund", email = "anton.bjorklund@helsinki.fi" },
-    { name = "Jarmo Mäkelä", email = "jarmo.makela@helsinki.fi" },
+    { name = "Jarmo Mäkelä" },
     { name = "Kai Puolamäki", email = "kai.puolamaki@helsinki.fi" },
 ]
 description = "SLISEMAP: Combine local explanations with supervised dimensionality reduction"
@@ -37,7 +37,7 @@ dependencies = [
 
 [project.optional-dependencies]
 tuning = ["scikit-optimize >= 0.9", "scipy >= 0.17"]
-dev = ["pytest", "pytest-cov", "black[jupyter]", "pylint", "jupyter", "IPython"]
+dev = ["pytest", "pytest-cov", "black[jupyter]", "ruff", "jupyter", "IPython"]
 
 [project.urls]
 homepage = "https://github.com/edahelsinki/slisemap"
@@ -59,3 +59,41 @@ exclude_also = [
     "ImportError",
     "_warn",
 ]
+
+[tool.ruff.lint]
+select = [
+    "I",
+    "E",
+    "F",
+    "B",
+    "C4",
+    "W",
+    "D",
+    "UP",
+    "ANN",
+    "SIM",
+    "RUF",
+    "S",
+    "N",
+]
+ignore = [
+    "E501",
+    "B006",
+    "D105",
+    "D203",
+    "D204",
+    "D406",
+    "D213",
+    "D407",
+    "D413",
+    "ANN101",
+    "ANN102",
+    "ANN401",
+    "S101",
+    "N802",
+    "N803",
+    "N806",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D", "ANN"]

@@ -1,8 +1,6 @@
-"""
-This module contains alternative escape heuristics.
-"""
+"""Module that contains alternative escape heuristics."""
 
-from typing import Callable, Optional, Tuple
+from typing import Any, Callable, Optional, Tuple
 
 import numpy as np
 import torch
@@ -21,9 +19,10 @@ def escape_neighbourhood(
     kernel: Callable[[torch.Tensor], torch.Tensor],
     radius: float = 3.5,
     force_move: bool = False,
-    **_,
+    **_: Any,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Try to escape a local optimum by moving the data items.
+
     Move the data items to the neighbourhoods (embedding and local model) best suited for them.
     This is done by finding another item (in the optimal neighbourhood) and copying its values for Z and B.
 
@@ -77,9 +76,10 @@ def escape_greedy(
     kernel: Callable[[torch.Tensor], torch.Tensor],
     radius: float = 3.5,
     force_move: bool = False,
-    **_,
+    **_: Any,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Try to escape a local optimum by moving the data items.
+
     Move the data items to a locations with optimal local models.
     This is done by finding another item (with an optimal local model) and copying its values for Z and B.
 
@@ -122,9 +122,10 @@ def escape_combined(
     kernel: Callable[[torch.Tensor], torch.Tensor],
     radius: float = 3.5,
     force_move: bool = False,
-    **_,
+    **_: Any,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Try to escape a local optimum by moving the data items.
+
     Move the data items to the neighbourhoods (embedding and local model) best suited for them.
     This is done by finding another item (in the optimal neighbourhood) and copying its values for Z and B.
 
@@ -179,9 +180,10 @@ def escape_marginal(
     Xold: Optional[torch.Tensor] = None,
     Yold: Optional[torch.Tensor] = None,
     jit: bool = True,
-    **_,
+    **_: Any,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Try to escape a local optimum by moving the data items.
+
     Move the data items to locations with optimal marginal losses.
     This is done by finding another item (where the marginal loss is optimal) and copying its values for Z and B.
 
@@ -199,6 +201,8 @@ def escape_marginal(
         radius: For enforcing the radius of Z. Defaults to 3.5.
         force_move: Do not allow the items to pair with themselves. Defaults to True.
         jit: Just-In-Time compile the loss function. Defaults to True.
+        Xold: Trained X. Defaults to X.
+        Yold: Trained Y. Defaults to Y.
 
     Returns:
         B: Escaped `B`.
@@ -244,8 +248,8 @@ def escape_marginal(
         for j in range(Z.shape[0]):
             if force_move and i == j:
                 continue
-            l = lf(B[j : j + 1], Z2[j : j + 1])
-            if l < best:
-                best = l
+            loss = lf(B[j : j + 1], Z2[j : j + 1])
+            if loss < best:
+                best = loss
                 index[-1] = j
     return B.detach()[index].clone(), Z.detach()[index].clone()

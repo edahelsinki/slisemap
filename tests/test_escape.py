@@ -1,6 +1,14 @@
-from slisemap.escape import *
+import numpy as np
+import torch
 
-from .utils import *
+from slisemap.escape import (
+    escape_combined,
+    escape_greedy,
+    escape_marginal,
+    escape_neighbourhood,
+)
+
+from .utils import all_finite, get_slisemap2, set_seed
 
 
 def escape_one(x, y, B, Z, local_model, local_loss, kernel, radius=3.5, avoid=-1):

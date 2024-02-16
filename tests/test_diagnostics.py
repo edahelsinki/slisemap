@@ -1,9 +1,21 @@
-from matplotlib import pyplot as plt
 import numpy as np
+from matplotlib import pyplot as plt
 
-from slisemap.diagnostics import *
+from slisemap.diagnostics import (
+    diagnose,
+    distant_diagnostic,
+    global_loss_diagnostic,
+    heavyweight_diagnostic,
+    lightweight_diagnostic,
+    loss_neighbourhood_diagnostic,
+    optics_diagnostic,
+    plot_diagnostics,
+    print_diagnostics,
+    quantile_loss_diagnostic,
+    weight_neighbourhood_diagnostic,
+)
 
-from .utils import *
+from .utils import get_slisemap, get_slisemap2
 
 
 def test_print_plot():
@@ -14,7 +26,7 @@ def test_print_plot():
     try:
         plot_diagnostics(sm, diags, False, show=False)
         plot_diagnostics(sm, diags, True, show=False)
-        plot_diagnostics(sm, {k: v for k, v in [diags.popitem()]}, True, show=False)
+        plot_diagnostics(sm, dict([diags.popitem()]), True, show=False)
     finally:
         plt.close("all")
 

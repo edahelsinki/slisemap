@@ -6,7 +6,7 @@ import torch
 from slisemap.slisemap import Slisemap
 from slisemap.utils import SlisemapWarning
 
-from .utils import *
+from .utils import all_finite, assert_allclose, get_slisemap
 
 
 def test_save_load(tmp_path):

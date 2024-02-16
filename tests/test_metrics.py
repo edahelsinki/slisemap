@@ -3,10 +3,29 @@ from functools import partial
 import numpy as np
 import pytest
 
-from slisemap.metrics import *
+from slisemap.metrics import (
+    accuracy,
+    cluster_purity,
+    coherence,
+    coverage,
+    entropy,
+    euclidean_nearest_neighbours,
+    fidelity,
+    kernel_neighbours,
+    kernel_purity,
+    kmeans_matching,
+    median_loss,
+    precision,
+    radius_neighbours,
+    recall,
+    relevance,
+    slisemap_loss,
+    stability,
+)
 from slisemap.slipmap import Slipmap
+from slisemap.slisemap import Slisemap
 
-from .utils import *
+from .utils import all_finite, assert_approx_ge, get_slisemap, get_slisemap2
 
 
 @pytest.fixture(scope="session")
@@ -116,12 +135,12 @@ def test_coherence(metrics_data):
 def test_relevance(metrics_data):
     for sm1, sm2 in zip(metrics_data[::2], metrics_data[1::2]):
         if sm1.o < 2:
-            pred = lambda x: np.random.normal()
+            pred = lambda x: np.random.normal()  # noqa: E731
             assert all_finite(relevance(sm1, pred, 0.5))
             assert all_finite(relevance(sm2, pred, 0.5))
     # Does not (currently) work for num_classes > 2
     sm = get_slisemap(classes=2)
-    pred = lambda x: np.random.uniform()
+    pred = lambda x: np.random.uniform()  # noqa: E731
     assert all_finite(relevance(sm, pred, 0.5))
 
 

@@ -44,6 +44,12 @@ Or install the latest version directly from [GitHub](https://github.com/edahelsi
 pip install git+https://github.com/edahelsinki/slisemap
 ```
 
+To use the built-in hyperparameter tuning you also need `scikit-optimize`, which is automatically installed if you do:
+
+```sh
+pip install slisemap[tuning]
+```
+
 ### PyTorch
 
 Since SLISEMAP utilises PyTorch for efficient calculations, you might want to install a version that is optimised for your hardware. See [https://pytorch.org/get-started/locally](https://pytorch.org/get-started/locally/) for details.
