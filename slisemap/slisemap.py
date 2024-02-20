@@ -1,6 +1,7 @@
 """Module that contains the `Slisemap` class."""
 
 import lzma
+import warnings
 from copy import copy
 from os import PathLike
 from timeit import default_timer as timer
@@ -22,7 +23,7 @@ import numpy as np
 import seaborn as sns
 import torch
 from matplotlib.figure import Figure
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, MiniBatchKMeans
 
 from slisemap.escape import escape_neighbourhood
 from slisemap.local_models import (
@@ -1284,7 +1285,7 @@ class Slisemap:
             random_state: random_state for the KMeans clustering. Defaults to 42.
 
         Keyword Args:
-            **kwargs: Additional arguments to `sklearn.KMeans`.
+            **kwargs: Additional arguments to `sklearn.cluster.KMeans` or `sklearn.cluster.MiniBatchKMeans` if `self.n >= 1024`.
 
         Returns:
             labels: Vector of cluster labels.
@@ -1292,7 +1293,14 @@ class Slisemap:
         """
         B = B if B is not None else self.get_B()
         Z = Z if Z is not None else self.get_Z(rotate=True)
-        km = KMeans(clusters, random_state=random_state, **kwargs).fit(B)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
+            # Some sklearn versions warn about changing defaults for KMeans
+            kwargs.setdefault("random_state", random_state)
+            if self.n >= 1024:
+                km = MiniBatchKMeans(clusters, **kwargs).fit(B)
+            else:
+                km = KMeans(clusters, **kwargs).fit(B)
         ord = np.argsort([Z[km.labels_ == k, 0].mean() for k in range(clusters)])
         return np.argsort(ord)[km.labels_], km.cluster_centers_[ord]
 
