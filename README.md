@@ -18,12 +18,12 @@ SLIPMAP is largely compatible with SLISEMAP, just change the class name (`Slisem
 
 ## Citations
 
-The full SLISEMAP paper ([arXiv](https://arxiv.org/abs/2201.04455) and [supplements](https://github.com/edahelsinki/slisemap/tree/slisemap_experiments)):
+The full SLISEMAP paper ([arXiv](https://arxiv.org/abs/2201.04455), [supplements](https://github.com/edahelsinki/slisemap/tree/slisemap_experiments), and [slides](https://github.com/edahelsinki/slisemap/blob/data/slides/slisemap_slides.pdf)):
 > *Björklund, A., Mäkelä, J., & Puolamäki, K. (2023).*  
 > **SLISEMAP: Supervised dimensionality reduction through local explanations.**  
 > Machine Learning 112, 1-43. DOI: [10.1007/s10994-022-06261-1](https://doi.org/10.1007/s10994-022-06261-1)  
 
-The short demo paper ([video](https://youtu.be/zvcFYItwRlQ) and [slides](https://github.com/edahelsinki/slisemap/blob/main/examples/demo_presentation.pdf)):
+The short demo paper ([video](https://youtu.be/zvcFYItwRlQ) and [slides](https://github.com/edahelsinki/slisemap/blob/data/slides/demo_slides.pdf)):
 > *Björklund, A., Mäkelä, J., & Puolamäki, K. (2023).*  
 > **SLISEMAP: Combining Supervised Dimensionality Reduction with Local Explanations.**  
 > Machine Learning and Knowledge Discovery in Databases. ECML PKDD 2022. Lecture Notes in Computer Science, vol 13718. DOI: [10.1007/978-3-031-26422-1_41](https://doi.org/10.1007/978-3-031-26422-1_41).
