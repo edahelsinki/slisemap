@@ -47,6 +47,9 @@ nav:
   - Links:
       - GitHub: https://github.com/edahelsinki/slisemap
       - PyPI: https://pypi.org/project/slisemap/
+      - Paper (Slipmap):
+          - Paper: https://doi.org/10.1007/978-3-031-58553-1_18
+          - Slides: https://github.com/edahelsinki/slisemap/blob/data/slides/slipmap_slides.pdf
       - Paper (Slisemap):
           - Paper: https://doi.org/10.1007/s10994-022-06261-1
           - Slides: https://github.com/edahelsinki/slisemap/blob/data/slides/slisemap_slides.pdf

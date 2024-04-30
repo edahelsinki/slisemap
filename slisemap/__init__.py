@@ -16,7 +16,7 @@ the [documentation](https://edahelsinki.github.io/slisemap/slisemap), or the
 This module also includes the faster SLIPMAP variant, that uses "prototypes" to speed up
 the calculations (linear time and memory complexity instead of quadratic).
 SLIPMAP is largely compatible with SLISEMAP, just change the class name (`Slisemap` to `Slipmap`).
-For more information, see the sources above and the [paper](TODO).
+For more information, see the sources above and the [paper](https://doi.org/10.1007/978-3-031-58553-1_18).
 
 Documentation
 -------------
@@ -27,13 +27,14 @@ Documentation
 
 Citations
 ---------
-> Björklund, A., Mäkelä, J. & Puolamäki, K. (2023).
-> SLISEMAP: Supervised dimensionality reduction through local explanations.
-> Machine Learning 112, 1-43. DOI: 10.1007/s10994-022-06261-1.
+> Björklund, A., Mäkelä, J. & Puolamäki, K. (2023).  
+> SLISEMAP: Supervised dimensionality reduction through local explanations.  
+> Machine Learning 112, 1-43. DOI: 10.1007/s10994-022-06261-1.  
 
-> Björklund, A., Seppäläinen, L., & Puolamäki, K. (2024).
-> SLIPMAP: Fast and Robust Manifold Visualisation for Explainable AI
-> To appear in: Advances in Intelligent Data Analysis XXII. IDA 2024. Lecture Notes in Computer Science.
+> Björklund, A., Seppäläinen, L., & Puolamäki, K. (2024).  
+> SLIPMAP: Fast and Robust Manifold Visualisation for Explainable AI  
+> Advances in Intelligent Data Analysis XXII, pp. 223-235, LNCS 14642.  
+> DOI: 10.1007/978-3-031-58553-1_18.  
 
 
 Example Usage
@@ -47,7 +48,7 @@ Example Usage
     sm = Slipmap(X, y, radius=2.0, lasso=1e-4, ridge=2e-4)
     sm.optimise()
     sm.plot()
-"""  # noqa: D205
+"""  # noqa: D205, W291
 
 from slisemap.slipmap import Slipmap  # noqa: F401
 from slisemap.slisemap import Slisemap  # noqa: F401

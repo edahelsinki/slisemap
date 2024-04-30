@@ -4,11 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "slisemap"
-version = "1.6.1"
+version = "1.6.2"
 authors = [
     { name = "Anton Björklund", email = "anton.bjorklund@helsinki.fi" },
-    { name = "Jarmo Mäkelä" },
     { name = "Kai Puolamäki", email = "kai.puolamaki@helsinki.fi" },
+    { name = "Lauri Seppäläinen" },
+    { name = "Jarmo Mäkelä" },
 ]
 description = "SLISEMAP: Combine local explanations with supervised dimensionality reduction"
 readme = "README.md"
