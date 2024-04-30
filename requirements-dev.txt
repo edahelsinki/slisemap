@@ -1,0 +1,5 @@
+# Dependencies for the documentation generation
+mkdocs
+mkdocs-material
+mkdocs-include-markdown-plugin
+mkdocstrings[python]
