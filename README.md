@@ -28,7 +28,7 @@ The full SLISEMAP paper ([arXiv](https://arxiv.org/abs/2201.04455), [supplements
 > **SLISEMAP: Supervised dimensionality reduction through local explanations.**  
 > Machine Learning 112, 1-43. DOI: [10.1007/s10994-022-06261-1](https://doi.org/10.1007/s10994-022-06261-1)
 
-SLISEMAP application paper ([data and source code](https://www.edahelsinki.fi/papers/slisemap_phys)):
+SLISEMAP application paper ([data and source code](https://github.com/edahelsinki/paper-slisemap-physical)):
 > *Seppäläinen, L., Björklund, A., Besel, V., Puolamäki, K. (2024).* 
 > **Using SLISEMAP to interpret physical data.** 
 > PLOS ONE 19, e0297714. DOI: [10.1371/journal.pone.0297714](https://doi.org/10.1371/journal.pone.0297714)
