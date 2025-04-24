@@ -7,28 +7,28 @@
 [![DOI](https://img.shields.io/badge/DOI-10.1007%2Fs10994--022--06261--1-%23fcb426)](https://doi.org/10.1007/s10994-022-06261-1)
 # SLISEMAP: Combine supervised dimensionality reduction with local explanations
 
-SLISEMAP is a supervised dimensionality reduction method, that takes data, in the form of vectors, and predictions from a "black box" regression or classification model as input. SLISEMAP then simultaneously finds local explanations for all data items and builds a (typically) two-dimensional global visualisation of the black box model such that data items with similar local explanations are projected nearby. The explanations consists of interpretable models that locally approximate the "black box" model.
+SLISEMAP is a supervised dimensionality reduction method that takes data, in the form of vectors, and predictions from a "black box" regression or classification model as input. SLISEMAP then simultaneously finds local explanations for all data items and builds a (typically) two-dimensional global visualisation of the black box model such that data items with similar local explanations are projected nearby. The explanations consist of interpretable models that locally approximate the "black box" model.
 
 SLISEMAP is implemented in *Python* using *PyTorch* for efficient optimisation, and optional GPU-acceleration. For more information see the [papers](#citations), the [examples](https://github.com/edahelsinki/slisemap/tree/main/examples), or the [documentation](https://edahelsinki.github.io/slisemap/slisemap).
 
-*This library also includes the faster SLIPMAP variant, that uses "prototypes" to speed up
+*This library also includes the faster SLIPMAP variant, which uses "prototypes" to speed up
 the calculations (linear time and memory complexity instead of quadratic).
 SLIPMAP is largely compatible with SLISEMAP, just change the class name (`Slisemap` to `Slipmap`, see example below).*
 
 
 ## Citations
 
-The new SLIPMAP paper ([supplements](https://github.com/edahelsinki/slisemap/tree/slipmap_experiments) and [slides](https://github.com/edahelsinki/slisemap/blob/data/slides/slipmap_slides.pdf)):
-> *Björklund, A., Seppäläinen, L., Puolamäki, K. (2024).*  
-> **SLIPMAP: Fast and Robust Manifold Visualisation for Explainable AI.**  
-> Advances in Intelligent Data Analysis XXII, IDA 2024, pp. 223-235. Lecture Notes in Computer Science, vol 14642. DOI: [10.1007/978-3-031-58553-1_18](https://doi.org/10.1007/978-3-031-58553-1_18) (Best Paper Award)
-
 The full SLISEMAP paper ([arXiv](https://arxiv.org/abs/2201.04455), [supplements](https://github.com/edahelsinki/slisemap/tree/slisemap_experiments), and [slides](https://github.com/edahelsinki/slisemap/blob/data/slides/slisemap_slides.pdf)):
 > *Björklund, A., Mäkelä, J., Puolamäki, K. (2023).*  
 > **SLISEMAP: Supervised dimensionality reduction through local explanations.**  
 > Machine Learning 112, 1-43. DOI: [10.1007/s10994-022-06261-1](https://doi.org/10.1007/s10994-022-06261-1)
 
-SLISEMAP application paper ([data and source code](https://github.com/edahelsinki/paper-slisemap-physical)):
+The new SLIPMAP paper ([supplements](https://github.com/edahelsinki/slisemap/tree/slipmap_experiments) and [slides](https://github.com/edahelsinki/slisemap/blob/data/slides/slipmap_slides.pdf)):
+> *Björklund, A., Seppäläinen, L., Puolamäki, K. (2024).*  
+> **SLIPMAP: Fast and Robust Manifold Visualisation for Explainable AI.**  
+> Advances in Intelligent Data Analysis XXII, IDA 2024, pp. 223-235. Lecture Notes in Computer Science, vol 14642. DOI: [10.1007/978-3-031-58553-1_18](https://doi.org/10.1007/978-3-031-58553-1_18) (Best Paper Award)
+
+Applying SLISEMAP on physical data ([data and source code](https://github.com/edahelsinki/paper-slisemap-physical)):
 > *Seppäläinen, L., Björklund, A., Besel, V., Puolamäki, K. (2024).*  
 > **Using SLISEMAP to interpret physical data.**  
 > PLOS ONE 19, e0297714. DOI: [10.1371/journal.pone.0297714](https://doi.org/10.1371/journal.pone.0297714)
