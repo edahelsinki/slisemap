@@ -20,7 +20,7 @@ SLIPMAP is largely compatible with SLISEMAP, just change the class name (`Slisem
 
 The new SLIPMAP paper ([supplements](https://github.com/edahelsinki/slisemap/tree/slipmap_experiments) and [slides](https://github.com/edahelsinki/slisemap/blob/data/slides/slipmap_slides.pdf)):
 > *Björklund, A., Seppäläinen, L., Puolamäki, K. (2024).*  
-> **SLIPMAP: Fast and Robust Manifold Visualisation for Explainable AI**  
+> **SLIPMAP: Fast and Robust Manifold Visualisation for Explainable AI.**  
 > Advances in Intelligent Data Analysis XXII, IDA 2024, pp. 223-235. Lecture Notes in Computer Science, vol 14642. DOI: [10.1007/978-3-031-58553-1_18](https://doi.org/10.1007/978-3-031-58553-1_18) (Best Paper Award)
 
 The full SLISEMAP paper ([arXiv](https://arxiv.org/abs/2201.04455), [supplements](https://github.com/edahelsinki/slisemap/tree/slisemap_experiments), and [slides](https://github.com/edahelsinki/slisemap/blob/data/slides/slisemap_slides.pdf)):
